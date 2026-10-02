@@ -7,7 +7,8 @@
 1. 配置文件、模块、规则、代理协议和策略组语法：查阅 [Surge Manual](https://manual.nssurge.com/)。
 2. `surge-cli` / Controller 命令、参数和响应：查阅本 Skill 的 [Command Reference](command-reference.md)。
 3. 若保存的具体页面失效，从手册首页或侧栏目录重新定位；不要猜测 URL，也不要先用搜索引擎摘要代替官方正文。
-4. 需要验证完整配置且可访问安装了 Surge 的 Mac 时，使用官方解析器：
+- If local validation with the bundled Surge parser is unavailable (for example iSH), the Minis `surge-cli --check <path>` implementation uses Surge's official beta HTTPS validation service. This uploads the explicitly named file; use a redacted copy when the profile contains credentials, subscription URLs, or private server details.
+- To validate locally without uploading and an installed Mac is available, use the official parser:
 
 ```sh
 /Applications/Surge.app/Contents/Applications/surge-cli --check /path/to/profile.conf
@@ -20,10 +21,21 @@
 ### Profile
 
 - [Profile Format](https://manual.nssurge.com/profile/format.html)
+- [Requirement Expressions](https://manual.nssurge.com/profile/requirement.html) — iOS 5.22.0 / Mac 6.9.0 起支持 `DEVICE_NAME`
 - [General Section Options](https://manual.nssurge.com/profile/general.html)
 - [Module](https://manual.nssurge.com/profile/module.html)
 - [Managed Profile](https://manual.nssurge.com/profile/managed-profile.html)
 - [Keystore](https://manual.nssurge.com/profile/keystore.html)
+
+### 正式版 5.22.0 Profile 变化
+
+- `#!REQUIREMENT` 官方变量现包括 `DEVICE_NAME`（iOS 5.22.0+ / Mac 6.9.0+）；它是用户设置的设备名称，Privacy Mode 下读取结果可能被遮蔽。
+- `#include` 可与 section 内普通内容混排；多个或混合 include 因写回目标不明确会在 UI 中只读。
+- `[Ruleset *]`、`[WireGuard *]`、`[Tailscale *]` detached sections 支持通配 include。
+- inline Ruleset 可引用其他 inline Ruleset，也可引用外部 `RULE-SET` / `DOMAIN-SET`；循环引用会被拒绝并给出引用链。
+- Event scripts 新增 `engine-started` 与 `profile-reloaded` 事件。
+
+具体语法以相应官方手册正文和 `surge-cli --check` 结果为准，不根据发布说明猜测配置格式。
 
 ### 规则
 

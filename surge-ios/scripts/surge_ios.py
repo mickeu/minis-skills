@@ -94,6 +94,7 @@ def main():
     module.add_argument("state", choices=("on", "off"))
     for name in ("events", "rules", "traffic"):
         sub.add_parser(name)
+    sub.add_parser("metrics", help="Read Prometheus metrics from /v1/metrics")
     sub.add_parser("stop")
     args = p.parse_args()
 
@@ -135,6 +136,7 @@ def main():
     elif c == "modules": show(request("GET", "/v1/modules"))
     elif c == "module": show(request("POST", "/v1/modules", {args.name: args.state == "on"}))
     elif c in ("events", "rules", "traffic"): show(request("GET", f"/v1/{c}"))
+    elif c == "metrics": show(request("GET", "/v1/metrics"))
     elif c == "stop": show(request("POST", "/v1/stop", {}, dangerous=True, confirm=args.confirm_dangerous))
 
 

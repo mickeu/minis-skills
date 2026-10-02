@@ -2,12 +2,14 @@
 """Surge CLI-compatible client for Surge External Controller on iOS."""
 from __future__ import annotations
 import base64, difflib, getpass, json, os, signal, socket, sys
+import urllib.error, urllib.request
 from datetime import datetime
 from pathlib import Path
 
 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 DEFAULT_REMOTE = os.getenv("SURGE_CLI_REMOTE", "127.0.0.1:6170")
+VALIDATE_URL = "https://services.nssurge.com/v1/config/validate"
 CONTINUOUS_COMMANDS = {("log", "watch"), ("diagnostics",)}
 FINITE_STREAM_COMMANDS = {("test-policy-bandwidth",), ("benchmark", "encryption"), ("test-ponte",)}
 
@@ -22,7 +24,7 @@ Command groups:
   Inspection   dump, watch, log, logbook, proxy-runtime-status
   Automation   script, script-log, benchmark
   Gateway      device, vmnet, security ban
-  Control      reload, switch-profile, kill, stop, unattended-upgrade
+  Control      reload, restart-engine, switch-profile, kill, stop, unattended-upgrade
   Environment  environment, set, set-log-level
 
 Use `help <command>` for detailed usage, for example:
@@ -36,7 +38,7 @@ Available parameters:
   --password-stdin - Read the remote password from stdin
   Remote password fallback: SURGE_CLI_PASSWORD, then secure terminal prompt
 Utilities:
-  --check/-c <path> - Not available in iSH; use `profile check <name>`.
+  --check/-c <path> - Validate a profile with the official Surge beta service (uploads profile content)
 
 Minis defaults:
   Controller: 127.0.0.1:6170
@@ -68,7 +70,8 @@ HELP = {
 "script":"Usage:\n  script list\n  script run <cron-name>\n  script evaluate <script-js-path> [mock-script-type] [timeout]",
 "benchmark":"Usage: benchmark <encryption [data-size-mib] | rule-matching>",
 "vmnet":"Usage: vmnet <status|arp|ndp|ra>\n\nInspect the VMNET virtual interface used by Enhanced/Gateway Mode. Available on macOS only.\n\n  status  Interface configuration, addresses, MTU, and table sizes\n  arp     IPv4 neighbors learned from Gateway Mode clients\n  ndp     IPv6 neighbor table\n  ra      IPv6 Router Advertisement takeover state",
-"reload":"Usage: reload",
+"reload":"Usage: reload\n\nApply changed profile sections whenever possible while preserving unaffected runtime state.",
+"restart-engine":"Usage: restart-engine\n\nCompletely restart the Surge engine, close active connections, and clear caches and temporary rules.",
 "kill":"Usage: kill <connection-id>",
 "stop":"Usage: stop\n\nShut down Surge.",
 "environment":"Usage: environment",
@@ -103,7 +106,7 @@ def credential(stdin_mode: bool):
     return value
 
 def parse_cli(args):
-    raw=False; remote=DEFAULT_REMOTE; stdin_mode=False; command=[]; i=0
+    raw=False; remote=DEFAULT_REMOTE; stdin_mode=False; check_path=None; command=[]; i=0
     while i<len(args):
         a=args[i]
         if a=="--raw": raw=True
@@ -114,10 +117,49 @@ def parse_cli(args):
         elif a=="--password-stdin": stdin_mode=True
         elif a in ("--help","-h") and not command: print(MAIN_HELP); raise SystemExit
         elif a in ("--check","-c"):
-            die("Local profile file checking is unavailable in iSH; use `profile check <name>` for a Surge profile.",2)
+            i+=1
+            if i>=len(args): die(f"{a} requires a profile path",2)
+            if check_path is not None: die("Only one profile can be checked at a time",2)
+            check_path=args[i]
         else: command.append(a)
         i+=1
-    return raw,remote,stdin_mode,command
+    if check_path is not None and command:
+        die("--check/-c cannot be combined with a Controller command",2)
+    return raw,remote,stdin_mode,check_path,command
+
+def validate_profile(path: str, raw: bool):
+    try:
+        profile=Path(path).read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        die(f"Profile is not valid UTF-8: {path}",2)
+    except OSError as e:
+        die(f"Cannot read profile file {path}: {e}",2)
+    body=json.dumps({"profile":profile},ensure_ascii=False,separators=(",",":")).encode()
+    request=urllib.request.Request(
+        VALIDATE_URL,data=body,method="POST",
+        headers={"Content-Type":"application/json","Accept":"application/json","User-Agent":"surge-cli-minis/1"},
+    )
+    try:
+        with urllib.request.urlopen(request,timeout=30) as response:
+            result=json.loads(response.read())
+    except urllib.error.HTTPError as e:
+        detail=e.read().decode(errors="replace").strip()
+        die(f"Official validation service returned HTTP {e.code}"+(f": {detail}" if detail else ""))
+    except (urllib.error.URLError,TimeoutError,OSError) as e:
+        die(f"Cannot reach official validation service: {e}")
+    except (json.JSONDecodeError,UnicodeDecodeError):
+        die("Official validation service returned an invalid response")
+    if not isinstance(result,dict) or not isinstance(result.get("valid"),bool):
+        die("Official validation service returned an unexpected response")
+    if raw:
+        print(json.dumps(result,ensure_ascii=False,separators=(",",":")))
+    elif result["valid"]:
+        print("OK")
+    else:
+        error=result.get("error")
+        message=error.get("message") if isinstance(error,dict) else error
+        print(f"Failed: {message or 'Invalid profile'}",file=sys.stderr)
+    raise SystemExit(0 if result["valid"] else 1)
 
 def normalize(argv):
     """Apply client-side argument conversions used by official surge-cli."""
@@ -159,7 +201,13 @@ class Controller:
         if "error" in self.welcome: die(str(self.welcome["error"]))
         if self.welcome.get("result") != "Welcome to Surge CLI": die("Authorization denied")
     def send(self,argv):
-        payload=json.dumps({"argv":argv},ensure_ascii=False,separators=(",",":")).encode()+b"\r\n"
+        if not argv:
+            die("Controller command is empty",2)
+        if any("\r" in str(a) or "\n" in str(a) for a in argv):
+            die("Controller command arguments must not contain newlines",2)
+        # Official surge-cli 6.9.0 (formal build 12250) uses one textual command line:
+        # the command verb is bare and every following argv item is quoted.
+        payload=(str(argv[0])+"".join(f' \"{a}\"' for a in argv[1:])+"\r\n").encode()
         try: self.fp.write(payload)
         except OSError as e: die(f"Failed to send Controller command: {e}")
     def read_one(self):
@@ -330,7 +378,9 @@ def render(argv,o,original_argv=None):
     print(json.dumps(o,ensure_ascii=False,indent=2))
 
 def main():
-    raw,remote,stdin_mode,argv=parse_cli(sys.argv[1:])
+    raw,remote,stdin_mode,check_path,argv=parse_cli(sys.argv[1:])
+    if check_path is not None:
+        validate_profile(check_path,raw)
     if not argv: print(MAIN_HELP); return
     if argv[0]=="help":
         key=" ".join(argv[1:3]) if " ".join(argv[1:3]) in HELP else (argv[1] if len(argv)>1 else "")

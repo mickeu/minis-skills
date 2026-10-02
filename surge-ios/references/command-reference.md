@@ -1,6 +1,8 @@
 # Surge CLI / Controller Command Reference (for AI Agents)
 
-This document provides a complete operational reference for AI agents, including advanced commands not shown by `-h`.
+This document is the Surge CLI operational reference for AI agents. It covers
+the product-oriented commands intended for routine use and the advanced
+controller commands that are not all shown by `-h`.
 
 ## 1. CLI Usage
 
@@ -21,7 +23,7 @@ Executable location in Minis:
 - `--raw`: output raw JSON (recommended for agents).
 - `--remote` / `-r`: connect to another Controller; the Minis default is `127.0.0.1:6170`.
 - Authentication comes from `--password-stdin`, `SURGE_CLI_PASSWORD`, or a secure prompt. Never put the password in `--remote`; the Minis CLI does not use password files.
-- `--check <path>` / `-c <path>` is unavailable because it requires Surge's bundled macOS profile parser.
+- `--check <path>` / `-c <path>`: upload the explicitly named UTF-8 profile to Surge's official beta validation service (`https://services.nssurge.com/v1/config/validate`). This is remote validation, not the bundled macOS local parser. The CLI never uploads the active profile automatically; warn about profile secrets and redact a copy first when appropriate.
 - `--help` / `-h`: print help.
 - If no command is provided, the Minis implementation prints help rather than entering an interactive terminal.
 - Command keywords are handled by the connected Controller.
@@ -37,16 +39,29 @@ Responses are JSON and usually include:
 
 ## 2. Full Command Catalog
 
-The table below is the full top-level command set handled by the controller (not just the subset shown in `-h`).
+The table below is the full command catalog handled by the controller (not just
+the subset shown in `-h`). High-priority subcommands may also appear as their
+own rows.
 
 | Command | Args | Description | Notes |
 |---|---|---|---|
+| `status` | none | summarize profile name and full path, mode, features, uptime, and version | see 3.14 |
+| `dump summary` | none | show a passive snapshot of network configuration, DNS, and warnings | recommended first network diagnostic, see 3.15 |
+| `version` | none | show app, Core, protocol, OS, and device versions | see 3.14 |
+| `mode` | `[get \| set <rule\|direct\|proxy>]` | get or change outbound mode | direct mode name is `direct` |
+| `global-policy` | `[get \| set <policy>]` | get or change the global proxy policy | |
+| `policy-group` | `list \| get <group> \| set <group> <policy\|auto>` | inspect and select policy groups | `auto` clears an automatic-group override |
+| `profile` | `list \| current \| diff \| check <name> \| switch <name>` | inspect, compare, validate, and switch profiles | `list`/`check` are macOS only |
+| `module` | `list \| enable <name...> \| disable <name...>` | inspect and change module state | changes schedule a profile reload |
+| `feature` | `list \| get <name> \| set <name> <on\|off>` | inspect and change runtime features | see 3.14 |
+| `device` | `list \| show <identifier\|mac>` | inspect gateway-mode devices | macOS only |
+| `log` | `[file\|memory] [line-count]` or `watch` | show retained logs or continuously follow new logs | defaults to `file 100`; maximum 10000, see 3.16 |
 | `watch` | `[event ...]` | subscribe to events; without args unsubscribes | `watch request` is common |
 | `dump` | `<type> [extra]` | dump runtime state data | see 3.2 |
 | `test` | `<type>` | environment diagnostics | see 3.3 |
 | `environment` | none | return current environment dictionary | |
 | `set` | `<key>=<value> ...` | update environment | see 4 |
-| `set-log-level` | `<level>` | change runtime log level | does not write profile |
+| `set-log-level` | `<level>` | change runtime log level | does not write profile, see 3.16 |
 | `stop` | none | stop Surge | |
 | `kill` | `<connection-id>` | terminate a connection | |
 | `test-group` | `<group-name>` | retest a policy group immediately | |
@@ -64,11 +79,12 @@ The table below is the full top-level command set handled by the controller (not
 | `security` | `ban <list\|clear>` | inspect or clear unauthorized-access bans | |
 | `vmnet` | `<status\|arp\|ndp\|ra>` | inspect the VMNET virtual interface (gateway mode) | macOS only, see 3.13 |
 | `flush` | `<type>` | flush data | currently only `dns` |
-| `reload` | none | reload main profile | |
+| `reload` | none | reload main profile, applying only the changed sections | falls back to a full engine restart automatically when a change requires one |
+| `restart-engine` | none | completely restart the engine and reload the profile from scratch | closes all connections, clears all caches and temporary rules |
 | `show-policy` | `<policy-name>` | show policy details | |
 | `retrieve-data` | `<record-id> <request\|response> [replica-dir]` | fetch captured request/response body | data-channel command |
 | `test-network` | none | network delay test | returns `time` |
-| `script` | `evaluate <base64-js> [mockType] [timeout] [engine] [argument]` | evaluate script | CLI has a convenience wrapper, see 3.4 |
+| `script` | `list \| run <cron-name> \| evaluate <base64-js> [mockType] [timeout] [engine] [argument]` | inspect and run scripts | CLI has an evaluate wrapper, see 3.4 |
 | `diagnostics` | none | start diagnostics event stream | pair with `stop-diagnostics` |
 | `stop-diagnostics` | none | stop diagnostics event stream | |
 | `get-resource` | `device-icon <id...>` | fetch device icons (Base64) | |
@@ -85,16 +101,51 @@ The table below is the full top-level command set handled by the controller (not
 | `unattended-upgrade` | none | unattended upgrade | macOS only |
 | `provider-message` | `<base64-data>` | send message to Packet Tunnel Provider | unsupported on macOS |
 | `external-resource` | `list \| update <key\|all>` | external resource listing and update | |
+| `plugin` | `list \| info \| parameters \| install \| load-unpacked \| configure \| enable \| disable \| select \| uninstall \| validate \| pack` | manage third-party plugins | macOS only; needs protocol ≥24. `validate`/`pack` run offline; `install` is not available in this version |
 | `test-ponte` | `<device-ponte-name>` | Ponte diagnostics | streaming output |
+| `logbook` | `<limit>` | show recent logbook records | macOS/iOS, see 3.16 |
+| `script-log` | `<log-name> <session-id>` | show one script execution log | macOS/iOS, see 3.16 |
+| `reconnect-device` | `<mac>` | reconnect an AP client | macOS only |
 
 ## 3. Subcommand Details
+
+### 3.0 `plugin` (macOS only, controller protocol ≥24)
+
+Plugins are third-party extensions (JavaScript running in an isolated JavaScriptCore context, independent of the proxy core). In this release the only plugin type is `ap-controller` (integrations that populate the device panel's Wi-Fi columns and allow reconnecting clients).
+
+Online subcommands (require a running Surge):
+
+- `plugin list` — payload `{"plugins": [ {id, name, version, type, state, source, parameters, values, ...} ]}`. `state` is one of `unconfigured | enabled | disabled | error`; `source` is `builtin | url | unpacked`.
+- `plugin info <id>` — one plugin object (same schema, always includes the `parameters` schema and current `values`).
+- `plugin parameters <id>` — the parameter schema rendered for configuration: each parameter with type, required, constraints (enum values, range), default and current value, plus a ready-to-copy `plugin configure` invocation. Use this to discover what a plugin needs before configuring.
+- `plugin install <manifest-url>` — download + verify (sha256) + unpack from a hosted manifest URL. **Not available in this version** (the CLI rejects it); use `plugin load-unpacked` with a local directory instead.
+- `plugin load-unpacked <directory>` — register a local developer directory (containing `main.js` + `manifest.json` + 256x256 `icon.png`) as an `unpacked` plugin; re-reads the manifest on each call.
+- `plugin configure <id> <key=value> ...` — set typed parameter values. Runs the plugin's `system.validate` when it declares support; on success the plugin becomes `enabled`. **A plugin must be configured before it can be used.**
+- `plugin enable <id>` / `plugin disable <id>` — toggle. Enabling also selects the plugin as active for its type.
+- `plugin select <type> <id|none>` — choose the active plugin for a type (only needed when more than one is enabled).
+- `plugin uninstall <id>` — remove a url/unpacked plugin (builtins can only be disabled).
+
+Offline subcommands (never connect to Surge; pure local tooling):
+
+- `plugin validate <directory>` — parse + schema-check a plugin source directory (manifest + `main.js` + 256x256 `icon.png`).
+- `plugin pack <directory> [asset-url]` — zip the package (excluding `manifest.json`) and emit a hosted `manifest.json` with the computed `asset.sha256`. Manifests live only at the hosted URL; the zip never contains one.
+
+Typical flow for setting up a plugin (this version installs from local
+directories only):
+
+```bash
+surge-cli plugin load-unpacked ~/plugins/unifi
+surge-cli plugin parameters com.example.unifi   # discover what needs to be configured
+surge-cli plugin configure com.example.unifi host=https://192.168.1.1 key=<api-key>
+surge-cli plugin list        # confirm state == enabled
+```
 
 ### 3.1 Tailscale and WireGuard diagnostics: `proxy-runtime-status`
 
 ```bash
 surge-cli dump policy
 surge-cli proxy-runtime-status <line-hash>
-surge-cli --raw proxy-runtime-status <line-hash>
+surge-cli proxy-runtime-status <line-hash>
 ```
 
 `proxy-runtime-status` is the primary per-proxy diagnostic command and is
@@ -111,8 +162,7 @@ Node selection, DERP connections and reachability, peer paths, and MagicDNS or
 other runtime peer details when available.
 
 For a Tailscale or WireGuard connection, routing, relay, Exit Node, or handshake
-problem, collect this command before broad log searches. Prefer `--raw` for
-automation and support bundles so the nested tunnel payload remains intact.
+problem, collect this command before broad log searches.
 
 ### 3.2 `dump <type>`
 
@@ -167,7 +217,7 @@ Note: `test-policy*` commands are separate top-level commands, not part of `test
 ```bash
 surge-cli benchmark encryption
 surge-cli benchmark encryption 25
-surge-cli --raw benchmark encryption 100
+surge-cli benchmark encryption 100
 ```
 
 `benchmark encryption [data-size-mib]` runs the encryption benchmark on the
@@ -180,7 +230,19 @@ The data size defaults to 100 MiB and accepts integers from 1 to 1024 MiB. Raw
 chunks use `type` values `start`, `line`, and `complete`. Interrupting or
 disconnecting the CLI cancels the benchmark after the active primitive call.
 
-### 3.4 `script evaluate` (CLI convenience form)
+### 3.4 `script`
+
+Routine forms:
+
+```bash
+surge-cli script list
+surge-cli script run <cron-name>
+```
+
+`run` executes an enabled or disabled configured cron script by name and
+returns its output plus result or exception.
+
+Evaluate convenience form:
 
 Common CLI form:
 
@@ -251,6 +313,7 @@ Supported event names:
 - `policy-benchmark`
 - `device-info`
 - `dns-flush`
+- `log` (live log stream; prefer `log watch`)
 
 Examples:
 
@@ -266,7 +329,7 @@ surge-cli watch              # unsubscribe
 ```bash
 surge-cli rule match example.com 443
 surge-cli rule match https://example.com process-path=/usr/bin/curl
-surge-cli --raw rule explain https://example.com
+surge-cli rule explain https://example.com
 ```
 
 Both evaluate the active rule set without creating a connection and return the
@@ -295,9 +358,9 @@ surge-cli rule temp add "DOMAIN-SUFFIX,example.com,Proxy"
 ### 3.10 `dns lookup` / `dns trace` / `geoip`
 
 ```bash
-surge-cli --raw dns lookup example.com
-surge-cli --raw dns trace example.com interface=en0
-surge-cli --raw geoip 8.8.8.8
+surge-cli dns lookup example.com
+surge-cli dns trace example.com interface=en0
+surge-cli geoip 8.8.8.8
 ```
 
 `dns lookup` resolves through Surge's DNS pipeline and reports A/AAAA records,
@@ -326,7 +389,7 @@ address is not present in a database.
 ### 3.12 `benchmark rule-matching`
 
 ```bash
-surge-cli --raw benchmark rule-matching
+surge-cli benchmark rule-matching
 ```
 
 Measures the average matching time of the active rule set using random
@@ -338,9 +401,9 @@ sets on the device running Surge.
 
 ```bash
 surge-cli vmnet status
-surge-cli --raw vmnet arp
-surge-cli --raw vmnet ndp
-surge-cli --raw vmnet ra
+surge-cli vmnet arp
+surge-cli vmnet ndp
+surge-cli vmnet ra
 ```
 
 Inspects the VMNET virtual interface that backs the enhanced/gateway mode.
@@ -361,6 +424,146 @@ active" when the interface is not running.
 
 Use `arp`/`ndp` when a gateway client cannot be reached, and `ra` when IPv6
 takeover does not appear to affect a device.
+
+### 3.14 Daily management commands
+
+These commands provide stable, task-oriented entry points so clients do not
+need to know the internal `environment` key paths:
+
+```bash
+surge-cli status
+surge-cli dump summary
+surge-cli version
+
+surge-cli mode
+surge-cli mode set rule
+surge-cli global-policy
+surge-cli global-policy set "Proxy"
+
+surge-cli policy-group list
+surge-cli policy-group get "Proxy"
+surge-cli policy-group set "Proxy" "Hong Kong"
+surge-cli policy-group set "Automatic" auto
+
+surge-cli profile list
+surge-cli profile current
+surge-cli profile diff
+surge-cli profile check "Default.conf"
+surge-cli profile switch "Default.conf"
+
+surge-cli module list
+surge-cli module enable "Module A" "Module B"
+surge-cli module disable "Module A"
+
+surge-cli script list
+surge-cli script run "Daily Job"
+
+surge-cli feature list
+surge-cli feature get mitm
+surge-cli feature set mitm on
+
+surge-cli device list
+surge-cli device show AA:BB:CC:DD:EE:FF
+```
+
+`feature` names available on all supported controller platforms are `mitm`,
+`rewrite`, `scripting`, `capture`, `packet-capture`, and `cellular-mode`.
+macOS additionally exposes `system-proxy` and `enhanced-mode`.
+
+Mutation commands return the resulting state, not just a generic success
+message. `feature set system-proxy` and `feature set enhanced-mode` wait for
+the actual state transition and fail if it does not complete. An invalid
+`profile check` also returns a command error, making its CLI exit status useful
+in automation.
+
+Profile `list` and
+`check`, and all `device` operations, are available only on macOS. `status`
+displays the active profile's absolute path in `profile-path`; profiles that do
+not originate from a local file report no path.
+
+### 3.15 First-line network diagnostics: `dump summary`
+
+```bash
+surge-cli dump summary
+```
+
+Use `dump summary` near the start of network troubleshooting. It returns a
+passive snapshot of the current network setup and does not send probes or
+change any settings. Depending on the platform and active network, it can show:
+
+- profile configuration warnings and performance-impact warnings;
+- available and primary interfaces, IP addresses, and the default IPv4 router;
+- Wi-Fi or cellular details when available;
+- effective plain and encrypted DNS servers;
+- subnet-specific behavior such as TCP Fast Open and cellular fallback.
+
+The `Network Indicators` values for external IP, NAT type, and bandwidth are
+not active test results. Use `test external-ip`, `test nat-type`,
+`test v4-router`, `test dns`, `test encrypted-dns`, or the corresponding
+`test-policy-*` command when an active measurement is needed.
+
+With `--raw`, the response also includes `canPingRouter`, `canTestDNS`, and
+`canTestEncryptDNS`, which indicate which follow-up tests are available.
+
+### 3.16 Log commands
+
+Read retained logs:
+
+```bash
+surge-cli log
+surge-cli log 500
+surge-cli log file 1000
+surge-cli log memory 500
+```
+
+`log` returns the latest 100 lines from `file` by default. A number by itself
+changes the line count while keeping the default source. The permitted range is
+1 to 10000 lines, and output is ordered from older to newer.
+
+| Source | Contents | Best for |
+|---|---|---|
+| `memory` | all log levels, limited to the most recent entries | investigating something that just happened with maximum detail |
+| `file` | the complete history retained in the current log file, limited to the configured log level | reviewing a longer time range |
+
+Use `memory` for recent detail and `file` for longer history.
+
+Watch new logs:
+
+```bash
+surge-cli log watch
+```
+
+`log watch` prints new, unfiltered log lines from the moment the subscription
+starts. It does not replay either retained source. The command keeps running
+until interrupted and may remain quiet when no new logs are produced.
+
+With `--raw`, a retained-log response contains `source`,
+`requested-line-count`, `line-count`, and `log`. Each watched log event contains
+`level`, `module`, and `log`.
+
+Related commands:
+
+```bash
+surge-cli set-log-level <log-level>
+surge-cli logbook <limit>
+surge-cli script-log <log-name> <session-id>
+```
+
+- `set-log-level` changes the runtime file log level without modifying the
+  profile.
+- `logbook` displays recent structured logbook records.
+- `script-log` displays the log from one script execution.
+
+### 3.17 Human-readable parsers
+
+Unless `--raw` is used, the CLI has dedicated presentation parsers for all
+user-facing `dump` types, environment tests, policy tests, policy runtime
+status, daily management commands, external resources, Ponte diagnostics,
+managed-profile updates, logbook records, and script logs. Mutation commands
+whose useful response is only `success` continue to use the generic result
+parser. Binary/data-channel commands such as `retrieve-data`,
+`get-resource device-icon`, and `provider-message` intentionally retain
+JSON/data-oriented output.
 
 ## 4. `set` Command and Environment Dictionary (Key Section)
 
@@ -385,7 +588,7 @@ Examples:
 ```bash
 surge-cli set ProxyMode=2
 surge-cli set ProxyGroupSelection.Proxy=HK
-surge-cli set AutoPolicyGroupOverride.Streaming=<nil>
+surge-cli set 'AutoPolicyGroupOverride.Streaming=<nil>'
 surge-cli set RewriteEnabled=0 ScriptingEnabled=1
 ```
 
@@ -464,7 +667,10 @@ surge-cli set Replica=1 ReplicaSessionParameters.requestCountLimit=200
 
 ## 5. Practical Recommendations for AI Agents
 
-1. Prefer `--raw` and parse JSON directly.
-2. Before mutating settings, collect context with `status`, `environment`, and `dump policy`. Run `dump profile` only when necessary and treat its output as sensitive.
+1. Use the default rendered output; do not pass `--raw` unless a documented
+   field is unavailable in the rendered form.
+2. Start network troubleshooting with `status` and `dump summary`; before
+   mutating settings, also collect relevant context with `environment`,
+   `dump policy`, and `dump profile`.
 3. For streaming commands (`diagnostics`, `test-policy-bandwidth`, `benchmark encryption`, `test-ponte`), handle incremental chunks and end conditions.
 4. Check platform capability before using platform-limited commands (`update-profile`, `set-dhcp-device`, `provider-message`).
