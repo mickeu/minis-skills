@@ -101,6 +101,8 @@ minis-mcp-cli tools muse-cloud --refresh --pretty
 
 需要可复制的对话指令时，读取 `references/muse-prompt-templates.md`：包含初始化持久化目录、让 Muse 写脚本、执行验证、配置 Scheduled Task、生成 Artifact 看板、一键健康自检共 6 段模板及验收硬指标。
 
+需要为 Muse 沙盒设计保活/防重建丢失方案时，读取 `references/muse-keepalive-strategy.md`：提炼自第三方项目 `bytehola/muse-guardian` 的三层保活架构（沙盒内看门狗 + 平台 hook 探针 + 开机钩子）、持久化布局与离线包缓存、健康检查/一键恢复脚本设计、进程卡死检测与检测/恢复拆分等可复用经验。注意该项目含 Hermes 微信机器人与 MuseAutoApprove 协议逆向，有平台合规风险，仅参考保活架构。
+
 ## 2. 日常任务路由
 
 默认上云：
