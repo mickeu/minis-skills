@@ -1,0 +1,2130 @@
+======================================================================
+消息 ID: 1630  |  日期: 7 Sep, 07:44
+======================================================================
+7 Sep, 07:44
+Shadowrocket 正式版更新
+版本 2.2.92
+* 特性(protocol): 新增 Sudoku 代理协议支持，并深度优化其数据转发路径以减少内存分配与拷贝
+* 特性(dns): 增加直连域名专属 DNS 路由支持并允许 DNS over TCP，新增 DNSCrypt 上游支持并在 CNAME 与 Host 规则中支持配置多服务器
+* 特性(tailscale): 升级登录至 TS2021 流程，支持子网网段路由与自动出口节点，并引入低功耗按需暂停隧道功能
+* 特性(protocol): 支持在 Clash 订阅中导入 SSH 代理与 packetaddr 配置
+* 特性(macos): 为 macOS 版本添加菜单栏路由切换与服务器快捷控制面板
+* 特性(group): 策略组支持独立的 Ping 延迟自动排序选项
+* 优化(transport): 支持 KCP 背压控制，增强 WireGuard 混淆安全性与 Hysteria 数据包保护，恢复 QUIC 的上传吞吐性能
+* 修复(vpn): 修复 VPN 启动挂起问题并保持本地网络互联（AirDrop 等），防止过期连通性测试意外重置 VPN 状态
+* 修复(dns): 优化隧道解析逻辑，支持通过 DNS 隧道解析 QUIC 端点，并在 HTTP/3 升级时复用 HTTP/2 地址
+* 修复(tailscale): 宣告 disco 密钥以优化直连，遵循自定义 DERP TLS 验证设置，并解决 VPN 断开后仍然刷新设备的耗电问题
+* 修复(rule): 修复远程规则刷新与配置导出时带引号重写参数被丢弃的问题，保护已编译策略组的排序与状态更新
+* 修复(system): 脚本环境支持 WebKit 作用域全局变量与 fetch 代理扩展，采用基于墓碑（Tombstone）清单的 iCloud 服务器数据同步以避免配置回滚
+* 修复(system): 解决 WKWebView 与 JavaScriptCore 退出时的释放崩溃问题，并对代理流缓冲区大小进行限制以避免内存暴涨
+温馨提示：Shadowrocket 是一款纯净的网络工具，不附带任何服务器资源。请根据您的需要自行配置代理服务。
+
+======================================================================
+消息 ID: 1629  |  日期: 6 Sep, 06:28
+======================================================================
+6 Sep, 06:28
+Shadowrocket 测试版更新
+版本 2.2.91 (3444)
+· fix(tailscale): resume peer relay negotiation after DERP connects
+· fix(openconnect): restore reconnect eligibility after session closure
+
+======================================================================
+消息 ID: 1628  |  日期: 5 Sep, 13:50
+======================================================================
+5 Sep, 13:50
+Shadowrocket 测试版更新
+版本 2.2.91 (3441)
+· fix(tcp): restore receive credit after read pauses and socket switches
+
+======================================================================
+消息 ID: 1627  |  日期: 5 Sep, 05:54
+======================================================================
+5 Sep, 05:54
+Shadowrocket 测试版更新
+版本 2.2.91 (3440)
+· fix(openconnect): allow session recovery after transport disconnect
+
+======================================================================
+消息 ID: 1626  |  日期: 4 Sep, 13:54
+======================================================================
+4 Sep, 13:54
+Shadowrocket 测试版更新
+版本 2.2.91 (3439)
+· fix(proxy): bound pending local writes
+
+======================================================================
+消息 ID: 1625  |  日期: 4 Sep, 11:07
+======================================================================
+4 Sep, 11:07
+Shadowrocket 测试版更新
+版本 2.2.91 (3438)
+· fix(relay): bound pending TCP relay writes
+· fix(tcp): preserve receive backpressure during suspended reads
+· fix(dns): safely apply EDNS client subnet options
+· fix(dns): return mDNS timeout responses promptly
+· feat(network): support configurable fake IP ranges
+
+======================================================================
+消息 ID: 1624  |  日期: 3 Sep, 14:30
+======================================================================
+3 Sep, 14:30
+Shadowrocket 测试版更新
+版本 2.2.91 (3437)
+· fix(script): serialize script message lifecycle teardown
+
+======================================================================
+消息 ID: 1623  |  日期: 2 Sep, 03:58
+======================================================================
+2 Sep, 03:58
+Shadowrocket 测试版更新
+版本 2.2.91 (3436)
+· fix(script): prevent weak-reference crash during message teardown
+
+======================================================================
+消息 ID: 1622  |  日期: 31 Aug, 11:12
+======================================================================
+31 Aug, 11:12
+Shadowrocket 测试版更新
+版本 2.2.91 (3434)
+· feat(wireguard): add complete AWG v3 client support
+
+======================================================================
+消息 ID: 1621  |  日期: 30 Aug, 09:34
+======================================================================
+30 Aug, 09:34
+Shadowrocket 测试版更新
+版本 2.2.91 (3433)
+· fix(dns): fallback failed HTTP/3 queries to HTTP/2
+
+======================================================================
+消息 ID: 1620  |  日期: 27 Aug, 19:19
+======================================================================
+27 Aug, 19:19
+Shadowrocket 测试版更新
+版本 2.2.91 (3432)
+· fix(tailscale): integrate DERP backoff with low power mode
+· fix(tailscale): stop engine immediately when disabled
+· fix(tailscale): add identity reset for account switching
+· fix(export): validate files before presenting export UI
+
+======================================================================
+消息 ID: 1619  |  日期: 24 Aug, 18:47
+======================================================================
+24 Aug, 18:47
+Shadowrocket 测试版更新
+版本 2.2.91 (3431)
+· fix(tls): force HTTP/1.1 ALPN for WebSocket transports
+
+======================================================================
+消息 ID: 1618  |  日期: 24 Aug, 06:25
+======================================================================
+24 Aug, 06:25
+Shadowrocket 测试版更新
+版本 2.2.91 (3430)
+· fix(config): reload configuration files section on network reachability change
+
+======================================================================
+消息 ID: 1617  |  日期: 23 Aug, 05:47
+======================================================================
+23 Aug, 05:47
+Shadowrocket 测试版更新
+版本 2.2.91 (3429)
+· fix(tcp): avoid repeated connectx during TCP Fast Open writes
+
+======================================================================
+消息 ID: 1616  |  日期: 22 Aug, 11:29
+======================================================================
+22 Aug, 11:29
+Shadowrocket 测试版更新
+版本 2.2.91 (3428)
+· fix(background): prevent suspension crashes during sync and rule builds
+· fix(shadowsocks): reject malformed AEAD UDP packets
+· fix(rule): make rule manager reloads generation-safe
+· fix(tunnel): prevent provider messages from using an uninitialized queue
+· feat(quic): apply TLS profiles to QUIC connections
+
+======================================================================
+消息 ID: 1615  |  日期: 21 Aug, 17:08
+======================================================================
+21 Aug, 17:08
+Shadowrocket 测试版更新
+版本 2.2.91 (3427)
+· fix(tun): disable IPv6 VIF settings when configured off
+
+======================================================================
+消息 ID: 1614  |  日期: 21 Aug, 04:55
+======================================================================
+21 Aug, 04:55
+Shadowrocket 测试版更新
+版本 2.2.91 (3426)
+· fix(server): prevent subscription out-of-bounds reads during config parsing
+
+======================================================================
+消息 ID: 1613  |  日期: 20 Aug, 05:37
+======================================================================
+20 Aug, 05:37
+Shadowrocket 测试版更新
+版本 2.2.91 (3425)
+· fix(test): prevent stale connectivity tests from toggling VPN status
+· fix(macos): refresh menu bar VPN status reliably
+· fix(vpn): prevent tunnel startup from hanging
+
+======================================================================
+消息 ID: 1612  |  日期: 15 Aug, 15:01
+======================================================================
+15 Aug, 15:01
+Shadowrocket 测试版更新
+版本 2.2.91 (3424)
+· feat(dns): support assigned DNS servers for CNAME host rules
+
+======================================================================
+消息 ID: 1611  |  日期: 14 Aug, 16:35
+======================================================================
+14 Aug, 16:35
+Shadowrocket 测试版更新
+版本 2.2.91 (3423)
+· fix(config): preserve quoted rewrite tokens during parsing and export
+
+======================================================================
+消息 ID: 1610  |  日期: 13 Aug, 11:16
+======================================================================
+13 Aug, 11:16
+
+======================================================================
+消息 ID: 1609  |  日期: 13 Aug, 07:12
+======================================================================
+13 Aug, 07:12
+Shadowrocket 测试版更新
+版本 2.2.91 (3422)
+· fix(accessibility): announce module availability across platforms
+
+======================================================================
+消息 ID: 1608  |  日期: 12 Aug, 05:41
+======================================================================
+12 Aug, 05:41
+Shadowrocket 测试版更新
+版本 2.2.91 (3421)
+· fix(quic): restore upload throughput across QUIC transports
+
+======================================================================
+消息 ID: 1607  |  日期: 9 Aug, 05:43
+======================================================================
+9 Aug, 05:43
+Shadowrocket 测试版更新
+版本 2.2.91 (3417-3419)
+· fix(tailscale): advertise disco key in map updates
+· fix(udp): record QUIC policy blocks in rule results
+· fix(tailscale): honor custom DERP TLS verification settings
+
+======================================================================
+消息 ID: 1606  |  日期: 7 Aug, 17:51
+======================================================================
+7 Aug, 17:51
+Shadowrocket 测试版更新
+版本 2.2.91 (3416)
+· fix(script): expose scoped globals in WebKit runtime
+
+======================================================================
+消息 ID: 1605  |  日期: 7 Aug, 12:01
+======================================================================
+7 Aug, 12:01
+Shadowrocket 测试版更新
+版本 2.2.91 (3415)
+· fix(script): stop disabling web request APIs
+
+======================================================================
+消息 ID: 1604  |  日期: 7 Aug, 09:54
+======================================================================
+7 Aug, 09:54
+Shadowrocket 测试版更新
+版本 2.2.91 (3414)
+· fix(script): avoid eager WebKit preferences initialization
+· fix(script): allow fetch polyfills
+
+======================================================================
+消息 ID: 1603  |  日期: 7 Aug, 03:45
+======================================================================
+7 Aug, 03:45
+Shadowrocket 测试版更新
+版本 2.2.91 (3413)
+· fix(script): preserve polyfilled fetch
+
+======================================================================
+消息 ID: 1602  |  日期: 6 Aug, 13:19
+======================================================================
+6 Aug, 13:19
+Shadowrocket 测试版更新
+版本 2.2.91 (3411-3412)
+· fix(sync): add tombstone based iCloud sync manifest
+· feat(tailscale): add low power mode to suspend tunnel on demand
+
+======================================================================
+消息 ID: 1601  |  日期: 5 Aug, 10:00
+======================================================================
+5 Aug, 10:00
+Shadowrocket 测试版更新
+版本 2.2.91 (3410)
+· feat(dns): add dedicated DNS routing for direct domains
+
+======================================================================
+消息 ID: 1600  |  日期: 5 Aug, 06:29
+======================================================================
+5 Aug, 06:29
+Shadowrocket 测试版更新
+版本 2.2.91 (3409)
+· fix(mux): clean up stale idle sessions after wake
+· feat(clash): add SSH proxy import support
+
+======================================================================
+消息 ID: 1599  |  日期: 4 Aug, 12:43
+======================================================================
+4 Aug, 12:43
+Shadowrocket 测试版更新
+版本 2.2.91 (3408)
+· fix(rule): refresh policy groups before applying updates
+
+======================================================================
+消息 ID: 1598  |  日期: 3 Aug, 14:46
+======================================================================
+3 Aug, 14:46
+Shadowrocket 测试版更新
+版本 2.2.91 (3407)
+· fix(script): avoid packet tunnel web view teardown crash
+
+======================================================================
+消息 ID: 1597  |  日期: 2 Aug, 08:07
+======================================================================
+2 Aug, 08:07
+Shadowrocket 测试版更新
+版本 2.2.91 (3406)
+· fix(tunnel): limit proxy stream memory growth
+
+======================================================================
+消息 ID: 1596  |  日期: 1 Aug, 10:46
+======================================================================
+1 Aug, 10:46
+Shadowrocket 测试版更新
+版本 2.2.91 (3405)
+· fix(fallback): preserve policy order and select first available item
+· feat(group): add independent ping sort option
+· fix(rule): prevent compiled policy groups from being ignored
+· fix(rule): initialize domain trie wildcard cache eagerly
+· fix(policy): preserve policy selection order
+为代理分组添加独立的排序选项
+
+======================================================================
+消息 ID: 1595  |  日期: 31 Jul, 11:34
+======================================================================
+31 Jul, 11:34
+Shadowrocket 测试版更新
+版本 2.2.91 (3404)
+· fix(kcp): handle UDP send buffer backpressure
+· feat(subscription): support packetaddr and xudp UDP overrides
+· feat(dns): support DNS queries over TCP
+
+======================================================================
+消息 ID: 1594  |  日期: 30 Jul, 18:28
+======================================================================
+30 Jul, 18:28
+Shadowrocket 测试版更新
+版本 2.2.91 (3403)
+· fix(wireguard): handle invalid obfuscated packets safely
+· fix(config): publish compiled rules after persistence
+· fix(dns): route host resolution through tunnel resolver
+· fix(dns): resolve QUIC endpoints through DNS tunnel
+
+======================================================================
+消息 ID: 1593  |  日期: 30 Jul, 04:07
+======================================================================
+30 Jul, 04:07
+Shadowrocket 测试版更新
+版本 2.2.91 (3399-3400)
+· fix (dns): reuse HTTP/2 address for HTTP/3 upgrade
+﻿﻿· fix (policy): unify policy group casing and preserve group pointer in server lookup
+· fix (udp): enable fast relay for L3 packet forwarding
+
+======================================================================
+消息 ID: 1592  |  日期: 29 Jul, 08:49
+======================================================================
+29 Jul, 08:49
+Shadowrocket 测试版更新
+版本 2.2.91 (3397)
+· fix(proxy): validate accepted client addresses
+· fix(script): serialize JavaScriptCore context teardown
+
+======================================================================
+消息 ID: 1591  |  日期: 22 Jul, 05:30
+======================================================================
+22 Jul, 05:30
+Shadowrocket 测试版更新
+版本 2.2.91 (3396)
+· feat(shadowsocks): add extra aead ciphers
+
+======================================================================
+消息 ID: 1590  |  日期: 20 Jul, 08:01
+======================================================================
+20 Jul, 08:01
+Shadowrocket 测试版更新
+版本 2.2.91 (3395)
+· fix(proxy): rewrite websocket upgrade requests for origin servers
+
+======================================================================
+消息 ID: 1589  |  日期: 17 Jul, 05:02
+======================================================================
+17 Jul, 05:02
+Shadowrocket 测试版更新
+版本 2.2.91 (3394)
+· fix(script): prevent malformed config range underflow
+
+======================================================================
+消息 ID: 1588  |  日期: 16 Jul, 12:09
+======================================================================
+16 Jul, 12:09
+Shadowrocket 测试版更新
+版本 2.2.91 (3393)
+· fix(stats): keep tunnel speed stats updating
+
+======================================================================
+消息 ID: 1587  |  日期: 15 Jul, 18:52
+======================================================================
+15 Jul, 18:52
+Shadowrocket 测试版更新
+版本 2.2.91 (3391-3392)
+· feat (shadowsocks): add aegis-128L and aegis-256 supports
+· fix(stats): correct proxy traffic speed accounting
+
+======================================================================
+消息 ID: 1586  |  日期: 12 Jul, 09:12
+======================================================================
+12 Jul, 09:12
+Shadowrocket 测试版更新
+版本 2.2.91 (3390)
+· feat(reality): add client version setting
+
+======================================================================
+消息 ID: 1585  |  日期: 12 Jul, 05:09
+======================================================================
+12 Jul, 05:09
+Shadowrocket 测试版更新
+版本 2.2.91 (3389)
+· fix(dns): preserve host record IP family matching
+· feat(macos): add menu bar routing and server controls
+
+======================================================================
+消息 ID: 1584  |  日期: 11 Jul, 08:21
+======================================================================
+11 Jul, 08:21
+Shadowrocket 测试版更新
+版本 2.2.91 (3388)
+· feat(tailscale): route subnet destinations through packet tunnel
+
+======================================================================
+消息 ID: 1583  |  日期: 10 Jul, 14:28
+======================================================================
+10 Jul, 14:28
+Shadowrocket 测试版更新
+版本 2.2.91 (3387)
+· feat(tailscale): add peer relay client support
+
+======================================================================
+消息 ID: 1582  |  日期: 10 Jul, 07:38
+======================================================================
+10 Jul, 07:38
+Shadowrocket 测试版更新
+版本 2.2.91 (3386)
+· feat(tun): support 10.7.0.1/32 loopback
+· fix(tailscale): preserve routed tailscale address ranges
+· fix(tailscale): send user agent to control server
+
+======================================================================
+消息 ID: 1581  |  日期: 10 Jul, 04:11
+======================================================================
+10 Jul, 04:11
+Shadowrocket 测试版更新
+版本 2.2.91 (3384)
+· fix(tailscale): honor control URL scheme and port
+
+======================================================================
+消息 ID: 1580  |  日期: 9 Jul, 18:30
+======================================================================
+9 Jul, 18:30
+Shadowrocket 测试版更新
+版本 2.2.91 (3383)
+· feat(tailscale): migrate control login to TS2021 register flow
+
+======================================================================
+消息 ID: 1579  |  日期: 9 Jul, 18:20
+======================================================================
+9 Jul, 18:20
+Shadowrocket 测试版更新
+版本 2.2.91 (3382)
+· fix(today): prevent premature stop tunnel action when starting VPN
+
+======================================================================
+消息 ID: 1578  |  日期: 9 Jul, 09:59
+======================================================================
+9 Jul, 09:59
+Shadowrocket 测试版更新
+版本 2.2.91 (3381)
+· fix(udp): reject malformed UDP relay addresses
+· fix(config): make remote rule set refresh resilient
+· feat(tailscale): auto-select a default exit node
+· fix(tailscale): stop refreshing devices when VPN is disconnected
+· feat(tailscale): support DERP CertName TLS verification
+· feat(tailscale): make Tailscale Auth URL cell clickable to open in browser
+· fix(http): generate platform-specific browser user agents
+
+======================================================================
+消息 ID: 1577  |  日期: 8 Jul, 17:24
+======================================================================
+8 Jul, 17:24
+Shadowrocket 测试版更新
+版本 2.2.91 (3379-3380)
+· fix(server): resolve  proxy server change notification issue
+· fix(tvos): register password table cells
+
+======================================================================
+消息 ID: 1576  |  日期: 8 Jul, 01:43
+======================================================================
+8 Jul, 01:43
+Shadowrocket 正式版更新
+版本 2.2.90
+* 特性(tailscale): 引入全局 Tailscale 隧道模块，支持本地 MagicDNS 解析，并新增对端设备详情、延迟（RTT）与配置管理等 UI 交互
+* 优化(tailscale): 全面优化 Tailscale 运行能耗与稳定性，支持按需调度 WireGuard 唤醒、自动适配网络接口变动与 UDP 套接字重建
+* 特性(masque): 支持 MASQUE 代理协议（支持 HTTP/3 与 HTTP/2 传输），支持自定义 SNI 与 URI，并支持心跳检测及核心日志开关限制
+* 特性(tls): 支持 TLS ClientHello 指纹伪装，可在服务器及 TCP 设置中选择 TLS 指纹
+* 优化(network): 优化多路复用（Mux）、XHTTP 与中转套接字（Chain Socket）的连接管理，支持优雅关闭 HTTP/2 上传流，并修复多级链式代理下的 SOCKS5 UDP 转发问题
+* 修复(dns): 恢复 VPN 状态下的局域网 Bonjour 与 DNS-SD 设备发现，重构 DNS 查询重试调度并优化 IPv6 PTR 本地解析
+* 修复(ssh): 避免 SSH 握手时阻塞多路复用写队列，并修正 UDPGW 长度测量逻辑
+* 修复(protocol): 优化 Mieru 用户提示与 Clash 兼容解析，修正 Hysteria 2 连接关闭逻辑与 AmneziaWG 魔改头部解析，并保护 OpenConnect 配置保存
+* 优化(system): 重构 IPC 消息通道并加密隧道状态响应，解决后台 WebKit 反复唤醒引起的耗电问题，统一复制提示并提供 macOS/Catalyst 证书信任指引
+* 整理(i18n): 清理多国语言本地化字符串并整合翻译文本
+温馨提示：Shadowrocket 是一款纯净的网络工具，不附带任何服务器资源。请根据您的需要自行配置代理服务。
+
+======================================================================
+消息 ID: 1575  |  日期: 6 Jul, 13:19
+======================================================================
+6 Jul, 13:19
+Shadowrocket 测试版更新
+版本 2.2.90 (3378)
+· fix(http): freeze iOS 26 Safari user agent OS version
+· chore(vmess): log header writes after request encoding
+· feat(clash): support support-x25519mlkem768 and consolidate reality options parsing
+
+======================================================================
+消息 ID: 1574  |  日期: 5 Jul, 11:47
+======================================================================
+5 Jul, 11:47
+Shadowrocket 测试版更新
+版本 2.2.90 (3376-3377)
+· feat(masque): save h2 setting for MASQUE server configurations
+· fix(mux): preserve mux transport for proxy pass forwards
+
+======================================================================
+消息 ID: 1573  |  日期: 4 Jul, 17:32
+======================================================================
+4 Jul, 17:32
+Shadowrocket 测试版更新
+版本 2.2.90 (3374)
+· fix(clash): parse mieru transport protocol case insensitively
+
+======================================================================
+消息 ID: 1572  |  日期: 4 Jul, 15:10
+======================================================================
+4 Jul, 15:10
+Shadowrocket 测试版更新
+版本 2.2.90 (3373)
+· feat(masque): add H2 stream relay support
+
+======================================================================
+消息 ID: 1571  |  日期: 4 Jul, 04:22
+======================================================================
+4 Jul, 04:22
+Shadowrocket 测试版更新
+版本 2.2.90 (3372)
+· fix(relay): route SOCKS5 UDP associate through chained forward
+
+======================================================================
+消息 ID: 1570  |  日期: 3 Jul, 19:07
+======================================================================
+3 Jul, 19:07
+Shadowrocket 测试版更新
+版本 2.2.90 (3371)
+· fix(mux): close HTTP/2 upload streams gracefully
+· fix(xhttp): flush HTTP/3 stream close frames
+
+======================================================================
+消息 ID: 1569  |  日期: 2 Jul, 06:23
+======================================================================
+2 Jul, 06:23
+Shadowrocket 测试版更新
+版本 2.2.90 (3370)
+· feat(proxy): add authentication for shared proxy access
+
+======================================================================
+消息 ID: 1568  |  日期: 30 Jun, 02:10
+======================================================================
+30 Jun, 02:10
+Shadowrocket 测试版更新
+版本 2.2.90 (3369)
+· fix(amneziawg): parse magic headers as uint32
+
+======================================================================
+消息 ID: 1567  |  日期: 28 Jun, 07:51
+======================================================================
+28 Jun, 07:51
+Shadowrocket 测试版更新
+版本 2.2.90 (3368)
+· fix(server): reject malformed server host ranges
+· fix(script): avoid destroying idle WebKit runtimes
+· fix(tunnel): resolve PTR domain before testing proxy stream connection
+· fix(server): prevent OpenConnect path from being overwritten on save
+
+======================================================================
+消息 ID: 1566  |  日期: 28 Jun, 06:16
+======================================================================
+28 Jun, 06:16
+Shadowrocket 测试版更新
+版本 2.2.90 (3367)
+· fix(masque): configure keepalive and close failed sessions
+
+======================================================================
+消息 ID: 1565  |  日期: 27 Jun, 05:32
+======================================================================
+27 Jun, 05:32
+Shadowrocket 测试版更新
+版本 2.2.90 (3366)
+· fix(tailscale): avoid control-plane wakeups during iOS idle
+
+======================================================================
+消息 ID: 1564  |  日期: 26 Jun, 17:20
+======================================================================
+26 Jun, 17:20
+Shadowrocket 测试版更新
+版本 2.2.90 (3364)
+· feat(tailscale): add copy button to Tailscale auth key settings
+· perf(tailscale): reduce idle wireGuard tick scheduling work
+· perf(wireguard): schedule tick timer on demand
+
+======================================================================
+消息 ID: 1563  |  日期: 26 Jun, 09:29
+======================================================================
+26 Jun, 09:29
+Shadowrocket 测试版更新
+版本 2.2.90 (3363)
+· fix(cert): add certificate trust instructions for macOS and Mac Catalyst
+· fix(ssh): avoid blocking mux queue during connect
+· fix(ssh): initialize UDPGW host before measuring length
+· perf(tunnel): throttle wake cron checks
+· fix(dns): cache resolver answers before callbacks
+
+======================================================================
+消息 ID: 1562  |  日期: 25 Jun, 17:42
+======================================================================
+25 Jun, 17:42
+Shadowrocket 测试版更新
+版本 2.2.90 (3362)
+· perf(tailscale): streamline routed host checks
+· fix(UI): avoid invalid subscribe section batch updates
+
+======================================================================
+消息 ID: 1561  |  日期: 25 Jun, 13:16
+======================================================================
+25 Jun, 13:16
+Shadowrocket 测试版更新
+版本 2.2.90 (3361)
+· perf(udp): cache repeated rule rejects
+
+======================================================================
+消息 ID: 1560  |  日期: 25 Jun, 10:02
+======================================================================
+25 Jun, 10:02
+Shadowrocket 测试版更新
+版本 2.2.90 (3360)
+·  fix(tunnel): debounce network interface changes
+·  fix(tailscale): release old udp sockets before module replacement
+
+======================================================================
+消息 ID: 1559  |  日期: 25 Jun, 04:28
+======================================================================
+25 Jun, 04:28
+Shadowrocket 测试版更新
+版本 2.2.90 (3359)
+·  fix(script): avoid recurring WebKit runtime cleanup wakeup
+
+======================================================================
+消息 ID: 1558  |  日期: 24 Jun, 17:42
+======================================================================
+24 Jun, 17:42
+Shadowrocket 测试版更新
+版本 2.2.90 (3358)
+· fix(dns): resolve tunnel IPv6 PTR locally
+
+======================================================================
+消息 ID: 1557  |  日期: 24 Jun, 13:01
+======================================================================
+24 Jun, 13:01
+Shadowrocket 测试版更新
+版本 2.2.90 (3357)
+· fix(tailscale): isolate map response buffering per stream
+
+======================================================================
+消息 ID: 1556  |  日期: 24 Jun, 04:56
+======================================================================
+24 Jun, 04:56
+Shadowrocket 测试版更新
+版本 2.2.90 (3356)
+·  fix(tailscale): recover UDP availability after socket recreation
+
+======================================================================
+消息 ID: 1555  |  日期: 23 Jun, 17:23
+======================================================================
+23 Jun, 17:23
+Shadowrocket 测试版更新
+版本 2.2.90 (3354)
+· fix(tailscale): refresh control and udp path state
+
+======================================================================
+消息 ID: 1554  |  日期: 23 Jun, 11:00
+======================================================================
+23 Jun, 11:00
+Shadowrocket 测试版更新
+版本 2.2.90 (3353)
+· fix(tailscale): restart client after interface changes
+
+======================================================================
+消息 ID: 1553  |  日期: 23 Jun, 09:01
+======================================================================
+23 Jun, 09:01
+Shadowrocket 测试版更新
+版本 2.2.90 (3351)
+· feat(tailscale): add always-use-DERP setting
+
+======================================================================
+消息 ID: 1552  |  日期: 22 Jun, 08:07
+======================================================================
+22 Jun, 08:07
+Shadowrocket 测试版更新
+版本 2.2.90 (3350)
+· chore(server): default to subscription server type and improve type selection UI
+
+======================================================================
+消息 ID: 1551  |  日期: 22 Jun, 05:08
+======================================================================
+22 Jun, 05:08
+Shadowrocket 测试版更新
+版本 2.2.90 (3349)
+· feat(tailscale): expose refreshable peer RTT
+
+======================================================================
+消息 ID: 1550  |  日期: 21 Jun, 11:50
+======================================================================
+21 Jun, 11:50
+Shadowrocket 测试版更新
+版本 2.2.90 (3348)
+· feat(masque): add MASQUE outbound support
+
+======================================================================
+消息 ID: 1549  |  日期: 20 Jun, 18:03
+======================================================================
+20 Jun, 18:03
+Shadowrocket 测试版更新
+版本 2.2.90 (3347)
+· feat(mieru): add mandatory user hint support
+
+======================================================================
+消息 ID: 1548  |  日期: 20 Jun, 11:12
+======================================================================
+20 Jun, 11:12
+Shadowrocket 测试版更新
+版本 2.2.90 (3346)
+· feat(dns): reuse system service records after wake
+· fix(tailscale): reuse closed DERP connection slots
+
+======================================================================
+消息 ID: 1547  |  日期: 20 Jun, 11:08
+======================================================================
+20 Jun, 11:08
+Shadowrocket 测试版更新
+版本 2.2.90 (3345)
+· feat(dns): reuse system service records after wake
+· fix(tailscale): reuse closed DERP connection slots
+
+======================================================================
+消息 ID: 1546  |  日期: 19 Jun, 16:35
+======================================================================
+19 Jun, 16:35
+Shadowrocket 测试版更新
+版本 2.2.90 (3344)
+· refactor(ipc): rewrite message channel with session messaging
+
+======================================================================
+消息 ID: 1545  |  日期: 19 Jun, 12:15
+======================================================================
+19 Jun, 12:15
+Shadowrocket 测试版更新
+版本 2.2.90 (3343)
+· fix(server): correct ping-based server sorting
+
+======================================================================
+消息 ID: 1544  |  日期: 19 Jun, 10:24
+======================================================================
+19 Jun, 10:24
+Shadowrocket 测试版更新
+版本 2.2.90 (3341)
+· fix(xhttp): avoid reusing stale h2 packet-up sockets
+
+======================================================================
+消息 ID: 1543  |  日期: 19 Jun, 06:02
+======================================================================
+19 Jun, 06:02
+Shadowrocket 测试版更新
+版本 2.2.90 (3340)
+· fix(script): throttle cron evaluation after wake
+· fix(tailscale): reduce idle stun endpoint churn
+
+======================================================================
+消息 ID: 1542  |  日期: 18 Jun, 17:42
+======================================================================
+18 Jun, 17:42
+Shadowrocket 测试版更新
+版本 2.2.90 (3339)
+· refactor(macos): centralize file export handling
+· fix(xhttp): detect stale h2 connections after idle
+
+======================================================================
+消息 ID: 1541  |  日期: 18 Jun, 08:12
+======================================================================
+18 Jun, 08:12
+Shadowrocket 测试版更新
+版本 2.2.90 (3337)
+· fix(dns): restore Bonjour discovery over VPN
+
+======================================================================
+消息 ID: 1540  |  日期: 17 Jun, 16:31
+======================================================================
+17 Jun, 16:31
+Shadowrocket 测试版更新
+版本 2.2.90 (3336)
+· fix(tester): release lock before scheduling next test stream
+
+======================================================================
+消息 ID: 1539  |  日期: 17 Jun, 15:26
+======================================================================
+17 Jun, 15:26
+Shadowrocket 测试版更新
+版本 2.2.90 (3335)
+· docs(tailscale): add trademark disclaimer and translations
+
+======================================================================
+消息 ID: 1538  |  日期: 17 Jun, 12:33
+======================================================================
+17 Jun, 12:33
+Shadowrocket 测试版更新
+版本 2.2.90 (3334)
+· fix(tailscale): stop replying to empty transport keepalives
+
+======================================================================
+消息 ID: 1537  |  日期: 17 Jun, 03:35
+======================================================================
+17 Jun, 03:35
+Shadowrocket 测试版更新
+版本 2.2.90 (3318)
+· fix(wireguard): rehandshake after expired keepalive keys
+
+======================================================================
+消息 ID: 1536  |  日期: 16 Jun, 12:45
+======================================================================
+16 Jun, 12:45
+Shadowrocket 测试版更新
+版本 2.2.89 (3329-3333)
+· feat(tailscale): add device details view
+﻿﻿· fix(tailscale): keep DERP connected after netmap updates
+﻿﻿· feat (tailscale): report local interface endpoints
+· fix (dns): route DNS-SD PTR queries by discovery domain
+
+======================================================================
+消息 ID: 1535  |  日期: 15 Jun, 19:05
+======================================================================
+15 Jun, 19:05
+Shadowrocket 测试版更新
+版本 2.2.89 (3328)
+· fix(tailscale): register UDP callbacks conditionally based on interface IP support
+· feat(ui): allow custom uplink HTTP method in obfuscation settings
+
+======================================================================
+消息 ID: 1534  |  日期: 15 Jun, 17:56
+======================================================================
+15 Jun, 17:56
+Shadowrocket 测试版更新
+版本 2.2.89 (3326)
+· feat(xhttp): allow arbitrary HTTP methods for uplink
+
+======================================================================
+消息 ID: 1533  |  日期: 15 Jun, 16:01
+======================================================================
+15 Jun, 16:01
+Shadowrocket 测试版更新
+版本 2.2.89 (3325)
+· feat(tailscale): advertise tailscale direct endpoints
+
+======================================================================
+消息 ID: 1532  |  日期: 15 Jun, 08:40
+======================================================================
+15 Jun, 08:40
+Shadowrocket 测试版更新
+版本 2.2.89 (3323)
+· fix(tailscale): keep control plane alive while idle
+· feat(tailscale): show device list in settings
+
+======================================================================
+消息 ID: 1531  |  日期: 14 Jun, 13:31
+======================================================================
+14 Jun, 13:31
+Shadowrocket 测试版更新
+版本 2.2.89 (3320)
+· fix(server): parse udp query parameter as integer instead of boolean
+
+======================================================================
+消息 ID: 1530  |  日期: 14 Jun, 07:42
+======================================================================
+14 Jun, 07:42
+Shadowrocket 测试版更新
+版本 2.2.89 (3319)
+· refactor(tunnel): centralize inbound L3 packet handling
+
+======================================================================
+消息 ID: 1529  |  日期: 14 Jun, 05:33
+======================================================================
+14 Jun, 05:33
+Shadowrocket 测试版更新
+版本 2.2.89 (3317)
+· fix(widget): preserve VPN switch shape on iOS 27
+
+======================================================================
+消息 ID: 1528  |  日期: 14 Jun, 04:56
+======================================================================
+14 Jun, 04:56
+Shadowrocket 测试版更新
+版本 2.2.89 (3316)
+· fix(relay): notify delegate after async UDP relay handshake
+· fix(udp): guard udp relay connect delegate callback
+
+======================================================================
+消息 ID: 1527  |  日期: 13 Jun, 14:42
+======================================================================
+13 Jun, 14:42
+Shadowrocket 测试版更新
+版本 2.2.89 (3314)
+· feat(tailscale): add global tailscale tunnel module
+
+======================================================================
+消息 ID: 1526  |  日期: 12 Jun, 10:47
+======================================================================
+12 Jun, 10:47
+Shadowrocket 测试版更新
+版本 2.2.89 (3313)
+· fix(server): cast ping values to unsigned integer in sorting comparator
+
+======================================================================
+消息 ID: 1525  |  日期: 11 Jun, 09:16
+======================================================================
+11 Jun, 09:16
+Shadowrocket 测试版更新
+版本 2.2.89 (3312)
+· fix(server): use server weight as fallback in ping-based sorting
+
+======================================================================
+消息 ID: 1524  |  日期: 11 Jun, 04:11
+======================================================================
+11 Jun, 04:11
+Shadowrocket 测试版更新
+版本 2.2.89 (3311)
+· feat(tls): implement TLS ClientHello fingerprinting support
+
+======================================================================
+消息 ID: 1523  |  日期: 10 Jun, 12:25
+======================================================================
+10 Jun, 12:25
+Shadowrocket 正式版更新
+版本 2.2.88
+· 特性（mieru）：支持 Mieru 协议的流量模式混淆与分包定时伪装
+﻿﻿· 特性（tester）：优化大代理组url-test并发测试效率，支持测试结果实时更新
+﻿﻿· 优化（tunnel）：优化DNS重试调度与本地代理端口绑定重试逻辑，大幅減少系统定时器开销
+﻿· 优化（udp）：优化DNS解析后的UDP规则重匹配优先级，并完善ICMP不可达处理
+﻿· 优化（ssh）：优化SSH通道的滑动窗口动态调节
+﻿· 修复（udp）：修正DNS解析后的UDP规则重匹配逻辑
+﻿· 修复（rule）：IP为空时跳过IP规则匹配
+﻿﻿· 修复（tuic）：修复QUIC无法立即写入时的身份验证重试问题
+﻿· 修复（UI）：修复macOS侧边栏布局及二维码扫描预览的显示问题
+
+======================================================================
+消息 ID: 1522  |  日期: 10 Jun, 07:25
+======================================================================
+10 Jun, 07:25
+Shadowrocket 测试版更新
+版本 2.2.89 (3305)
+· fix(UI): adjust ping indicator layout for safe area and avoid redundant subview additions
+
+======================================================================
+消息 ID: 1521  |  日期: 8 Jun, 08:45
+======================================================================
+8 Jun, 08:45
+Shadowrocket 测试版更新
+版本 2.2.88 (3304)
+· fix(dns): preserve DoH fallback retry state
+
+======================================================================
+消息 ID: 1520  |  日期: 7 Jun, 02:35
+======================================================================
+7 Jun, 02:35
+Shadowrocket 测试版更新
+版本 2.2.88 (3301)
+· fix(tcp): align tcp timer startup delay
+
+======================================================================
+消息 ID: 1519  |  日期: 6 Jun, 17:41
+======================================================================
+6 Jun, 17:41
+Shadowrocket 测试版更新
+版本 2.2.88 (3300)
+· fix(rule): resolve no-resolve ip rule count issue
+
+======================================================================
+消息 ID: 1518  |  日期: 6 Jun, 09:18
+======================================================================
+6 Jun, 09:18
+Shadowrocket 测试版更新
+版本 2.2.88 (3299)
+· perf(ssh): reduce ssh startup latency
+
+======================================================================
+消息 ID: 1517  |  日期: 6 Jun, 05:31
+======================================================================
+6 Jun, 05:31
+Shadowrocket 测试版更新
+版本 2.2.88 (3298)
+· fix(ssh): optimize ssh heartbeat timer
+· perf(ssh): preflight pending output before building packets
+
+======================================================================
+消息 ID: 1516  |  日期: 5 Jun, 13:36
+======================================================================
+5 Jun, 13:36
+Shadowrocket 测试版更新
+版本 2.2.88 (3297)
+· fix(dns): defer dns over h3 stream completion
+
+======================================================================
+消息 ID: 1515  |  日期: 5 Jun, 08:17
+======================================================================
+5 Jun, 08:17
+Shadowrocket 测试版更新
+版本 2.2.88 (3295)
+· perf(ssh): assemble packets in write buffer
+· perf(ssh): optimize channel data writes
+
+======================================================================
+消息 ID: 1514  |  日期: 5 Jun, 05:16
+======================================================================
+5 Jun, 05:16
+Shadowrocket 测试版更新
+版本 2.2.88 (3293)
+· feat(ssh): add ssh negotiated algorithms
+
+======================================================================
+消息 ID: 1513  |  日期: 4 Jun, 18:07
+======================================================================
+4 Jun, 18:07
+Shadowrocket 测试版更新
+版本 2.2.88 (3292)
+· perf(ssh): cache pending channel window adjust state
+
+======================================================================
+消息 ID: 1512  |  日期: 4 Jun, 16:19
+======================================================================
+4 Jun, 16:19
+Shadowrocket 测试版更新
+版本 2.2.88 (3291)
+· fix(mux): enforce stream capacity before async handshakes
+· fix(ssh): drain pending writes after user auth
+
+======================================================================
+消息 ID: 1511  |  日期: 3 Jun, 18:42
+======================================================================
+3 Jun, 18:42
+Shadowrocket 测试版更新
+版本 2.2.88 (3289)
+· perf(tcp): centralize tcp match timers
+· perf(mieru): schedule udp retransmits by next retry deadline
+
+======================================================================
+消息 ID: 1510  |  日期: 3 Jun, 06:17
+======================================================================
+3 Jun, 06:17
+Shadowrocket 测试版更新
+版本 2.2.88 (3288)
+· fix(rule): avoid mutating shared routing result
+· refactor(udp): simplify UDP relay packet context
+
+======================================================================
+消息 ID: 1509  |  日期: 2 Jun, 18:42
+======================================================================
+2 Jun, 18:42
+Shadowrocket 测试版更新
+版本 2.2.88 (3287)
+· fix(UDP): correct UDP rule rematch after DNS resolution
+· fix(UI): update QR scanner preview during size transitions
+
+======================================================================
+消息 ID: 1508  |  日期: 2 Jun, 07:38
+======================================================================
+2 Jun, 07:38
+Shadowrocket 测试版更新
+版本 2.2.88 (3285)
+· feat(mieru): support traffic pattern obfuscation
+
+======================================================================
+消息 ID: 1507  |  日期: 1 Jun, 05:17
+======================================================================
+1 Jun, 05:17
+Shadowrocket 测试版更新
+版本 2.2.88 (3284)
+· perf(dns): centralize DNS query retry scheduling
+· perf(proxy): back off listener bind retries
+· perf(tunnel): debounce network changed actions
+· fix(tcp): avoid over-closing streams during idle cleanup
+
+======================================================================
+消息 ID: 1506  |  日期: 31 May, 19:11
+======================================================================
+31 May, 19:11
+Shadowrocket 测试版更新
+版本 2.2.88 (3283)
+· perf(udp): centralize UDP relay cleanup
+· perf(network): batch network usage accounting
+
+======================================================================
+消息 ID: 1505  |  日期: 31 May, 09:51
+======================================================================
+31 May, 09:51
+Shadowrocket 测试版更新
+版本 2.2.88 (3281)
+· fix(xhttp): optimize xhttp stream setup and socket reuse
+
+======================================================================
+消息 ID: 1504  |  日期: 31 May, 09:49
+======================================================================
+31 May, 09:49
+Shadowrocket 正式版更新
+版本 2.2.87
+·特性（wless）：在iOS/tvOS 上启用紧凑流缓冲区以大幅降低高并发下的内存占用
+﻿优化（tester）：优化延迟测试组的自动切换逻辑，避免受旧数据干扰
+﻿﻿· 优化 （hysteria）：优化 Hysteria 协议 HYBBR 拥塞控制的上传起搏算法
+﻿修复（dns）：优化 DNS over QUIC 和 DoH3的网络背压耐受力，防止意外断开
+﻿· 修复（http3）：修复 HTTP/3 在连接受限与局部数据写入时的稳定性和断言崩溃问题
+﻿修复 （fallback）：修复策略组回落切换到 PROXY 等字符类型占位符时的崩溃问题
+· 修复（xhttp）：修复 xhttp 传输参数解析时遗漏布尔值与数值型配置的问题
+
+======================================================================
+消息 ID: 1503  |  日期: 29 May, 13:32
+======================================================================
+29 May, 13:32
+Shadowrocket 测试版更新
+版本 2.2.87 (3280)
+· fix(fallback): prevent fallback crash on string policy group
+
+======================================================================
+消息 ID: 1502  |  日期: 29 May, 04:24
+======================================================================
+29 May, 04:24
+Shadowrocket 测试版更新
+版本 2.2.87 (3279)
+· fix(tester): compare group tester winner against current policy result
+
+======================================================================
+消息 ID: 1501  |  日期: 29 May, 03:17
+======================================================================
+29 May, 03:17
+Shadowrocket 测试版更新
+版本 2.2.87 (3278)
+· perf(vless): enable compact stream buffers on iOS
+· fix(http3): complete ngtcp2 write-more packets before returning
+· fix(xhttp): resolve boolean values in option parsing
+
+======================================================================
+消息 ID: 1500  |  日期: 28 May, 20:05
+======================================================================
+28 May, 20:05
+Shadowrocket 测试版更新
+版本 2.2.87 (3276)
+· fix(hysteria): stabilize upload pacing for BBR
+· fix(tuic): separate tuic quic backpressure from socket readiness
+
+======================================================================
+消息 ID: 1499  |  日期: 27 May, 15:15
+======================================================================
+27 May, 15:15
+Shadowrocket 正式版更新
+版本 2.2.86
+· ﻿﻿特性（http）：在 HTTP2、HTTP3与XHTTP 请求中使用动态浏览器 User-Agent
+· ﻿特性（clash）：支持解析 Clash 代理配置中的 port-range 属性
+· 特性（config）：支持 xhttp 传输配置解析并将其整合至 obfsParam
+﻿· 重构（rule）：优化逻辑规则中的 QUIC 流量匹配，解耦端口限制
+· ﻿﻿优化（mieru）：优化 Mieru 协议的配置解析与 URL 导入导出格式
+· ﻿﻿修复（tunnel）：优化本地代理失败响应的流关闭时机及握手超时处理
+﻿· 修复（ip）：修正IP地址合法性校验的最短长度限制
+· ﻿修复（mux）：修复多路复用连接在远程断开时的流泄漏与重复清理问题
+
+======================================================================
+消息 ID: 1498  |  日期: 26 May, 14:48
+======================================================================
+26 May, 14:48
+Shadowrocket 测试版更新
+版本 2.2.86 (3275)
+· feat(ssh): add host key fingerprint configuration
+
+======================================================================
+消息 ID: 1497  |  日期: 25 May, 05:13
+======================================================================
+25 May, 05:13
+Shadowrocket 测试版更新
+版本 2.2.86 (3274)
+· feat(clash): support parsing port-range field from proxy config
+· refactor(server): clean up server url and update mieru config parsing
+
+======================================================================
+消息 ID: 1496  |  日期: 24 May, 18:32
+======================================================================
+24 May, 18:32
+Shadowrocket 测试版更新
+版本 2.2.86 (3273)
+· fix(proxy): close local streams after terminal proxy response
+
+======================================================================
+消息 ID: 1495  |  日期: 24 May, 05:22
+======================================================================
+24 May, 05:22
+Shadowrocket 测试版更新
+版本 2.2.86 (3272)
+· fix(rule): resolve test rule crash issue
+
+======================================================================
+消息 ID: 1494  |  日期: 23 May, 19:58
+======================================================================
+23 May, 19:58
+Shadowrocket 测试版更新
+版本 2.2.86 (3271)
+· refactor(udp): simplify quic rule matching
+· fix(ip): fix minimum length checks in IP validation helper methods
+
+======================================================================
+消息 ID: 1493  |  日期: 23 May, 17:25
+======================================================================
+23 May, 17:25
+Shadowrocket 测试版更新
+版本 2.2.86 (3267-3269)
+· fix(mitm): instantiate rule result for mock rewrite rule
+· feat(http): use dynamic browser User-Agent for HTTP2, HТТP3, and XHTTP
+· fix(mux): centralize stream removal on remote disconnect
+· feat(config): support xhttp transport parsing and clean up options helpers
+· fix(vless): reduce retained stream buffer footprint
+
+======================================================================
+消息 ID: 1492  |  日期: 23 May, 06:08
+======================================================================
+23 May, 06:08
+Shadowrocket 测试版更新
+版本 2.2.85 (3266)
+· fix(backend): fix early data path parameter removal range calculation
+· refactor(ech): share TLS peer resolution for remote ECH
+· feat(server): allow importing configurations for all protocol types
+· refactor(widget): simplify VPN status verification and toggle intent logic
+· fix(i18n): correct translation for proxy pass settings
+· refactor(udp): optimize routing rule matching and extend QUIC port checks
+
+======================================================================
+消息 ID: 1491  |  日期: 22 May, 15:32
+======================================================================
+22 May, 15:32
+Shadowrocket 正式版更新
+版本 2.2.85
+* 修复(tunnel): 避免代理流出队标志冲突
+* 特性(mieru): 支持 Mieru 协议及其可靠的 UDP 传输模式
+* 重构(ech): 优化 ECH 模式检测并强化配置校验
+* 优化(widget): 简化控制中心 Widget 的状态检查与切换逻辑
+* 修复(backend): 修复 WebSocket 早期数据路径参数解析时的截断错误
+Shadowrocket 是一款纯净的网络工具，不附带任何服务器资源。请根据您的需要自行配置代理服务。
+* fix(tunnel): avoid proxy stream dequeue flag collision
+* feat(mieru): add support for Mieru protocol and its reliable UDP transport mode
+* refactor(ech): refine ECH mode detection and validate configurations
+* perf(widget): simplify Control Center widget status checking and toggle logic
+* fix(backend): fix parameter truncation error when parsing WebSocket Early Data paths
+Please note:
+Shadowrocket is a standalone networking utility and does not include any proxy services or server resources. Users are responsible for providing their own configurations.
+
+======================================================================
+消息 ID: 1490  |  日期: 22 May, 02:46
+======================================================================
+22 May, 02:46
+Shadowrocket 正式版更新
+版本 2.2.84
+· ﻿修复（tIs）：优化 ECH 模式检测并强化配置校验
+﻿﻿· 性能（vless）：在填充数据穿透后释放 VLESS Vision 资源
+HTTP模式存在问题，暂时请将
+Shadowrocket  - 设置 - 代理 - 类型 - 选择None
+修复版2.2.85 已经提交审核。
+
+======================================================================
+消息 ID: 1489  |  日期: 20 May, 13:36
+======================================================================
+20 May, 13:36
+Shadowrocket 正式版更新
+版本 2.2.83
+· 修复（vless/xtls）：修复握手、部分数据处理、读取刷新及非ENC 模式的 XTLS 路径
+﻿﻿· 修复（xhttp）：解決 stream-one 的 Session ID 省略、路径及默认 Padding 填充问题
+﻿· 修复（网络/加密）：解决 UDP 零值校验和、QUIC 规则状态共享、TLS 分片及 UUID 解析对齐
+﻿· 优化（性能）：减少 vless 流拷贝，优化IwIP 协议栈内存分配及热点路径开销
+﻿· 修复（其他）：支持 OpenConnect 表单认证，解决脚本通知、组件刷新、首页排序错位及翻译问题
+如果节点设置了ECH，只有域名，没有指定DNS，会导致崩溃。
+正确格式 ：
+cloudflare-ech.com+https://1.1.1.1/dns-query
+cloudflare-ech.com+udp://1.1.1.1
+
+======================================================================
+消息 ID: 1488  |  日期: 19 May, 11:32
+======================================================================
+19 May, 11:32
+Shadowrocket 测试版更新
+版本 2.2.83 (3256)
+· fix(vless): preserve vision flow metadata for ENC streams
+
+======================================================================
+消息 ID: 1487  |  日期: 19 May, 10:21
+======================================================================
+19 May, 10:21
+Shadowrocket 测试版更新
+版本 2.2.83 (3255)
+· perf(vless): reduce vless stream buffer copying in backend
+· fix(widget): correct VPN control state refresh
+· fix(config): refine hysteria2 parameter mapping in config reader
+
+======================================================================
+消息 ID: 1486  |  日期: 19 May, 04:36
+======================================================================
+19 May, 04:36
+Shadowrocket 测试版更新
+版本 2.2.83 (3253)
+· fix(config): support config parameter mapping for Hysteria2
+· fix(backend): route VLESS Vision through stream backend
+
+======================================================================
+消息 ID: 1485  |  日期: 18 May, 19:52
+======================================================================
+18 May, 19:52
+Shadowrocket 测试版更新
+版本 2.2.83 (3252)
+· fix(script): handle binary early responses correctly
+
+======================================================================
+消息 ID: 1484  |  日期: 18 May, 12:43
+======================================================================
+18 May, 12:43
+Shadowrocket 测试版更新
+版本 2.2.83 (3251)
+· fix(udp): keep QUIC rule state out of shared results
+
+======================================================================
+消息 ID: 1483  |  日期: 18 May, 10:21
+======================================================================
+18 May, 10:21
+Shadowrocket 测试版更新
+版本 2.2.83 (3250)
+· fix(backend): restore socket XTLS path for non-ENC VLESS
+
+======================================================================
+消息 ID: 1482  |  日期: 18 May, 09:08
+======================================================================
+18 May, 09:08
+Shadowrocket 测试版更新
+版本 2.2.83 (3249)
+· fix(vless): guard vision direct write transition
+· fix(vless): align vision padding generation
+
+======================================================================
+消息 ID: 1481  |  日期: 18 May, 07:10
+======================================================================
+18 May, 07:10
+Shadowrocket 测试版更新
+版本 2.2.83 (3247)
+· fix(vless): flush pending vless stream output after reads
+
+======================================================================
+消息 ID: 1480  |  日期: 17 May, 19:24
+======================================================================
+17 May, 19:24
+Shadowrocket 测试版更新
+版本 2.2.83 (3246)
+· fix(backend): handle vless stream partial data
+
+======================================================================
+消息 ID: 1479  |  日期: 17 May, 12:37
+======================================================================
+17 May, 12:37
+Shadowrocket 测试版更新
+版本 2.2.83 (3245)
+· fix(xhttp): correct stream-one path and default padding
+
+======================================================================
+消息 ID: 1478  |  日期: 17 May, 05:41
+======================================================================
+17 May, 05:41
+Shadowrocket 测试版更新
+版本 2.2.83 (3243)
+· perf(socket): optimize memory allocations and copies in hot paths
+· fix(vless):  apply tls fingerprint during tls context initialization
+
+======================================================================
+消息 ID: 1477  |  日期: 16 May, 17:24
+======================================================================
+16 May, 17:24
+Shadowrocket 测试版更新
+版本 2.2.83 (3242)
+· fix(clash): remove redundant tls disablement for hybrid encryption
+
+======================================================================
+消息 ID: 1476  |  日期: 16 May, 06:37
+======================================================================
+16 May, 06:37
+Shadowrocket 测试版更新
+版本 2.2.83 (3240)
+· feat(server): add keep proxy pass switch
+· feat(server): add mieru protocol URL import/export support
+· feat(dns): add allow-dns-all configuration support
+· fix(socket): handle zero value in UDP checksum calculation
+· fix(tls): resolve tls fragment invalid issue
+· fix(qr): correct camera preview orientation in landscape mode
+· fix(UI): resolve layout displacement during proxy group reordering
+
+======================================================================
+消息 ID: 1475  |  日期: 16 May, 05:50
+======================================================================
+16 May, 05:50
+Shadowrocket 测试版更新
+版本 2.2.83 (3239)
+· fix(openconnect): handle multi-step config auth
+
+======================================================================
+消息 ID: 1474  |  日期: 15 May, 19:43
+======================================================================
+15 May, 19:43
+Shadowrocket 测试版更新
+版本 2.2.83 (3238)
+· fix(udp): resolve block quic always-allow with reject issue
+
+======================================================================
+消息 ID: 1473  |  日期: 15 May, 08:38
+======================================================================
+15 May, 08:38
+Shadowrocket 正式版更新
+版本 2.2.82
+• ﻿修复（udp）：解决 QUIC 拦截规则匹配问题
+• 修复 （http2）：解决 HTTP/2 目标 IP 规则匹配问题
+﻿﻿• 修复（amneziawg）：从正确的索引位置读取垃圾数据包密钥
+
+======================================================================
+消息 ID: 1472  |  日期: 14 May, 21:10
+======================================================================
+14 May, 21:10
+Shadowrocket 测试版更新
+版本 2.2.82 (3237)
+· fix(amneziawg): read junk packet keys from correct index
+
+======================================================================
+消息 ID: 1471  |  日期: 14 May, 20:11
+======================================================================
+14 May, 20:11
+Shadowrocket 测试版更新
+版本 2.2.82 (3235)
+· fix(udp): resolve QUIC blocking rule matching issue
+
+======================================================================
+消息 ID: 1470  |  日期: 14 May, 13:12
+======================================================================
+14 May, 13:12
+Shadowrocket 正式版更新
+版本 2.2.81
+• 新增 Mieru 协议支持，提供更多隐蔽化连接方案。
+• 新增 OpenConnect 协议支持，兼容更多办公与企业网络环境。
+• 新增 TrustTunnel 协议，增强复杂网络下的穿透能力。
+• 增强 VLESS XTLS Vision 支持，进一步提升稳定性、伪装性与抗检测能力。
+• 重构 DNS 缓存系统，优化首次访问速度与整体解析效率。
+• 深度优化 HTTP/3（QUIC）传输，高丢包环境下体验更流畅。
+• 提升 HTTPS MITM 解密兼容性，支持 HTTP/2 MITM，增强脚本、Body 修改与流量控制稳定性。
+• 支持 XHTTP 非对称下载，可分离上传与下载链路，优化特定网络传输表现。
+• 修复二维码扫描器在屏幕旋转时的显示异常问题。
+• 修复服务器列表编辑模式下移动位置可能失效的问题。
+• 修复部分后台闪退与死锁问题，进一步降低系统资源占用。
+• 优化 iOS 快捷指令集成，VPN 状态获取更快、更准确。
+
+======================================================================
+消息 ID: 1469  |  日期: 13 May, 19:31
+======================================================================
+13 May, 19:31
+Shadowrocket 测试版更新
+版本 2.2.81 (3233)
+· fix(fetch): keep shared ephemeral session stable
+
+======================================================================
+消息 ID: 1468  |  日期: 13 May, 17:26
+======================================================================
+13 May, 17:26
+Shadowrocket 测试版更新
+版本 2.2.81 (3232)
+· fix(http): handle HTTP 304 Not Modified status codes for resource downloads
+
+======================================================================
+消息 ID: 1467  |  日期: 13 May, 12:11
+======================================================================
+13 May, 12:11
+Shadowrocket 测试版更新
+版本 2.2.81 (3231)
+· fix(xhttp): resolve xhttp yaml config key parse issue
+
+======================================================================
+消息 ID: 1466  |  日期: 13 May, 06:36
+======================================================================
+13 May, 06:36
+Shadowrocket 测试版更新
+版本 2.2.81 (3230)
+· perf(config): batch rule metadata writes and improve cancellation handling
+
+======================================================================
+消息 ID: 1465  |  日期: 12 May, 18:00
+======================================================================
+12 May, 18:00
+Shadowrocket 测试版更新
+版本 2.2.81 (3229)
+· fix(mitm): resolve tcp stream teardown crash issue
+
+======================================================================
+消息 ID: 1464  |  日期: 12 May, 08:06
+======================================================================
+12 May, 08:06
+Shadowrocket 测试版更新
+版本 2.2.81 (3228)
+· feat(xhttp): support separate download target settings
+
+======================================================================
+消息 ID: 1463  |  日期: 11 May, 11:14
+======================================================================
+11 May, 11:14
+Shadowrocket 测试版更新
+版本 2.2.81 (3226)
+refactor(xhttp): add xhttp transport options
+
+======================================================================
+消息 ID: 1462  |  日期: 11 May, 10:41
+======================================================================
+11 May, 10:41
+Shadowrocket 测试版更新
+版本 2.2.81 (3225)
+· fix(script): harden WKWebView runtime cleanup
+
+======================================================================
+消息 ID: 1461  |  日期: 10 May, 09:57
+======================================================================
+10 May, 09:57
+Shadowrocket 测试版更新
+版本 2.2.81 (3224)
+· refactor(subscribe): do not preserve existing server chain during subscription updates
+· fix(script): allow dequeued stream callbacks to finish
+· fix(xhttp): preserve session state during HTTP/3 socket reconnection
+
+======================================================================
+消息 ID: 1460  |  日期: 9 May, 15:28
+======================================================================
+9 May, 15:28
+Shadowrocket 测试版更新
+版本 2.2.81 (3222)
+· feat(dns): support remote ECH resolution
+
+======================================================================
+消息 ID: 1459  |  日期: 9 May, 04:30
+======================================================================
+9 May, 04:30
+Shadowrocket 测试版更新
+版本 2.2.81 (3221)
+· feat(server): add support for TrustTunnel protocol
+
+======================================================================
+消息 ID: 1458  |  日期: 9 May, 03:25
+======================================================================
+9 May, 03:25
+Shadowrocket 测试版更新
+版本 2.2.81 (3220)
+· fix(tcp): defer tcp stream teardown releases
+
+======================================================================
+消息 ID: 1457  |  日期: 7 May, 04:01
+======================================================================
+7 May, 04:01
+Shadowrocket 测试版更新
+版本 2.2.81 (3218)
+· feat(wireguard): track active raw sockets and prevent wireguard idle timeouts
+
+======================================================================
+消息 ID: 1456  |  日期: 6 May, 14:25
+======================================================================
+6 May, 14:25
+Shadowrocket 测试版更新
+版本 2.2.81 (3217)
+· fix(wireguard): restart idle raw socket during DNS lookup
+
+======================================================================
+消息 ID: 1455  |  日期: 5 May, 19:12
+======================================================================
+5 May, 19:12
+Shadowrocket 测试版更新
+版本 2.2.81 (3216)
+· perf(wireguard): optimize write throughput and refine default read length
+
+======================================================================
+消息 ID: 1454  |  日期: 5 May, 13:13
+======================================================================
+5 May, 13:13
+Shadowrocket 测试版更新
+版本 2.2.81 (3215)
+· fix(wireguard): resolve raw socket mtu setup issue
+
+======================================================================
+消息 ID: 1453  |  日期: 5 May, 04:12
+======================================================================
+5 May, 04:12
+Shadowrocket 测试版更新
+版本 2.2.81 (3214)
+· fix(wireguard): resolve raw socket graceful close issue
+
+======================================================================
+消息 ID: 1452  |  日期: 4 May, 17:53
+======================================================================
+4 May, 17:53
+Shadowrocket 测试版更新
+版本 2.2.81 (3213)
+· fix(wireguard): resolve raw socket graceful close issue
+
+======================================================================
+消息 ID: 1451  |  日期: 4 May, 14:10
+======================================================================
+4 May, 14:10
+Shadowrocket 测试版更新
+版本 2.2.81 (3212)
+· fix(wireguard): abort raw socket close during teardown
+
+======================================================================
+消息 ID: 1450  |  日期: 4 May, 12:09
+======================================================================
+4 May, 12:09
+Shadowrocket 测试版更新
+版本 2.2.81 (3211)
+· fix(script): avoid script callbacks after stream teardown cancellation
+· fix(wireguard): resolve wireguard not working with includeAllNetworks issue
+
+======================================================================
+消息 ID: 1449  |  日期: 2 May, 08:36
+======================================================================
+2 May, 08:36
+Shadowrocket 测试版更新
+版本 2.2.81 (3210)
+· refactor(anytls): simplify initial handshake by removing pending data bundling
+
+======================================================================
+消息 ID: 1448  |  日期: 30 Apr, 04:22
+======================================================================
+30 Apr, 04:22
+Shadowrocket 测试版更新
+版本 2.2.81 (3209)
+· fix(tunnel): stabilize script callback lifetime during stream teardown
+
+======================================================================
+消息 ID: 1447  |  日期: 30 Apr, 04:22
+======================================================================
+30 Apr, 04:22
+Shadowrocket 测试版更新
+版本 2.2.81 (3208)
+· feat(OpenConnect): add OpenConnect protocol support
+
+======================================================================
+消息 ID: 1446  |  日期: 29 Apr, 11:28
+======================================================================
+29 Apr, 11:28
+Shadowrocket 测试版更新
+版本 2.2.81 (3207)
+· fix(tcp): defer stream cleanup off lwIP callback stack
+
+======================================================================
+消息 ID: 1445  |  日期: 28 Apr, 19:00
+======================================================================
+28 Apr, 19:00
+Shadowrocket 测试版更新
+版本 2.2.81 (3206)
+· refactor(dns): optimize memory management and lifecycle for DoQ and DoT sockets
+
+======================================================================
+消息 ID: 1444  |  日期: 28 Apr, 06:27
+======================================================================
+28 Apr, 06:27
+Shadowrocket 测试版更新
+版本 2.2.81 (3205)
+· fix(doq): avoid UDP socket dealloc on relay cleanup callback stack
+
+======================================================================
+消息 ID: 1443  |  日期: 27 Apr, 06:04
+======================================================================
+27 Apr, 06:04
+Shadowrocket 测试版更新
+版本 2.2.81 (3204)
+· fix(tunnel): fix a crash that could occur during shutdown of certain network connections and improved the related resource cleanup logic.
+· fix(server): resolve vless server with xtls proxy pass issue
+
+======================================================================
+消息 ID: 1442  |  日期: 26 Apr, 15:36
+======================================================================
+26 Apr, 15:36
+Shadowrocket 测试版更新
+版本 2.2.81 (3203)
+· fix(dns): resolve dns defer socket release issue
+· fix(tunnel): resolve tcp defer stream release issue
+· fix(h2mitm): resolve potential retain cycle and double delegate fetch issue
+
+======================================================================
+消息 ID: 1441  |  日期: 25 Apr, 19:09
+======================================================================
+25 Apr, 19:09
+Shadowrocket 测试版更新
+版本 2.2.81 (3202)
+· perf(mieru): use buffer read to eliminate data copy on receive
+
+======================================================================
+消息 ID: 1440  |  日期: 25 Apr, 14:35
+======================================================================
+25 Apr, 14:35
+Shadowrocket 测试版更新
+版本 2.2.81 (3201)
+· perf(mieru): optimize incoming buffer management and reduce allocations
+· fix(dns): resolve dns over proxy crash issue
+
+======================================================================
+消息 ID: 1439  |  日期: 25 Apr, 09:21
+======================================================================
+25 Apr, 09:21
+Shadowrocket 测试版更新
+版本 2.2.81 (3200)
+· fix(h2mitm): serialize client-side SSL writes until buffered TLS output is drained
+· fix(tunnel): defer final stream release after tunnel removal to avoid weak_clear_no_lock crashes
+
+======================================================================
+消息 ID: 1438  |  日期: 25 Apr, 07:15
+======================================================================
+25 Apr, 07:15
+Shadowrocket 测试版更新
+版本 2.2.81 (3199)
+· fix(url): add alpn to HTTP URL export and include HTTP3 in URL routing
+· fix(mieru): fix write/read guard and stale stream write in mieru session
+
+======================================================================
+消息 ID: 1437  |  日期: 24 Apr, 11:28
+======================================================================
+24 Apr, 11:28
+Shadowrocket 测试版更新
+版本 2.2.81 (3197)
+· fix(ping): fix tcp ping passing port 0 instead of the actual port argument
+
+======================================================================
+消息 ID: 1436  |  日期: 23 Apr, 07:12
+======================================================================
+23 Apr, 07:12
+Shadowrocket 测试版更新
+版本 2.2.81 (3196)
+· perf(dns): optimize async callback delivery for DNS queries
+
+======================================================================
+消息 ID: 1435  |  日期: 22 Apr, 18:24
+======================================================================
+22 Apr, 18:24
+Shadowrocket 测试版更新
+版本 2.2.81 (3195)
+· fix(socket): clear delegateQueue when releasing detached transport
+
+======================================================================
+消息 ID: 1434  |  日期: 22 Apr, 12:22
+======================================================================
+22 Apr, 12:22
+Shadowrocket 测试版更新
+版本 2.2.81 (3194)
+· refactor(rule): remove reserved policies set and simplify policy lookup loop termination
+
+======================================================================
+消息 ID: 1433  |  日期: 22 Apr, 10:17
+======================================================================
+22 Apr, 10:17
+Shadowrocket 测试版更新
+版本 2.2.81 (3193)
+· fix(vless): skip TLS settings when OpenSSL context is already active
+
+======================================================================
+消息 ID: 1432  |  日期: 21 Apr, 17:42
+======================================================================
+21 Apr, 17:42
+Shadowrocket 测试版更新
+版本 2.2.81 (3192)
+· fix(server): decouple xtls flow setting from tls flag and fix vless stream tls settings
+
+======================================================================
+消息 ID: 1431  |  日期: 21 Apr, 14:53
+======================================================================
+21 Apr, 14:53
+Shadowrocket 测试版更新
+版本 2.2.81 (3191)
+· fix(socket): fix mux session close-wait socket cleanup
+· fix(test): fix test stream disconnect callback reentrancy crash
+· fix(server): disable tls when vless encryption field is set
+
+======================================================================
+消息 ID: 1430  |  日期: 21 Apr, 08:16
+======================================================================
+21 Apr, 08:16
+Shadowrocket 测试版更新
+版本 2.2.81 (3190)
+· feat(test): support direct connection testing and improve group tester
+
+======================================================================
+消息 ID: 1429  |  日期: 21 Apr, 07:54
+======================================================================
+21 Apr, 07:54
+Shadowrocket 测试版更新
+版本 2.2.81 (3189)
+· feat(UI): improve xtls/flow UI and add encryption field info button
+· feat(UI): enable swipe-to-select multi-selection gesture across list view controllers
+· feat(server): enable xtls for vless with obfs transports and refactor xtls eligibility
+
+======================================================================
+消息 ID: 1428  |  日期: 19 Apr, 18:22
+======================================================================
+19 Apr, 18:22
+Shadowrocket 测试版更新
+版本 2.2.81 (3187)
+· fix(mux): fix AnyTLS stream close handshake and session reuse lifecycle
+
+======================================================================
+消息 ID: 1427  |  日期: 19 Apr, 03:59
+======================================================================
+19 Apr, 03:59
+Shadowrocket 测试版更新
+版本 2.2.81 (3184)
+· refactor(socket): refine tcp socket final release teardown flow
+
+======================================================================
+消息 ID: 1426  |  日期: 18 Apr, 14:04
+======================================================================
+18 Apr, 14:04
+Shadowrocket 测试版更新
+版本 2.2.81 (3182)
+· fix(socket): fix delayed final release for tcp socket inner socket
+
+======================================================================
+消息 ID: 1425  |  日期: 18 Apr, 12:30
+======================================================================
+18 Apr, 12:30
+Shadowrocket 测试版更新
+版本 2.2.81 (3181)
+· refactor(socket): move tls fragment config  to socket directly
+
+======================================================================
+消息 ID: 1424  |  日期: 18 Apr, 08:15
+======================================================================
+18 Apr, 08:15
+Shadowrocket 测试版更新
+版本 2.2.81 (3180)
+· fix(server): resolve crash caused by update subscribe selector mismatch
+
+======================================================================
+消息 ID: 1423  |  日期: 18 Apr, 06:39
+======================================================================
+18 Apr, 06:39
+Shadowrocket 测试版更新
+版本 2.2.81 (3179)
+· fix(dns): resolve DoH / DoT host lookup issue
+
+======================================================================
+消息 ID: 1422  |  日期: 18 Apr, 05:14
+======================================================================
+18 Apr, 05:14
+Shadowrocket 测试版更新
+版本 2.2.81 (3178)
+· fix(mux): resolve mux session teardown ordering and unify invalidation
+
+======================================================================
+消息 ID: 1421  |  日期: 17 Apr, 17:13
+======================================================================
+17 Apr, 17:13
+Shadowrocket 测试版更新
+版本 2.2.81 (3177)
+· refactor(socket): convert tcp socket from inheritance to composition
+
+======================================================================
+消息 ID: 1420  |  日期: 17 Apr, 10:33
+======================================================================
+17 Apr, 10:33
+Shadowrocket 测试版更新
+版本 2.2.81 (3176)
+· fix(dns): improve DoH/DoT socket stability with keepAlive and teardown handling
+· feat(server): add reality pbk/sid params to URL export and refactor pluginArgs method
+
+======================================================================
+消息 ID: 1419  |  日期: 16 Apr, 11:52
+======================================================================
+16 Apr, 11:52
+Shadowrocket 测试版更新
+版本 2.2.81 (3175)
+· fix(socket): release retired sockets on their own socket queues
+
+======================================================================
+消息 ID: 1418  |  日期: 16 Apr, 03:43
+======================================================================
+16 Apr, 03:43
+Shadowrocket 测试版更新
+版本 2.2.81 (3174)
+· fix(test): avoid recursive os_unfair_lock reentry in group tester cleanup
+
+======================================================================
+消息 ID: 1417  |  日期: 14 Apr, 14:36
+======================================================================
+14 Apr, 14:36
+Shadowrocket 测试版更新
+版本 2.2.81 (3173)
+· fix(socket): remove chain teardown array holder from final release path
+
+======================================================================
+消息 ID: 1416  |  日期: 14 Apr, 05:46
+======================================================================
+14 Apr, 05:46
+Shadowrocket 测试版更新
+版本 2.2.81 (3172)
+· fix(vless): resolve vless-enc with ws/httpupgrade/kcp issue
+
+======================================================================
+消息 ID: 1415  |  日期: 13 Apr, 16:49
+======================================================================
+13 Apr, 16:49
+Shadowrocket 测试版更新
+版本 2.2.81 (3171)
+· fix(socket): centralize child socket final release outside teardown stack
+
+======================================================================
+消息 ID: 1414  |  日期: 12 Apr, 19:14
+======================================================================
+12 Apr, 19:14
+Shadowrocket 测试版更新
+版本 2.2.81 (3170)
+· fix(socket): defer chain child socket release out of teardown stack
+
+======================================================================
+消息 ID: 1413  |  日期: 11 Apr, 06:15
+======================================================================
+11 Apr, 06:15
+Shadowrocket 测试版更新
+版本 2.2.81 (3169)
+· fix(socket): resolve tcp socket teardown weak-clear race during dealloc
+
+======================================================================
+消息 ID: 1412  |  日期: 10 Apr, 15:06
+======================================================================
+10 Apr, 15:06
+Shadowrocket 测试版更新
+版本 2.2.81 (3168)
+· fix(tcp): prevent tcp receive window stall in HTTP/2 MITM session
+· fix(test): resolve group tester stream teardown lifecycle issue
+
+======================================================================
+消息 ID: 1411  |  日期: 8 Apr, 06:00
+======================================================================
+8 Apr, 06:00
+Shadowrocket 测试版更新
+版本 2.2.81 (3165)
+· fix(script): use per-stream uuid instead of session-level uuid for HTTP2 script/rewrite tracking
+
+======================================================================
+消息 ID: 1410  |  日期: 7 Apr, 15:01
+======================================================================
+7 Apr, 15:01
+Shadowrocket 测试版更新
+版本 2.2.81 (3164)
+· fix(script): free properties buffer after use to prevent memory leak
+
+======================================================================
+消息 ID: 1409  |  日期: 7 Apr, 12:45
+======================================================================
+7 Apr, 12:45
+Shadowrocket 测试版更新
+版本 2.2.81 (3163)
+· fix(dns): improve dns lookup robustness
+
+======================================================================
+消息 ID: 1408  |  日期: 7 Apr, 04:45
+======================================================================
+7 Apr, 04:45
+Shadowrocket 测试版更新
+版本 2.2.81 (3162)
+· fix(script): tighten jsc teardown and detach async tasks from context
+
+======================================================================
+消息 ID: 1407  |  日期: 5 Apr, 17:06
+======================================================================
+5 Apr, 17:06
+Shadowrocket 测试版更新
+版本 2.2.81 (3161)
+· fix(dns): avoid weak teardown races in async tunnel callbacks
+
+======================================================================
+消息 ID: 1406  |  日期: 4 Apr, 19:13
+======================================================================
+4 Apr, 19:13
+Shadowrocket 测试版更新
+版本 2.2.81 (3160)
+· fix(mitm): add client-side flow control for HTTP/2 MITM output
+· fix(mitm): extend client backpressure to h1-simulated upstreams
+· fix(socket): address crash and race condition issues in socket teardown
+
+======================================================================
+消息 ID: 1405  |  日期: 4 Apr, 06:57
+======================================================================
+4 Apr, 06:57
+Shadowrocket 测试版更新
+版本 2.2.81 (3158)
+· fix(socket): fix cross-queue weak reference race in tcp socket dealloc
+
+======================================================================
+消息 ID: 1404  |  日期: 3 Apr, 09:52
+======================================================================
+3 Apr, 09:52
+Shadowrocket 测试版更新
+版本 2.2.81 (3156)
+· fix(test): stabilize teardown timing during close
+
+======================================================================
+消息 ID: 1403  |  日期: 3 Apr, 06:21
+======================================================================
+3 Apr, 06:21
+Shadowrocket 测试版更新
+版本 2.2.81 (3155)
+· feat(mieru): add mieru proxy protocol support
+
+======================================================================
+消息 ID: 1402  |  日期: 2 Apr, 17:31
+======================================================================
+2 Apr, 17:31
+Shadowrocket 测试版更新
+版本 2.2.81 (3154)
+· fix(socket): close mux/quic state before dealloc-time teardown
+
+======================================================================
+消息 ID: 1401  |  日期: 2 Apr, 16:12
+======================================================================
+2 Apr, 16:12
+Shadowrocket 测试版更新
+版本 2.2.81 (3153)
+· fix(vless): resolve vless uuid parse issue
+
+======================================================================
+消息 ID: 1400  |  日期: 2 Apr, 08:31
+======================================================================
+2 Apr, 08:31
+Shadowrocket 测试版更新
+版本 2.2.81 (3151)
+· fix(mitm): tighten http2 upstream teardown before dealloc
+
+======================================================================
+消息 ID: 1399  |  日期: 2 Apr, 07:43
+======================================================================
+2 Apr, 07:43
+Shadowrocket 测试版更新
+版本 2.2.81 (3150)
+· fix(server): handle VLESS encryption field parse in clash proxy parsing
+
+======================================================================
+消息 ID: 1398  |  日期: 2 Apr, 06:28
+======================================================================
+2 Apr, 06:28
+Shadowrocket 测试版更新
+版本 2.2.81 (3149)
+· fix(mitm): stabilize http2 response processing state during rewrite/script handling
+
+======================================================================
+消息 ID: 1397  |  日期: 1 Apr, 14:28
+======================================================================
+1 Apr, 14:28
+Shadowrocket 测试版更新
+版本 2.2.81 (3147)
+· fix(stream): defer immediate remote teardown out of lwip callback stack
+
+======================================================================
+消息 ID: 1396  |  日期: 1 Apr, 08:48
+======================================================================
+1 Apr, 08:48
+Shadowrocket 测试版更新
+版本 2.2.81 (3146)
+· fix(mitm): deliver http2 early response body to client instead of dropping it
+
+======================================================================
+消息 ID: 1395  |  日期: 1 Apr, 08:30
+======================================================================
+1 Apr, 08:30
+Shadowrocket 测试版更新
+版本 2.2.81 (3145)
+· feat(vless): add vless-enc with vision support
+· feat(vless): rewrite tls with vision support
+
+======================================================================
+消息 ID: 1394  |  日期: 30 Mar, 17:48
+======================================================================
+30 Mar, 17:48
+Shadowrocket 测试版更新
+版本 2.2.81 (3144)
+· fix(tcp): avoid tcp stream dealloc during async block disposal
+
+======================================================================
+消息 ID: 1393  |  日期: 30 Mar, 12:42
+======================================================================
+30 Mar, 12:42
+Shadowrocket 测试版更新
+版本 2.2.81 (3143)
+· fix(rule): break retain cycles and release resources eagerly in finish
+· fix(socket): remove deferred socket release trampoline from chain socket
+
+======================================================================
+消息 ID: 1392  |  日期: 30 Mar, 06:39
+======================================================================
+30 Mar, 06:39
+Shadowrocket 测试版更新
+版本 2.2.81 (3142)
+· fix(spcket): guard async match mule callbacks against closed/deallocated stream
+· fix(mux): close connections before removing them in mux manager
+
+======================================================================
+消息 ID: 1391  |  日期: 29 Mar, 20:13
+======================================================================
+29 Mar, 20:13
+Shadowrocket 测试版更新
+版本 2.2.81 (3141)
+· fix(socket): nil last delegate when all sockets removed and in dealloc
+· fix(h2mitm): defer codec didSendData: to avoid OpenSSL write re-entrancy
+· fix(test): fix state reset, policy index underflow, and weak capture issues
+
+======================================================================
+消息 ID: 1390  |  日期: 28 Mar, 06:57
+======================================================================
+28 Mar, 06:57
+Shadowrocket 测试版更新
+版本 2.2.81 (3139)
+· fix(test): nil delegate and remove socket before releasing remote in socket disconnect

@@ -1,0 +1,25 @@
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.log
+*.tmp
+*.swp
+
+# 敏感文件（如有意外带入，绝不提交）
+.env
+*.pem
+*.key
+*.p12
+config-backup/
+
+# 大体积参考数据（保留在本地技能库，不上传 GitHub）
+tcm-knowledge/references/*.pdf
+tcm-knowledge/references/prescription-data/cure.tab
+tcm-knowledge/references/graphai-tcm/CHP_Encoder.tsv
+tcm-knowledge/references/graphai-tcm/CHP_Medicinal_properties.tsv
+codex-chatgpt-web/assets/demo.gif
+codex-chatgpt-web/launcher/src/assets/*.gif
+weather-broadcast/assets/birds.mp3
+scripting/llms-full.txt
