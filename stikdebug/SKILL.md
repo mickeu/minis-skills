@@ -106,12 +106,16 @@ StikDebug（旧名 **StikJIT**）是 **on-device JIT enabler**：免电脑、无
 | `truongkma/t-location` | 纯虚拟定位 fork（仅 Location Simulation） |
 | `CelloSerenity/iOS-26-Sideloading-and-JIT-Complete-Walkthrough` | SideStore + LiveContainer + StikDebug 完整教程（WIP） |
 
-## 参考资料
+## 参考资料（来源）
 
-- 技术原理（作者解释）：*StikJIT - A Technical Explanation by Jackson Coxson*（SideStore Docs 亦收录）
-- SideStore 文档 *Enabling JIT* 章节
-- 中文介绍：Ivon 部落格《StikDebug，免電腦啟用iOS的JIT加速！》（2026-07-31）
-- 相关玩法：AltStore 启用 JIT、SideStore 免电脑重签 IPA、UDID Registrations 付费签名
+- **本文来源/中文介绍**：Ivon 部落格《StikDebug，免電腦啟用iOS的JIT加速！支援iOS 26以上裝置》（2026-07-31）→ https://ivonblog.com/posts/stikdebug-app/
+- **官方 README**：https://github.com/StikDebug/StikDebug（兼容性矩阵、Enable JIT 步骤、Troubleshooting）
+- **Release 与 sha256**：https://github.com/StikDebug/StikDebug/releases（最新 3.1.13，IPA 附 sha256）
+- **iOS 27 问题跟踪**：issue #414/#468/#469/#470/#471（链接见「iOS 27 已知问题」表）
+- **技术原理（作者解释）**：*StikJIT - A Technical Explanation by Jackson Coxson*（SideStore Docs 亦收录）
+- **SideStore 文档** *Enabling JIT* 章节
+- **相关玩法**：AltStore 启用 JIT、SideStore 免电脑重签 IPA、UDID Registrations 付费签名
+- **调研日期**：2026-10-03（技能创建时核实版本与 issue 状态）
 
 ## 版本记录
 
