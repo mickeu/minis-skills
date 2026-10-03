@@ -20,6 +20,7 @@
 - blackmatrix7
 - chatgpt2api
 - clash-config
+- clash-controller
 - cloudflare-agents-sdk
 - cloudflare-cloudflare-email-service
 - cloudflare-cloudflare-one-migrations
