@@ -24,12 +24,29 @@ StikDebug（旧名 **StikJIT**）是 **on-device JIT enabler**：免电脑、无
 | 1.0 – 17.3.x | ❌ 不支持 | 使用不同连接协议 |
 | 17.4 – 18.x | ✅ 完全支持（稳定） | 主力使用区间 |
 | 26.0+ | ⚠️ 支持 | App 可用性有限，需开发者更新 App 适配 |
+| 27.0+ | ⚠️ 有已知 bug | 官方宣称可用（#414 closed），但主线 3.1.13 在 iOS 27.0/27.2 上实测 tunnel 建立失败（#471 open），详见「iOS 27 已知问题」 |
 
 **关键限制**：
 - **iOS 26 上 App Store 版 App 无法启用 JIT**，必须侧载 IPA（如 RetroArch 需从 GitHub 侧载，不能用 App Store 版）
+- **iOS 27.0/27.2 上主线 StikDebug（3.1.11/3.1.13）Tunnel 建立失败**：报 `missing field public_key` / `TLS tunnel: Operation Timeout`，App 列表加载不出来，无法启用 JIT（issue #471，open 中）
 - 启用 JIT 的前提：侧载 App 带 `get-task-allow` entitlement
 - App 关闭后需重新到 StikDebug 启用 JIT
 - Pairing file 在 iOS 系统更新后可能失效，需重新生成
+
+## iOS 27 已知问题（2026-10-03 调研）
+
+| Issue/PR | 状态 | 内容 |
+|---|---|---|
+| [#471](https://github.com/StikDebug/StikDebug/issues/471) | 🟡 Open | iOS 27.2（iPad Air 5 M1）+ 27.0（iPhone 15，3.1.13）tunnel 建立失败：`missing field public_key` → `TLS tunnel: Operation Timeout`；iLoader/iDevice 两种 pairing file 均无效；SideStore/SideInstaller 同样复现。**主线版本目前无法在 iOS 27 启用 JIT** |
+| [#414](https://github.com/StikDebug/StikDebug/issues/414) | ✅ Closed | 官方（StephenDev0）称「StikDebug works on iOS 27，其他 App 需要更新」——与 #471 用户实测矛盾，官方立场偏乐观 |
+| [#468](https://github.com/StikDebug/StikDebug/issues/468) | ❌ PR 被关闭 | 修复 iOS 27 DDI 挂载失败：改用 Apple Cryptex mounting 协议（Xcode 同款），作者 jkcoxson 认可思路，但官方未合并。zeuzmakessoftware fork 的 Actions IPA 实测可给 MelonNX 等启用 JIT |
+| [#469](https://github.com/StikDebug/StikDebug/issues/469) | ✅ Closed | iOS 27 上 DDI Mount Failed / Connection refused (os error 61) |
+| [#470](https://github.com/StikDebug/StikDebug/issues/470) | 🟡 Open | 请求将 iOS 27 on-device pairing 内建（避免电脑生成 pairing file） |
+
+**结论（iOS 27 用户参考）**：
+- 主线 3.1.13 在 iOS 27.0/27.2 上**不可靠**，最常见失败是 tunnel 建立后 App 列表不加载
+- 可尝试社区 fork（zeuzmakessoftware）的 Actions IPA 解决 DDI 挂载部分，但 #471 的 tunnel 问题不一定被覆盖
+- 建议关注 #471/#470 修复进度后再折腾；若必须用，优先在 iOS 17.4–18.x 设备上使用
 
 ## 安装链路（四步）
 
