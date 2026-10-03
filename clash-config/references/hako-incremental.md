@@ -223,7 +223,7 @@ Hako 的校验原则：**只拒绝会改变 DNS/选路语义或上游自身也�
 2. **`profile.store-fake-ip` 与 `unified-delay` 的 defaultOnly 行为**：代码明确「显式值总被尊重」，但「显式 false」是否真不被覆盖取决于 `configExplicitlySetsUnifiedDelay` 的 `*bool` 探针能否区分显式 false 与缺省——代码逻辑显示能（`probe.UnifiedDelay != nil`），未在运行时实测。
 3. **50 MiB jetsam 预算**：`memory_ne_pacing.go` 注释自承「no Apple document states a memory ceiling」，该数为仓库实测而非 Apple 声明；不同 iOS 版本/设备可能不同。
 4. **`dns.enable` 强制**：`repairApplePacketTunnelDNS` 无条件在 NE 置 true（即便用户写 false），但 `config_deviations.go:382` 把它记为 `forced` 且未标 `defaultOnly`——二者是否完全一致需对照运行时；代码行为倾向「NE 下总是 true」。
-5. **`external-controller` 等 RESTful API 的处置**：`override.go` 注释称「carried and inert」（携带但不消费），与 mihomo 行为有别，未核实是否真有绑定自有 unix 套接字服务它。
+5. **`external-controller` 等 RESTful API 的处置**：`override.go` 注释称「carried and inert」（携带但不消费），与 mihomo 行为有别。**2026-10-03 实测推翻此推断**：Hako（mihomo 1.19.32）启动后 `external-controller: 127.0.0.1:9090` 确实监听并完整响应 RESTful API——`/version`、`/proxies`、`/connections`、`/rules`、`/traffic` SSE、`PUT /proxies/:name` 切换节点（HTTP 204）全通。即 Hako 真消费该字段，Minis 可经 iSH（127.0.0.1 直通 iOS localhost，已用 Surge 6171 对照验证）接入做实时监控，能力对标 surge-cli。
 
 ## 交叉验证记录（2026-09-22）
 
