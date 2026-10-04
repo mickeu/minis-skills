@@ -69,11 +69,36 @@ clash-cli status
 - Hako 的 `external-controller` 保持 `127.0.0.1` 绑定即可；**勿改 `0.0.0.0`**（`allow-lan: true` 且无 secret 时局域网内可被访问，有风险）。
 - 关联技能：`clash-config`（配置字段/语法）、`surge-ios`（Surge 控制器，命令可对照）。
 
+## 7. 社区 CLI 备选：mihomosh（2026-10-04）
+
+`mihomosh` 是社区为 Mihomo 写的命令行工具包（Rust，MIT），可覆盖几乎全部外部控制 API，作为本技能自带 `clash-cli` 脚本的补充/对照实现。
+
+- **安装**：GitHub Release 下载 `mihomosh-Linux-musl-arm64.tar.gz`，解压后二进制放 `/usr/local/bin/mihomosh`（本机已验证可运行）
+- **配置**：`~/.local/share/mihomosh/config.yaml`
+  - `mihomo-api: http://127.0.0.1:9090`（Hako 控制端口）
+  - `mihomo-path: /var/minis/mounts/network/clash-final.yaml`（Hako 配置副本）
+- **常用命令**：
+  ```bash
+  mihomosh proxy view        # 查看全部节点/策略组（等价 /proxies + /group）
+  mihomosh proxy update     # 切换代理
+  mihomosh proxy test         # 批量测速
+  mihomosh rule view          # 查看规则
+  mihomosh connection list    # 实时连接（等价 /connections）
+  mihomosh inspect version    # 内核版本（等价 /version）
+  ```
+- **注意事项**：
+  - Hako 未运行时 9090 无监听，mihomosh 报 `Connection refused (os error 111)`，属正常（Hako 开着才能用）
+  - 配置无 secret（Hako API 免认证）
+  - v2 配置结构与 v1 不兼容；配置文件用 `mihomosh config edit` 编辑
+  - 社区 CLI 本质仍是 HTTP API 客户端包装，**能力边界 = API 边界**（Hako 禁止的端点如 PUT /configs，mihomosh 同样做不到）
+
 ## 参考资料（来源）
 
 - mihomo（MetaCubeX）GitHub：https://github.com/MetaCubeX/mihomo （实测版本 1.19.32）
 - mihomo Wiki：https://wiki.metacubex.one/
 - Clash 原始 RESTful API 文档：https://clash.gitbook.io/doc/restful-api
 - Hako（Clash Apple 原生客户端）：App Store「Hako」
+- mihomosh（SamuNatsu）GitHub：https://github.com/SamuNatsu/mihomosh （实测版本 v2.3.2，2026-10-04 安装验证）
+- mihomosh Release：https://github.com/SamuNatsu/mihomosh/releases/tag/v2.3.2 （含 Linux musl arm64 预编译二进制）
 - 实测与创作日期：2026-10-03（读/写 API 全通：/version /configs /proxies /connections /rules /traffic SSE /memory SSE /dns/query，`PUT /proxies/:name` 切换节点返回 204）
 - 校验：`clash-cli` 通过 `python3 -m py_compile`，核心命令实测通过（status/traffic/connections/rules/proxy get/set/test/dns）
