@@ -77,6 +77,8 @@ surge-cli --raw set 'AutoPolicyGroupOverride.Streaming=<nil>'
 
 按需加载参考，保留官方命令主体与本地适配层；不以缩短行数为目标删除专有知识。
 
+**Surge 规则集改动 → 必须同步 MRS 到 Clash 仓库**（2026-10-04 用户要求）：自建规则集（Direct_Supplement/Proxy_Supplement/Advertising_Supplement/Gemini/Apple_All/Apple_Services/AppleIntelligence/Telegram_All/Video_RESOURCE 等）增删域名后，除 ChinaMax_All.list 外，必须用 `mihomo1190 convert-ruleset domain|ipcidr text <源> <目标.mrs>` 重新转换 MRS 并推送到 mickeu/Clash（覆写脚本通过同名 URL 自动跟随新版）。ChinaMax 例外：用 blackmatrix7 的 ChinaMax_Classical.yaml 拆分转换（domain + ipcidr 两个 MRS），不转换 Surge 版 list。Hako 需用户手动重新应用覆写脚本才生效。
+
 ## 6. 本机环境补充（Minis 实测沉淀）
 
 以下为本机长期维护 Surge 沉淀的环境专属知识，上游文档未覆盖；本地完整实测坑位菜谱另见 [pitfalls-and-cookbook.md](references/pitfalls-and-cookbook.md)。
