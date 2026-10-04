@@ -88,6 +88,7 @@ clash-cli status
   ```
 - **注意事项**：
   - Hako 未运行时 9090 无监听，mihomosh 报 `Connection refused (os error 111)`，属正常（Hako 开着才能用）
+  - **已实测**（2026-10-04 连接真实 Hako 验证通过）：`inspect version` 返回 1.19.32、`proxy view` 全量策略组、`rule` 规则列表、`connection view` 实时连接均正常；`connection view` 输出较大时被 head 截断会报 `Aborted`（SIGPIPE），非错误
   - 配置无 secret（Hako API 免认证）
   - v2 配置结构与 v1 不兼容；配置文件用 `mihomosh config edit` 编辑
   - 社区 CLI 本质仍是 HTTP API 客户端包装，**能力边界 = API 边界**（Hako 禁止的端点如 PUT /configs，mihomosh 同样做不到）
