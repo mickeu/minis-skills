@@ -107,3 +107,4 @@
 - xiaohongshu-hub
 - xkiro-batch-register
 - ytmusic-hub
+- workbuddy2api
