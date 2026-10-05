@@ -394,6 +394,11 @@ Section |
  |
 
 |
+ `[IP Rewrite]` |
+ IP 层包处理（reflect/reject/drop，5.102.0+） |
+ |
+
+|
  `[Host]` |
  Local DNS mapping |
  |
@@ -490,6 +495,35 @@ Section |
 
 
 [/TABLE]
+
+## IP Rewrite（Surge iOS 5.102.0+ TestFlight）
+
+Surge 5.102.0 (3859) TestFlight 新增 `[IP Rewrite]` 段：在数据包进入 Surge VIF 时，**基于目的地址在 IP 层处理**，先于任何规则/策略匹配。可用 action：
+
+- `reflect`：交换源/目的地址并把包回送给发送者（loopback 反射）
+- `reject`：对连接尝试回 TCP RST，对其他包回 ICMP administratively prohibited，发送方立即失败
+- `drop`：静默丢弃
+
+典型用途：让 Surge 充当 LocalDevVPN，配合 on-device 开发者工具链。官方示例模块：
+
+```
+#!name=Local Device Loopback
+#!desc=Reflect 10.7.0.1 back to this device for on-device developer tools.
+[General]
+ipv6-vif = disabled // Some tools only recognize utun interfaces without an IPv6 address.
+tun-included-routes = %INSERT% 10.7.0.1/32
+
+[IP Rewrite]
+10.7.0.1 = reflect
+```
+
+要点：
+- `ipv6-vif = disabled`：部分工具只识别无 IPv6 地址的 utun 接口
+- `tun-included-routes` 用 `%INSERT%` 追加 10.7.0.1/32
+- 关联：StikDebug 的 LocalDevVPN 方案（免电脑 JIT/开发者工具）未来可用 Surge 原生模块替代
+
+来源：@SurgeTestFlightFeed（Surge 5.102.0 (3859) TestFlight 公告）
+
 ## Comments
 
 
