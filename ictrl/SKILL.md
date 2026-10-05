@@ -28,6 +28,27 @@ last_sync: 2026-10-05
 
 > 一句话：闪退几乎都是「签名时把 PlugIns/xctest 精简掉了」或「开发者模式没开」。先查这两点。
 
+## AI 自动签名（zsign 方案，2026-10-06）
+
+**背景**：现成签名工具（爱思/AltSign 等）大多只处理普通 App，不处理 Xcode 的 xctest bundle（`PlugIns/*.xctest`），导致 iCTRL 闪退。命令行工具 **zsign** 可正确处理 xctest——「自己签 / 喊 AI 签」用它最可靠。
+
+**环境**：iSH（Alpine）里已编译安装 `zsign 1.1.2`（`/usr/local/bin/zsign`）。编译依赖 `g++ openssl-dev zlib-dev`；源码 `zhlynn/zsign` 在 Linux 下需修复 `json.h` 缺少 `#include <ctime>`（macOS 碰巧间接引入 `time_t`，Linux 会编译报错）。
+
+**一键签名脚本**：`/var/minis/skills/ictrl/scripts/sign_ictrl.sh`
+```bash
+sign_ictrl.sh <输入.ipa> <证书.p12> <证书密码> [描述文件.mobileprovision] [输出.ipa]
+```
+- 不传描述文件时自动使用 IPA 内嵌的 `embedded.mobileprovision`
+- 脚本自动验证输出 IPA 里 `PlugIns/*.xctest` 是否存在
+
+**实测（ad-hoc）**：`zsign -a` 正确签名 `PlugIns/iCTRLUITests.xctest/iCTRLUITests` 并重新生成 `_CodeSignature`（CodeResources 2834→3194 字节），输出 IPA 结构完整。
+
+**真实签名需要的材料**：
+- Apple Development 证书（.p12）+ 密码
+- 描述文件：通配符 `*` 即可（示例：XC Wildcard，Team K8Q74NT2BG，49 台设备，2027-08 到期，entitlements 含 `get-task-allow=true`）
+
+**注意**：iSH（PRoot）环境下 zsign 输出 `/tmp/zsign_folder_*` 时可能报 `Operation not permitted` 警告，不影响最终 IPA 生成。
+
 ## 核心功能与接口
 
 ### 1. 获取设备信息
