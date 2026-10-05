@@ -103,6 +103,22 @@ minis-mcp-cli tools muse-cloud --refresh --pretty
 
 需要为 Muse 沙盒设计保活/防重建丢失方案时，读取 `references/muse-keepalive-strategy.md`：提炼自第三方项目 `bytehola/muse-guardian` 的三层保活架构（沙盒内看门狗 + 平台 hook 探针 + 开机钩子）、持久化布局与离线包缓存、健康检查/一键恢复脚本设计、进程卡死检测与检测/恢复拆分等可复用经验。注意该项目含 Hermes 微信机器人与 MuseAutoApprove 协议逆向，有平台合规风险，仅参考保活架构。
 
+### 1.6 Muse 公网入口实测（2026-10-05，用户环境实测）
+
+Muse 云电脑**当前没有官方公网入站入口**，远程 MCP 常驻方案在 Muse 上可能无法完整落地。实测结论（用户环境，Muse 智能体探测确认）：
+
+- MCP 服务本体可成功部署在云电脑内（13 个工具全部测试通过），但**无法从公网访问**；
+- Cloudflare 隧道：沙箱出口策略掐断到 `*.v2.argotunnel.com` 的 TLS（直连/代理均握手失败），QUIC/UDP 沙箱级禁用；
+- Tailscale：只支持 outbound，不支持 `serve` 入站；
+- Muse 平台无官方端口转发/公网 URL 机制（向 Muse 确认过）；
+- `ssh -R` 反向隧道 / serveo.net 等穿透方案 = 反弹 Shell/公网穿透，违反平台合规红线（Sentinel 审查封号），**禁止采用**。
+
+遇到「Muse 无公网入口」时按以下顺序处理：
+
+1. 保留已部署的 MCP 服务（本地回环运行），等平台开放官方入口后直接复用；
+2. 云端长任务改用 Muse 官方 **Scheduled Task**（合规，cron 定时唤醒虚拟机执行）；
+3. 若用户需要「Minis 实时远程派单」，改用自带公网 URL 的免费平台（E2B/Modal 等，见 sandbox-ingress-discovery 技能）或用户自己的 VPS。
+
 ## 2. 日常任务路由
 
 默认上云：

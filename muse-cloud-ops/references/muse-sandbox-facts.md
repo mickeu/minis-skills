@@ -35,3 +35,11 @@
 - 云端 MCP 派单时，涉及落盘的任务默认写入 `/home/hatch/pdata/` 下对应子目录，避免重启丢文件
 - 需要周期执行的任务，优先引导用户用 Scheduled Task 而非本地挂机
 - 不要向 Muse 请求部署反向隧道/穿透类工具（违反平台合规，有封号风险）
+
+## 公网入口实测（2026-10-05，用户环境）
+
+- **Muse 无官方公网入站入口**：无端口转发/公网 URL 机制（Muse 智能体确认）。
+- **Cloudflare 隧道不可用**：沙箱出口策略掐断 `*.v2.argotunnel.com` 的 TLS，握手必失败；QUIC/UDP 沙箱级禁用。
+- **Tailscale 不可用**：只支持 outbound 连接，不支持 `serve` 入站。
+- **禁止用 `ssh -R`/serveo 等穿透**：等同反弹 Shell/公网穿透，Sentinel 审查会封号。
+- 结论：远程 MCP 的「公网暴露」环节在 Muse 上无法合规实现；云端执行只能走官方 Scheduled Task（定时），或换用自带公网 URL 的沙箱平台（E2B/Modal 等）。
