@@ -11071,6 +11071,7 @@ include-all-networks = false    # 不能 true！否则所有流量走 Surge，QQ
 include-apns = true             # 只让 APNs 被 Surge VIF 处理（关键）
 include-cellular-services = false
 ```
+> ⚠️ **2026-10-06 更新：此组合已弃用**。Muse 审计 + 官方手册确认 `include-apns` 必须配合 `include-all-networks=true` 才生效（manual_profile_general.md）。当前主配置已改回 `include-apns=false`，推送走系统默认直连。若蜂窝推送再次失败，可评估恢复此方案或改用其它手段。
 APNs 域名/IP 走代理（必须在 Apple_All 之前，否则被 Apple_All 拉直连）：
 ```
 # Rule.dconf 或 AppleIntelligence.list，策略 AIGC/PROXY
