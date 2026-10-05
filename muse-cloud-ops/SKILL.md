@@ -18,9 +18,9 @@ description: 帮助 Minis 用户连接自己的 Muse 云电脑，把下载、转
 | 模式 | 原理 | 需要公网入口 | Muse 当前可用性 |
 |---|---|---|---|
 | A 远程 MCP | 在 VM 里部署常驻 MCP 服务，Minis 通过 API 派单 | 需要 | ❌（平台无入口，见 1.6） |
-| **B 浏览器驱动** | 用浏览器打开 Muse 网页对话，让 Muse 按需唤醒真实 VM 执行 | 不需要 | ✅ **推荐** |
+| **B 内置浏览器驱动** | 用 Minis 内置浏览器打开已登录的 Muse 对话，向 Muse 下发任务 | 不需要 | ❌ 实测不可行（VM 网关域名公网不可解析，见 1.7） |
 
-**Muse 平台当前无公网入口，优先使用 B 模式（浏览器驱动）**；A 模式的 MCP 部署经验仍保留在本文档，等平台开放入口后可直接复用。
+**Muse 平台当前无公网入口，且 Minis 内置浏览器无法驱动 Muse 网页版（见 1.7 实测）**；A 模式的 MCP 部署经验仍保留在本文档，等平台开放入口后可直接复用。当前 Muse 云电脑请在官方 App/Safari 中直接使用。
 
 不要夸大能力：只有已经提交并返回 `task_id` 的云端异步任务，才能在 Minis 被退出后继续；尚未派单的模型思考、子代理、本地浏览器和本地工具会中断。
 
@@ -124,35 +124,28 @@ Muse 云电脑**当前没有官方公网入站入口**，远程 MCP 常驻方案
 
 遇到「Muse 无公网入口」时按以下顺序处理：
 
-1. **优先进入浏览器驱动模式（B 模式，见 1.7）**：无需公网入口，通过 Muse 网页对话按需唤醒 VM 执行；
+1. **优先使用剪贴板桥接模式（B 模式，见 1.7）**：用户在已登录的 Muse 对话中执行 Minis 生成的指令，按需唤醒 VM；
 2. 已部署的 MCP 服务保留（本地回环运行），等平台开放官方入口后直接复用；
 3. 需要定时执行时，用 Muse 官方 **Scheduled Task**（合规，cron 定时唤醒虚拟机执行）；
 4. 若需要「Minis 实时 API 派单」且不愿用浏览器驱动，才考虑自带公网 URL 的免费平台（E2B/Modal 等，见 sandbox-ingress-discovery 技能）。
 
-### 1.7 浏览器驱动模式（B 模式，推荐）
+### 1.7 Minis 内置浏览器驱动 Muse 实测（2026-10-05）：不可行
 
-**核心思路**：不在 Muse VM 里部署常驻服务、不做保活/隧道。Minis 通过内置浏览器打开 Muse 网页对话，向 Muse 智能体下发任务指令，Muse 平台**按需唤醒真实 VM** 执行，再从对话回复中回收结果。完全走官方界面，零合规风险。
+**结论**：Minis 内置浏览器无法驱动 Muse 网页版。登录可以通过共享 Cookie 自动完成，但 Muse 应用无法在 Minis 内置浏览器中渲染/工作。
 
-**适用场景**：
+**实测证据链**：
 
-- Muse 无官方公网入口（当前所有账号，见 1.6）；
-- 需要让 Muse 执行下载、转码、Python、爬虫等任务；
-- 能接受「打开网页 → 下指令 → 读回复」的交互，不需要实时 API 派单。
+1. **登录**：Minis 内置浏览器与 iOS Safari 共享 WKWebView Cookie，打开 `https://muse.ai` 自动带 `hatch_sess` 会话，已登录，无需用户操作；
+2. **渲染黑屏**：Muse 页面 DOM 完整（导航/聊天输入框都在），但所有元素 `getBoundingClientRect` 为 0、截图纯黑——页面卡在初始化；
+3. **根因**：Muse 需连接 `wss://<vm-id>.metaaivm.com/` 网关（从 `window.__HATCH_GATEWAY_INIT__` 可拿到 gatewayUrl + authToken），但该域名在公网 DNS 返回 **NXDOMAIN**（仅 Meta 内部可解析），内置浏览器无法解析 → WebSocket `close 1006` → 应用永远初始化失败；
+4. **尝试无效**：临时 Surge 直连 `metaaivm.com`、强制 `document.visibilityState='visible'`、直接在页面内 `new WebSocket(gatewayUrl)` 均失败；
+5. 用户官方 Safari/App 中 Muse 正常——Meta 只允许官方客户端访问 VM 网关。
 
-**执行流程**：
+**因此**：
 
-1. **打开 Muse 网页**：用 `browser_use` 导航到用户的 Muse 入口，确认已登录；若 Minis 内置浏览器未登录，让用户手动登录一次（会话保持，后续直接可用）。
-2. **下发任务指令**：在对话框输入任务模板（见 `references/muse-browser-mode.md`），要求结果写入 `/home/hatch/pdata/` 持久化目录。
-3. **等待执行**：轮询页面直到 Muse 回复完成，提取关键输出、文件路径。
-4. **结果回收**：文本结果直接从回复复制；文件让 Muse 用平台自带下载/分享机制，或让 Muse 报告云端路径。
-5. **定时任务**：在对话里让 Muse 配置官方 Scheduled Task，实现定时执行。
-
-**注意事项**：
-
-- 长任务期间退出 Minis 不影响 Muse 云端执行，但结果回收需要重新打开 Muse 网页查看；
-- 对话上下文有长度限制，任务多时让 Muse 开新会话；
-- 指令必须明确写 `脚本/数据放 /home/hatch/pdata/scripts|data`，避免写入重启即清空的根目录；
-- 依然遵守合规红线：不要求 Muse 部署反弹 Shell/穿透/常驻外联。
+- 不要把「Minis 内置浏览器驱动 Muse」作为可行模式；不要在 Muse 上部署 MCP/隧道（见 1.6 禁令）；
+- Muse 云电脑请用户在官方 App/Safari 中直接使用（Juno 对话、官方 Scheduled Task）；
+- 若需要「Minis → 免费云服务器」全自动派单，改用自带公网 URL 的免费平台（E2B/Modal 等，见 sandbox-ingress-discovery 技能）。
 
 默认上云：
 
