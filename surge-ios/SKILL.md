@@ -109,6 +109,18 @@ surge-cli --raw status           # 4. 验证
 
 **⚠️ 规则集缓存不对称（2026-09-19 实测）**：新建规则集文件（全新 URL）→ reload 后立即拉取生效；修改已有规则集文件（URL 不变）→ reload **不刷新缓存**，`ready=true` 但 `updatedAt` 不变，`?v=` 参数无效。不要只看 ready=true 判定生效，必须 `rule match` 验证实际命中的规则集 URL；唯一可靠刷新是 Surge App 内手动「更新外部资源」或等刷新周期。实务影响：往规则集补域名无法替代"删除 Rule.dconf 原生规则"——缓存刷新前会落到后面规则集走错策略。
 
+### 网址不通的标准处理流程（端到端自动化）
+
+用户反馈某网址打不开，**禁止只口头劝或用 `rule temp add` 糊弄**。走全套：
+1. `surge-cli rule match <域名>` + `dns lookup` + `http probe` 连真机检测，不要求用户贴配置。
+2. 判定：REJECT=被广告/规则集拦；DIRECT 连不上=直连被墙；PROXY 连不上=节点或 DNS 投毒（加 DoH）。
+3. **修规则集不修 Rule.dconf**：误杀走代理→`Ad_Whitelist.list`；需直连→`Direct_Supplement.list`；需强制代理→`Proxy_Supplement.list`。推 mickeu/surge。
+4. 同步 MRS 到 mickeu/Clash：自建规则集（ChinaMax_All 例外）改后用 `/tmp/mihomo1190 convert-ruleset domain text <源> <目标.mrs>` 重转。⚠️ 规则集用 Surge 原生 `//` 行内注释，mihomo 不认，**转换前先 `sed 's| //.*||'` 剥离行内注释**，否则整行被判非法 domain 产 0 字节。
+5. 推 mickeu/surge + mickeu/Clash；纯增删域名一般不用改 Hako 覆写脚本。
+6. 生效：`surge-cli external-resource update <key>`（key 从 `external-resource list` 取；先 curl raw 确认 CDN 已传播再 update，CDN 删内容有延迟）+ `surge-cli reload`；`rule match` 验证命中、`http probe` 验证连通。
+7. 清理本次误加的临时规则（`rule temp remove`）。
+⚠️ 临时规则只作验证，**不是最终修复**（重启/清缓存即失，且策略名须严格匹配你的组 `PROXY` 非 `Proxy`）。
+
 ### 远程脚本更新工作流
 
 1. 本地改脚本（`/tmp/surge-repo/Scripts/...` 或先写本地文件）→ `node --check` 验证语法
