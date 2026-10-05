@@ -18,6 +18,7 @@ description: 在 E2B（AI Agent 云沙箱平台）上执行云端任务，Minis 
 ## 二、免费额度规则（2026-10-05 官方定价核实）
 
 - Hobby 免费层 = **$100 一次性 usage credit**，按秒计费，**不按天/周/月重置**，用完为止
+- **时效性：官方文档（Billing、FAQ、服务条款）均未给这 $100 设定有效期**，属账户一次性赠金，无过期日；用完会 blocked，需添加支付方式继续（2026-10-05 查证）
 - 计费单价：默认 2 vCPU 沙箱 $0.000028/秒 ≈ $0.1/小时；1 vCPU $0.000014/s、4 vCPU $0.000056/s
 - $100 ≈ 992 小时连续运行（2 vCPU），日常派单几分钟一次可用数月
 - 免费层限制：单会话最长 1 小时、最多 20 并发沙箱、默认 2 vCPU
@@ -67,6 +68,8 @@ python3 e2b-run.py --list
 
 - E2B 官网：https://e2b.dev
 - E2B 定价（免费额度/单价）：https://e2b.dev/pricing （2026-10-05 核实）
+- E2B Billing & limits 官方文档（$100 one-time credits、无有效期）：https://docs.e2b.dev/billing
+- E2B FAQ（用完额度行为）：https://docs.e2b.dev/faq/index
 - API Key 文档：https://docs.e2b.dev/api-key （Key 在 console.e2b.dev/?tab=keys）
 - E2B Python SDK：https://e2b.dev/docs （pip install e2b，同步 API）
 - 创建/实测日期：2026-10-05；派单工具实测通过（Debian 12 / Python 3.11 / pip 安装 requests / 网络出口正常）
