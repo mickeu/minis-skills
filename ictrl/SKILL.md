@@ -28,6 +28,28 @@ last_sync: 2026-10-05
 
 > 一句话：闪退几乎都是「签名时把 PlugIns/xctest 精简掉了」或「开发者模式没开」。先查这两点。
 
+## 点击图标闪退之二：Library not loaded（DDI 未挂载，2026-10-06）
+
+**现象**：自签安装后点击 iCTRL 图标立即闪退，崩溃日志 `.ips` 显示：
+
+```
+termination: DYLD / Library missing
+Library not loaded: @rpath/XCTest.framework/XCTest
+Reason: tried: .../Frameworks/XCTest.framework (no such file),
+         /System/Developer/Library/Frameworks/XCTest.framework (no such file),
+         /Developer/Library/Frameworks/XCTest.framework (no such file), ...
+```
+
+**根因（高置信，崩溃日志 + Mach-O 分析确认）**：主二进制 RPATH 指向 `/Developer/Library/Frameworks` 等路径，这些路径**只有挂载 DDI（Developer Disk Image）后才存在**。DDI 未挂载 → dyld 找不到 XCTest.framework → 启动即崩。
+
+**修复**：先启动 **StikDebug** 挂载 DDI，再点 iCTRL 图标即可正常启动。**这不是签名/描述文件问题**，无需重新签名。
+
+**排查顺序**：崩溃日志先看 `termination.namespace` 是否为 `DYLD`——
+- 是 → DDI 未挂载（启动 StikDebug）
+- 否（如 `XCTest` 权限/`EXC_CRASH`）→ 再查签名/描述文件/PlugIns
+
+**关联**：iOS 27 上 StikDebug 3.1.13 主线 tunnel 失败（issue #471），StikDebug 起不来则先按 `stikdebug` 技能排错。
+
 ## AI 自动签名（zsign 方案，2026-10-06）
 
 **背景**：现成签名工具（爱思/AltSign 等）大多只处理普通 App，不处理 Xcode 的 xctest bundle（`PlugIns/*.xctest`），导致 iCTRL 闪退。命令行工具 **zsign** 可正确处理 xctest——「自己签 / 喊 AI 签」用它最可靠。
@@ -92,9 +114,11 @@ sh /usr/local/bin/ictrl.sh shot /tmp/screen.jpg
 
 | 版本 | 日期 | 要点 |
 |---|---|---|
+| 1.1.0 | 2026-10-06 | 新增「点击图标闪退之二」：`@rpath/XCTest.framework` 加载失败 = DDI 未挂载，先启动 StikDebug 而非重签；附 DYLD 排查顺序 |
 | 1.0.0 | 2026-10-05 | 首版：自签名闪退根因（PlugIns/xctest 保留 + 开发者模式）、device_info/shot/控件 JSON-RPC 接口、待机消耗与服务重启经验 |
 
 ## 来源
 
 - 用户实测经验（2026-10-05）：自签名闪退已解决，附避坑要点与接口示例。
+- 崩溃日志分析（2026-10-06）：用户上传 `.ips`（iOS 27.0 24A437，bug_type 309）+ Mach-O RPATH 解析，确认 `@rpath/XCTest.framework` 加载失败根因是 DDI 未挂载。
 - 关联：`stikdebug` 技能（DDI / StikDebug 链路排错）。
