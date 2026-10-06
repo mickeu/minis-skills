@@ -3836,3 +3836,42 @@ name
 Egern 作为代理工具
 
 ---
+
+---
+
+## 实战：与 Surge 共用规则集 + 两个关键排查案例（2026-10-06）
+
+### 1. 与 Surge 共用同一套规则集
+Egern 的 `rule_set` **原生支持 Surge 规则集**（官方文档明确 "Egern currently supports Surge rule sets"），可直接引用 mickeu/surge 的 .list URL，实现与 Surge 完全同源的分流规则：
+- 境外代理：`Proxy_Supplement.list`（mickeu/surge）+ `Global_All.list`（blackmatrix7）
+- 苹果/国内：`Apple_All`、`Direct_Supplement` 等
+- 流媒体：用 `_All` 版（`GlobalMedia_All.list`，不要用纯 IP 的 `GlobalMedia.list`）
+- 国内：`ChinaMax_All.list` 一条（不要用已删除的 `ChinaMax_Domain.list` + 纯 IP 的 `ChinaMax.list`）
+
+⚠️ 检测类网站（browserleaks.com 等）必须确认在代理规则集里，且该规则集位于「国内直连」（geoip CN）之前——否则会落到 geoip CN 被误判为国内 IP → 真实 IP 泄露。
+
+### 2. Telegram fallback 精准测速（对应 Surge 的 fallback + test-url）
+Egern 支持组级测速 URL（`latency_test_url`），无需像 Surge 那样给节点加 test-url：
+```yaml
+- fallback:
+    name: Telegram
+    policies: [🇯🇵日本, 🇸🇬新加坡, BPD, 美国节点, 香港节点]
+    flatten: true
+    interval: 120
+    latency_test_url: https://telegram.org
+```
+
+### 3. 排查案例：网站全挂（网易/Minis 模型/快捷指令分享）＝ DNS 上游直连国外 DoH
+- 现象：国内国外网站全不通，DNS 解析超时
+- 根因：`DNS上游直连` 规则把 `1.1.1.1/8.8.8.8` 强制 `DIRECT`；国内直连 Cloudflare IP 常被墙 → 境外 DoH 全部超时 → 所有域名解析失败
+- 修复：从该规则移除 CF IP 段，只保留 Lan.list 直连；1.1.1.1 DoH 请求落到默认规则走 PROXY 即可达
+
+### 4. 排查案例：BrowserLeaks 显示本地真实 IP，但 DNS 未泄露
+- 现象：BrowserLeaks DNS Leak Test 页面 `Your IP Address` 显示联通/电信真实 IP，DNS 测试服务器显示境外（正常）
+- 根因：访问 browserleaks.com 的流量被「国内直连」误判（geoip CN / ChinaMax_All 内误收录段），实际走了 DIRECT
+- 修复：在「境外代理」规则加入 `Proxy_Supplement.list`（browserleaks.com 在其中），且确保它在「国内直连」之前命中 PROXY
+
+### 参考资料（来源）
+- 本次实战基于用户 Egern 配置定版「被🐶追的猫.yaml」，config-backup commit `4178edf`（2026-10-06）
+- mickeu/surge 规则集仓库：https://github.com/mickeu/surge （Rulesets/ 目录）
+- blackmatrix7 规则集：https://github.com/blackmatrix7/ios_rule_script
