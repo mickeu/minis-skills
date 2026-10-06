@@ -5946,6 +5946,30 @@ Optional, Boolean, default: false
 If enabled, when the group is used for the first time, Surge waits for the first test round to finish instead of using the first member while testing in the background.
 
 ---
+## 实战经验：Telegram 自动切换改造（2026-10-06）
+
+针对「Telegram 卡死需手动开关代理」的改造，踩了两个官方文档盲区：
+
+### 组级 `url=` 参数已废弃
+官方原文：*"The legacy `url =` parameter on a group line has no effect in current versions. Use the per-policy `test-url` parameter or the global `proxy-test-url` option instead."*
+即 `Group = url-test, A, B, url=https://...` 中的 `url=` **不生效**（静默忽略），测速仍走全局默认 `http://bing.com/`。
+
+### smart 组不能作为自动测试组（url-test/fallback/load-balance）的子策略
+实测 Surge 报错：`错误: 智能策略组(X)不可以用作自动测试组(Y)的子策略`，该行被整体拒绝加载（策略组保留旧值）。
+官方说明：组可嵌套其他组（除 smart 外），smart 会静默忽略嵌套组；且 smart 不能嵌进自动测试组。
+
+### 正确做法：自建节点 `test-url` + fallback 按序切换
+- 自建 Snell 节点加 `test-url=https://telegram.org`，让测速直接探测目标服务连通性
+- 关键点：`select` 组不测速，自建节点若只被 select 组引用，`test-url` 只影响引用它的自动测试组（如 Telegram fallback 组），对其他流量零副作用
+- Telegram 组用 `fallback` 类型实现「自建优先 + 自动切换」：按声明顺序选第一个测速成功的成员
+
+```
+Telegram = fallback, "🇯🇵日本", "🇸🇬新加坡", "美国自动备用", "香港自动备用", interval=120
+```
+- 备用组不能用 smart（嵌套限制），改用 `url-test` + `include-other-group=🌍我的节点` + `policy-regex-filter` 从订阅过滤地区节点
+- 切换延迟 = interval（惰性测速：组被使用且结果过期才重测）
+
+---
 ## Policy Groups / Load Balance
 
 # Load Balance Group
