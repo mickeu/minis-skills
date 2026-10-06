@@ -7,7 +7,8 @@ description: >
   18 种入站监听（listeners）、节点订阅（proxy-providers，含 override-expr yq v4 表达式覆写）、
   规则订阅（rule-providers）、TUN（system/gvisor/mixed/mips 四种 stack）、Sniffer、tunnels、hosts、
   **Hako 覆写脚本（Override Script，JSContext main(config)）**、完整配置模板与常见坑。
-  基于 TokenPLS/Hako 源码（mihomo v1.19.31 fork，Hako HEAD `7ea70d15`，上游基线 v1.19.31）的 docs/config.yaml
+  基于 TokenPLS/Hako 源码（mihomo v1.19.31 fork，Hako HEAD `7ea70d15`，上游基线 v1.19.31；
+  Hako App 已随 1.0.11 Build116 升级内核至 mihomo v1.19.32，2026-10-06 更新日志确认）的 docs/config.yaml
   与 config/config.go 结构定义提取，字段类型与默认值对照 Go struct。
   当用户提到 mihomo、Clash Meta、Hako、Clash 配置、YAML 配置格式、DNS 配置、fake-ip、规则、
   RULE-SET、GEOSITE、策略组、url-test、proxy-groups、proxy-providers、订阅、override、override-expr、

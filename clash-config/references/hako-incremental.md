@@ -6,6 +6,25 @@
 >
 > **v1.19.31 更新要点**：上游新增 `stack: mips` tun 栈、EasyTier 出站、ZeroTier `identity-secret`、SSH 字段改用 kebab-case（`private-key`/`private-key-passphrase`）、REALITY ML-KEM 后量子密钥交换、DomainMap 简洁数据结构（规则集性能提升）。Hako 新增 mDNS 发现、macOS 连接归属解析、网络重置、代理目录预连接等 Apple 平台特化能力。
 
+---
+
+## Hako App v1.0.11 Build116 更新日志（2026-10-06）
+
+用户提供 App 更新日志。与配置直接相关的要点：
+
+- **内核升级 mihomo v1.19.32**：含上游 sing-mux、AnyTLS、OpenVPN 等修复。⚠️ 本文件源码级核对基线仍为 v1.19.31（Hako HEAD `7ea70d15`），v1.19.32 的源码差异待下次拉取 Hako 仓库核对。
+- **`tun.stack` 默认栈变化**：上游把「配置里没写 tun.stack」时的默认栈从 gVisor 改为 **mips**；但 **Clash 在 Apple 设备上仍默认 gVisor**（iPad 实测 mips 在 VPN 扩展里内存占用更高，更易碰到系统给扩展的内存上限）。想用 mips 需显式写 `tun.stack: mips`，写了就照用。WireGuard 等出站的 `ip-stack: auto` 也仍是 gVisor。⚠️ 与 hako-incremental 2.2 节 `tun.stack forced gvisor（仅 IncludeAllNetworks 时）` 的关系待核实：显式写 `mips` 在 Hako IncludeAllNetworks 下是否被尊重需源码/实测确认。
+- **「随链接更新」开关**：在 App 里手动改过的配置会**停止随链接更新**；打开开关即可换回链接当前内容，之后照常更新。以前改过、已不再随链接更新的配置，打开开关可从库中选一个链接跟随。⚠️ 这解释了 Hako 覆写脚本/远程配置为何常需「手动重新应用」。
+- **跟随链接的原始配置可直接修改**：代理组、规则、规则集均可改。
+- **首页规则页右上角新增「编辑」**：直接调整规则顺序、增删规则。
+- **节点详情「复制 YAML」**：内容可粘贴回节点库，导入后与手动新建一样，是以节点名命名的一个节点。
+- **编辑器支持 v1.19.32 新设置**：tun 的「TCP 拥塞控制」（mips 栈使用）、负载均衡组的「固定依据：代理账号」。
+- **覆写页保存失败**：未保存内容保留并说明原因；删除正在用的脚本后，未保存内容仍在。
+- **工具页新增「DNS 查询」**：查询域名、清除 DNS 缓存（对应 clash-cli 的 `dns query` 能力）。
+- 其余 App 行为修复：网络变化少断线/换网 IPv6 提速、局域网共享（每网络一行 IP、热点设备可用、立即生效）、按需连接（从控制中心/小组件/快捷指令断开后不再被自动连回；从这些地方连接则按需连接照常恢复）、证书错误偶发修复、无节点卡片不显示延迟、不可改规则集编辑/删除置灰、节点集显示文件里写的名字、设置页自动保存重连提示、旧版「编辑源码」副本自动归位。
+
+---
+
 Hako 的核心设计哲学（贯穿 `config_deviations.go`、`config_pipeline.go`、`validate.go`）：**「任何上游 mihomo 配置都必须能在 Apple 平台启动；不支持的字段被容忍并剥离（tolerate + strip），只在少数会改变 DNS/选路语义的情况才拒绝」**。因此 Hako 对 mihomo 的增量绝大多数是**改写默认值 / 强制值 / 剥离字段**，而非新增 YAML schema 字段。
 
 ---
