@@ -524,6 +524,33 @@ tun-included-routes = %INSERT% 10.7.0.1/32
 
 来源：@SurgeTestFlightFeed（Surge 5.102.0 (3859) TestFlight 公告）
 
+### 实战验证（2026-10-06，mickeu 实测）
+
+参数化版本（支持开关 IPv6 VIF，无需改模块）：
+
+```
+#!name=Local Device Loopback
+#!arguments=IPV6_VIF:disabled
+#!arguments-desc=IPv6 VIF 设置：disabled=关闭（默认，官方推荐）｜auto=自动启用｜always=总是启用
+[General]
+ipv6-vif = {{{IPV6_VIF}}}
+tun-included-routes = %INSERT% 10.7.0.1/32
+[IP Rewrite]
+10.7.0.1 = reflect
+```
+
+参数取值实测（Surge iOS 5.102.0，日志验证）：
+- `disabled`：零警告，IPv6 VIF 关闭（无 `Setup IPv6 for Surge VIF` 日志）
+- `auto` / `always`：零警告，IPv6 VIF 开启（`Setup IPv6 for Surge VIF` 出现）
+- `#`：`ipv6-vif = #` 被当注释 → 空值 → 警告 `ignored invalid configuration: 第 9 行 ipv6-vif = (空)`，该行被忽略（恢复默认开启）；且 `Updating core settings` 的 sections 不再包含 IP Rewrite，**不推荐**
+- **留空导致模块整体加载失败**：`Failed to load module ... The value of argument "IPV6_VIF" is not found`——Surge 参数机制不允许空值，`{{{参数}}}` 必须有值替换
+
+IP Rewrite 生效验证：
+- **ping 10.7.0.1 回环（0% 丢包，~0.5ms RTT）** 证明 reflect 工作
+- **TCP 端口测试不可靠**：本地（iSH）无监听服务时，SYN 被反射回自己 → TCP 栈回 RST → 连接失败，属正常现象，不是模块问题
+
+来源：mickeu 实战验证（2026-10-06），模块位于 mickeu/surge `LocalDeviceLoopback.sgmodule`（commit 7a01456 起）
+
 ## Comments
 
 
