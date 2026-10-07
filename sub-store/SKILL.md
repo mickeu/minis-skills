@@ -485,3 +485,32 @@ Surge、Quantumult X、Loon、Stash、Egern、Shadowrocket，以及通过订阅�
 ### 如何使用脚本功能？
 
 在 Sub-Store 前端中，可以为订阅配置脚本处理，支持 JavaScript 脚本对节点进行过滤、排序、重命名等操作。
+---
+
+## 十一、网页版定时同步 + Gist 替代 policy-path 完整链路（2026-10-07 实测）
+
+### 适用场景
+使用 sub.store 网页版后端，Surge 策略组 `policy-path` 指向 sub.store 实时生成链接导致拉取超时（-1001），改用 Gist 静态产物。
+
+### 完整链路
+1. **同步配置**（网页版 → 循环/刷新 → 同步配置 → 新建）：
+   - 名字：如 `Surge`
+   - 目标平台：Surge（Egern 另建一条）
+   - 上传产物：**开**（否则 Gist 无节点内容）
+   - 包含不支持的协议：**开**（否则 Hysteria2 等被过滤）
+   - 定时同步：开
+2. **定时触发**（云端后端 cron 不内置生效，用快捷指令替代）：
+   - iOS 快捷指令 → 个人自动化 → 特定时间 →「获取 URL 内容」
+   - URL：`https://sub.store/api/sync/artifact/<同步配置名>`（GET）
+   - ⚠️ 每条自动化只能一个时间点/每天一次，多次需建多条自动化
+   - 测试：Safari 打开该 URL，返回 `{"status":"success",...}` 即正确
+3. **Surge policy-path 指向 Gist**：
+   - 配置：`🌍我的节点 = url-test, policy-path=https://gist.githubusercontent.com/mickeu/<gist-id>/raw/Surge, update-interval=43200, ...`
+   - 刷新：`surge-cli external-resource update <key>` + `surge-cli reload`
+   - 验证：`surge-cli policy-group get 我的节点` 看到节点正常加载
+   - 建议 update-interval 设为 43200（12h）让 Surge 自动拉取，无需频繁触发快捷指令
+
+### 关键点
+- `availability.js` 必须带 `cache=true`，测活结果缓存在网页版，配合 Gist 产物避免实时测活超时
+- 日志保存条数不影响测活缓存；脚本缓存保持默认 172800 秒（48h）
+- Gist URL 每次同步后内容更新但链接不变，Surge 拉到即最新
