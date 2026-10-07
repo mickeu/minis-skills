@@ -2,6 +2,20 @@
 
 来源频道: https://t.me/SurgeTestFlight
 
+## 2026-10-07 [post 1784](https://t.me/SurgeTestFlight/1784)
+
+#iOS #TestFlight 
+
+Surge 5 5.102.0 (3862) is ready to test on iOS.
+
+What to Test
+
+5.23.0 Release Candidate 1
+- External resource management and some other helper APIs have been added to the HTTP API.
+- Other bug fixes.
+
+Official Channel: @SurgeTestFlightFeed
+
 ## 2026-10-06 [post 1782](https://t.me/SurgeTestFlight/1782)
 
 #iOS #TestFlight 
