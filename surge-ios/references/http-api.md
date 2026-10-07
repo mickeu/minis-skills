@@ -90,6 +90,16 @@ The official manual notes that traffic counters reset when the engine restarts; 
 - `POST /v1/log/level` — `{ "level": "verbose" }`
 - `GET /v1/mitm/ca` — DER certificate, not JSON
 
+## 5.23.0 新增端点（iOS 3862 实测记录，2026-10-07）
+
+官方手册已收录以下端点并标注 `iOS 5.23.0+ / Mac 6.10.0+`：
+
+- `GET /v1/external_resources` — 列出当前 Profile 及已启用模块引用的所有外部资源（规则集、域名集、脚本、策略组列表）。响应含 `defines` 数组：`path/type/key/local/ready/updatedAt/updating/fromModule/error`。
+- `POST /v1/external_resources/update` — 立即更新外部资源。Body: `{"key": "..."}` 更新单个，`{"key": "all"}` 更新全部。
+- `GET /v1/geoip?ip=1.1.1.1` — 查询 IP 归属（国家/ASN/AS 组织），与 GEOIP/IP-ASN 规则及脚本 API 同一数据库。
+
+**实测结论（Surge iOS 5.102.0 build 3862 = 5.23.0 RC1）**：以上三个端点在 3862 上全部返回 `{"error":"unknown path"}`（HTTP API 正常，`/v1/traffic` 等可用）。内置 Web Dashboard v2.0.9 亦无「外部资源」入口，其 JS 未调用相关端点。即：**iOS 3862 尚未实装这些新端点**，官方文档或超前于该 build；外部资源管理在 External Controller 协议（`surge-cli external-resource list/update`）中早已可用。预期后续 build / 正式版实装后可复测。
+
 ## Excluded macOS-only endpoints
 
 Do not use these for this iOS Skill: `system_proxy`, `enhanced_mode`, profile listing/switch/check, and device management endpoints documented as Mac Only.
