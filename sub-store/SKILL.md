@@ -257,6 +257,39 @@ sub.store = 127.0.0.1
 
 ---
 
+## 实战：节点名加后缀区分同名字节点
+
+两个机场订阅节点同名时，客户端（Surge/Clash 等）会去重导致只显示一个机场的节点。给其中一个订阅的所有节点加后缀即可区分。
+
+### 方式一：原生「重命名」操作（免脚本）
+
+订阅编辑页 → 节点操作 → 添加操作 → 类型选「重命名」：
+- 正则表达式：`(.*)`
+- 新名称：`$1 A机场`
+
+`(.*)` 捕获原节点名，`$1` 引用原名，末尾追加后缀。
+
+### 方式二：脚本操作
+
+给其中一个订阅添加「脚本操作」，粘贴 `scripts/add-suffix.js`（本技能目录）：
+
+```javascript
+function operator(proxies) {
+  const { suffix = 'A机场', sep = ' ', overwrite = 'false' } = $arguments || {};
+  return proxies.map(p => {
+    if (!p.name) return p;
+    if (overwrite !== 'true' && p.name.includes(suffix)) return p;
+    p.name = `${p.name}${sep}${suffix}`;
+    return p;
+  });
+}
+```
+
+- 「参数」字段可填：`suffix=B机场&sep= | `（远程链接则用 `#suffix=B机场`）
+- `overwrite=true` 强制追加，默认自动跳过已包含后缀的节点，防止重复运行叠加
+- 官方脚本 API：`function operator(proxies)` 中 `proxies` 为节点数组，可遍历修改后 `return`
+- 官方文档：https://sub-store-org.github.io/doc/script/examples.html
+
 ## 六、核心后端架构（backend/）
 
 ```
