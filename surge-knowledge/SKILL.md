@@ -10595,6 +10595,35 @@ Auto-updating only occurs when the user switches to the policy selection view. Y
 
 ## Changelog / Beta Updates
 
+### 📚 完整更新日志档案（2024-04 ~ 至今，@SurgeTestFlightFeed 频道全量抓取 2026-10-07）
+
+> 以下 6 个文件为频道**全量原始公告**（含版本号/构建号/日期/正文），按时间倒序。SKILL.md 中精编的近期版本记录在此之上人工整理。
+
+| 平台 | 文件 | 条目数 |
+|---|---|---|
+| iOS TestFlight | `docs/changelog/iOS-TestFlight.md` | 367 |
+| Mac Beta | `docs/changelog/Mac-Beta.md` | 838 |
+| Mac Release | `docs/changelog/Mac-Release.md` | 85 |
+| iOS AppStore | `docs/changelog/iOS-AppStore.md` | 30 |
+| tvOS | `docs/changelog/tvOS.md` | 43 |
+| 其他/汇总 | `docs/changelog/Other.md` | 267 |
+
+### Surge 5.100.0 (3425) — 2025-01-16 TestFlight（对应 App Store 5.14.3，2025-01-20 发布）
+
+**[Host] 段支持使用 DOMAIN-SET 和 RULE-SET 进行配置**（官方强调：仅为一些特别的需求设计，绝大部分用户不需要 DNS 区分解析）：
+
+```ini
+[Host]
+DOMAIN-SET:https://example.com/domains.txt = server:https://223.5.5.5/dns-query
+RULE-SET:https://example.com/rules.txt = server:https://223.5.5.5/dns-query
+```
+
+- 匹配发生在 DNS 解析之前，`RULE-SET:` 仅基于域名的条目（DOMAIN/DOMAIN-SUFFIX/DOMAIN-KEYWORD/DOMAIN-WILDCARD）有效，IP 条目会被忽略。
+- 适用于把「加密 DNS 指派」与已有规则集/域名列表绑定，避免维护两份清单。
+- 详细手册：`manual_dns_local-dns-mapping.md`「Referencing Rule Sets」一节。
+- ⚠️ TestFlight 版本号 5.100.0 横跨 2024-04 ~ 2025 年多个构建，**仅特定构建号对应特定 App Store 版本**；构建 3425 对应 App Store 5.14.3。
+- 来源：@SurgeTestFlightFeed 全量抓取（post 831/832/844，见 `docs/changelog/iOS-TestFlight.md`）
+
 ### Surge 5.102.0 (3813) — 2026-08-11 TestFlight
 
 **New Feature: Terminal (CLI on iOS)**
