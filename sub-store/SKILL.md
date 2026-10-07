@@ -290,6 +290,32 @@ function operator(proxies) {
 - 官方脚本 API：`function operator(proxies)` 中 `proxies` 为节点数组，可遍历修改后 `return`
 - 官方文档：https://sub-store-org.github.io/doc/script/examples.html
 
+### 实战：节点测活过滤失败节点
+
+拉取订阅时对每个节点做连通性检测，失败的节点不输出，只有测活通过的节点才会被客户端拉取到。
+
+**推荐脚本**：xream/scripts `availability.js`（仅支持 Surge/Loon/Egern 环境，Sub-Store 跑在 Surge 模块中可用）
+
+```
+https://raw.githubusercontent.com/xream/scripts/main/surge/modules/sub-store-scripts/check/availability.js#show_latency=true&keep_incompatible=true&status=204&url=http%3A%2F%2Fconnectivitycheck.platform.hicloud.com%2Fgenerate_204&timeout=2000&retries=1&retry_delay=1000&concurrency=10
+```
+
+**关键参数**（编辑页可视化参数编辑不需要 encodeURIComponent，链接方式需要）：
+- `timeout`：单次请求超时毫秒，默认 5000；调小可更快筛掉慢节点
+- `retries` / `retry_delay`：重试次数 / 重试延时（毫秒），默认 1 / 1000
+- `concurrency`：并发数，默认 10
+- `url`：测速 URL，默认 `http://connectivitycheck.platform.hicloud.com/generate_204`
+- `status`：期望状态码正则，默认 204
+- `show_latency`：节点名前显示延迟 `[123] 节点名`
+- `keep_incompatible`：保留当前客户端不兼容的协议，默认不保留
+- `cache=true`：开启测活缓存，配合「定时处理订阅」预热，避免客户端拉取超时
+
+**注意**：
+- 脚本 `return validProxies`，只输出测活通过（状态码匹配）的节点；失败/超时节点被过滤
+- 过滤结果是基于脚本运行时的网络环境，当前网络连不上的节点（如某些专线）会被移除，不代表节点永久失效
+- 可与加后缀脚本叠加使用（操作按顺序执行），先加后缀再测活，输出节点名带后缀且均为可用节点
+- 说明帖：https://t.me/zhetengsha/1210 ；脚本源码：https://github.com/xream/scripts/blob/main/surge/modules/sub-store-scripts/check/availability.js
+
 ## 六、核心后端架构（backend/）
 
 ```
