@@ -3875,3 +3875,26 @@ Egern 支持组级测速 URL（`latency_test_url`），无需像 Surge 那样给
 - 本次实战基于用户 Egern 配置定版「被🐶追的猫.yaml」，config-backup commit `4178edf`（2026-10-06）
 - mickeu/surge 规则集仓库：https://github.com/mickeu/surge （Rulesets/ 目录）
 - blackmatrix7 规则集：https://github.com/blackmatrix7/ios_rule_script
+
+## 实战：油价小组件背景改造——纯白/纯黑 + 卡片描边立体感（2026-10-08）
+
+### 需求与结论
+用户希望油价组件背景借鉴 IBL3ND 版（白底 + 卡片描边立体感），但**保留自己的纯白/纯黑配色**。已修改 `mickeu/Egern/实时油价.js` 并推送（commit `62026b9`）。
+
+### 关键实现
+- **背景字段**：沿用 `backgroundGradient`（`{type:'linear', colors:[C.bg,C.bg], ...}` 两端同色=纯色），**不要改成 `backgroundColor`**——注释说明这是实测后确保覆盖 Egern 默认背景的写法
+- **背景色**：`bg: { light:'#FFFFFF', dark:'#000000' }`（纯白/纯黑，IBL3ND 是白/`#1C1C1E`）
+- **立体感**：卡片加 `borderWidth: 0.5 + borderColor`（IBL3ND 同款 `#E0E0E0`/`#3A3A3C`），同时浅色下卡片色从纯白改为微灰 `#F5F5F7`，与纯白背景形成层次对比
+
+### 借鉴 IBL3ND 版时的配色映射
+| 项 | IBL3ND | 本组件最终值 |
+|---|---|---|
+| 页面背景 | `#FFFFFF` / `#1C1C1E` | `#FFFFFF` / `#000000`（保留纯黑） |
+| 卡片背景 | `#F5F5F7` / `#2C2C2E` | `#F5F5F7` / `#2C2C2E`（同款） |
+| 卡片描边 | `#E0E0E0` / `#3A3A3C`，宽 0.5 | 同款 |
+
+### 参考资料（来源）
+- 修改后脚本：https://raw.githubusercontent.com/mickeu/Egern/main/实时油价.js
+- IBL3ND 参考脚本：https://raw.githubusercontent.com/IBL3ND/module/refs/heads/main/Oil_Widget.JS
+- 本组件原始出处：https://raw.githubusercontent.com/jnlaoshu/MySelf/master/Egern/Widget/GasPrice.js
+- 数据中心(DCH)脚本：https://raw.githubusercontent.com/mickeu/Egern/main/数据中心.js
