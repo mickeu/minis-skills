@@ -311,6 +311,8 @@ https://raw.githubusercontent.com/xream/scripts/main/surge/modules/sub-store-scr
 - `cache=true`：开启测活缓存，配合「定时处理订阅」预热，避免客户端拉取超时
 
 **注意**：
+- ⚠️ **必须加 `cache=true` 并配合「定时处理订阅」**，否则每次客户端拉取订阅都会实时全量测活，后端处理变慢会导致客户端请求超时（实测 Surge 更新外部组报 -1001 请求超时 / Failed to parse remote resource data）
+- 推荐参数：`timeout=2000&retries=0&retry_delay=1000&concurrency=20&show_latency=true&keep_incompatible=true&cache=true`（关闭重试、提高并发，配合缓存）
 - 脚本 `return validProxies`，只输出测活通过（状态码匹配）的节点；失败/超时节点被过滤
 - 过滤结果是基于脚本运行时的网络环境，当前网络连不上的节点（如某些专线）会被移除，不代表节点永久失效
 - 可与加后缀脚本叠加使用（操作按顺序执行），先加后缀再测活，输出节点名带后缀且均为可用节点
