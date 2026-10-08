@@ -23,3 +23,4 @@ codex-chatgpt-web/assets/demo.gif
 codex-chatgpt-web/launcher/src/assets/*.gif
 weather-broadcast/assets/birds.mp3
 scripting/llms-full.txt
+weather-broadcast/assets/*.mp3
