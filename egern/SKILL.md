@@ -3896,6 +3896,12 @@ Egern 支持组级测速 URL（`latency_test_url`），无需像 Surge 那样给
 | 背景字段 | `backgroundColor` | `backgroundColor`（同款，勿用渐变） |
 | 根容器 url | 无 | 无（**设 url 会导致阴影**，必须去掉） |
 
+### 缓存写法（借鉴 IBL3ND，2026-10-08 commit `e8ae0dd`）
+- **原理**：fetch 前先用 `ctx.storage.getJSON(CACHE_KEY)` 读缓存，fetch 成功后 `ctx.storage.setJSON()` 写缓存，fetch 失败时降级用缓存数据（不显示错误）
+- **缓存键**：`oil_${provinceCode}_${cityName || 'default'}`，按地区隔离
+- **缓存内容**：`{ prices, items, regionName, trendInfo, trendColor, hasTrendData }`（含 items 用于趋势图恢复）
+- **降级逻辑**：`catch (e) { if (hasCache) fetchError = null; else fetchError = e.message; }`——有缓存时清除错误，用缓存数据正常渲染
+
 ### 参考资料（来源）
 - 修改后脚本：https://raw.githubusercontent.com/mickeu/Egern/main/实时油价.js
 - IBL3ND 参考脚本：https://raw.githubusercontent.com/IBL3ND/module/refs/heads/main/Oil_Widget.JS
