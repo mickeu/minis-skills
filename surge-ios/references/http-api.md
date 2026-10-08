@@ -90,7 +90,7 @@ The official manual notes that traffic counters reset when the engine restarts; 
 - `POST /v1/log/level` — `{ "level": "verbose" }`
 - `GET /v1/mitm/ca` — DER certificate, not JSON
 
-## 5.23.0 新增端点（iOS 3862 实测记录，2026-10-07）
+## 5.23.0 新增端点（iOS 3862/3864 实测记录，2026-10-07/09）
 
 官方手册已收录以下端点并标注 `iOS 5.23.0+ / Mac 6.10.0+`：
 
@@ -98,7 +98,14 @@ The official manual notes that traffic counters reset when the engine restarts; 
 - `POST /v1/external_resources/update` — 立即更新外部资源。Body: `{"key": "..."}` 更新单个，`{"key": "all"}` 更新全部。
 - `GET /v1/geoip?ip=1.1.1.1` — 查询 IP 归属（国家/ASN/AS 组织），与 GEOIP/IP-ASN 规则及脚本 API 同一数据库。
 
-**实测结论（Surge iOS 5.102.0 build 3862 = 5.23.0 RC1）**：以上三个端点在 3862 上全部返回 `{"error":"unknown path"}`（HTTP API 正常，`/v1/traffic` 等可用）。内置 Web Dashboard v2.0.9 亦无「外部资源」入口，其 JS 未调用相关端点。即：**iOS 3862 尚未实装这些新端点**，官方文档或超前于该 build；外部资源管理在 External Controller 协议（`surge-cli external-resource list/update`）中早已可用。预期后续 build / 正式版实装后可复测。
+**实测结论（Surge iOS 5.102.0 build 3862 = 5.23.0 RC1）**：以上三个端点在 3862 上全部返回 `{"error":"unknown path"}`（HTTP API 正常，`/v1/traffic` 等可用）。内置 Web Dashboard v2.0.9 亦无「外部资源」入口，其 JS 未调用相关端点。即：**iOS 3862 尚未实装这些新端点**（RC1 的问题），官方文档或超前于该 build。
+
+**复测结论（Surge iOS 5.102.0 build 3864 = 5.23.0 RC2，2026-10-09）**：三个端点全部正常工作，RC2 修复了「HTTP API 无法工作」的问题：
+- `GET /v1/external_resources` 返回完整 `defines` 数组（约 60+ 条资源：规则集/脚本/策略组，含 `key/path/type/ready/updatedAt/fromModule`）。
+- `POST /v1/external_resources/update {"key":"all"}` 返回全部资源的 `"success"` 映射（~60 条 key → success），实际触发全量刷新。
+- `GET /v1/geoip?ip=8.8.8.8` 返回 `{"asn-db-date":..., "organization":"Google LLC", "country":"US", "asn":15169, "address":"8.8.8.8"}`。
+
+外部资源管理现在既可用 External Controller 协议（`surge-cli external-resource list/update`），也可用 HTTP API 直接操作。
 
 ## Excluded macOS-only endpoints
 
