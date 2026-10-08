@@ -3933,6 +3933,11 @@ Egern 支持组级测速 URL（`latency_test_url`），无需像 Surge 那样给
 3. **脚本排查**：检查所有 `ctx.http.get/post` 调用是否都设了 `opts.policy`——封装函数统一设了，但直接调的请求（IP 检测等）容易漏。
 4. **版本标记**：脚本头部注释写 `修改时间: yyyy.mm.dd HH:MM`，用户查看脚本代码即可确认拉到新版（小组件上不显示时间）。
 
+### 脚本执行超时（2026-10-08 补充）
+- Egern 脚本默认执行超时 **10 秒**（`scriptings` 的 `timeout` 字段，最大 600 秒）。数据中心等十几个 HTTP 请求的 widget 容易超时报 `Script execution timed out.`。
+- 解决：在 scriptings 配置里加 `timeout: 30`（或更大）。用户自己在脚本设置改好了。
+- 脚本本身优化方向：多个检测请求用 `Promise.all` 并发，减少串行（ChatGPT 检测内部 3 个请求串行最耗时）。
+
 ### 关键教训
 - "policy 不生效"要分清三层：① env 没传进 ctx.env（配置问题）② policy 名不匹配（静默失效）③ 脚本部分请求漏设 policy（代码 bug）。三层表现一样（走默认），但修法不同。
 - `POLICY: DIRECT` 在本脚本里不会强制直连（代码 `policy !== "DIRECT"` 时才设 opts.policy），想直连需改逻辑。
