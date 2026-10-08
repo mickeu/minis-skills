@@ -1,3 +1,7 @@
+---
+name: Exa 知识库
+description: Exa 官方技术文档完整语料库（llms.txt 格式，2026 年抓取），涵盖 Exa Search、Exa Contents、Exa Agent、Websets、Monitors、Exa Connect、Code Search、Company Search、People Search、News Search 及 exa-mcp、exa-py、exa-js 等 API、产品、集成与 SDK。当用户提到「exa ai」「Exa Search」「exa-mcp」时触发。
+---
 # Exa 知识库
 
 Exa 官方技术文档完整语料库（llms.txt 格式，2026 年抓取）。**来源**：Exa 官方文档站 https://docs.exa.ai/ （语料入口 https://docs.exa.ai/llms.txt）。当用户询问 Exa 的各类 API、产品、集成、SDK 时触发。

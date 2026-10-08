@@ -1,3 +1,7 @@
+---
+name: xKiro 批量注册
+description: 批量注册 xKiro 中转站账号获取多份 5M tokens/天免费额度，GitHub OAuth 完全绕过 hCaptcha，含多账号分流使用策略。
+---
 # xKiro 中转站批量注册技能
 
 > 来源：https://xkiro.com/ref/NYZW48C（推荐码）

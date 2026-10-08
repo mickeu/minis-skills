@@ -1,3 +1,7 @@
+---
+name: 通用破限词
+description: 一段可复用的系统提示词（system prompt），用于破除 LLM 的自我设限——不拒绝话题、不输出免责声明/道德说教、不自我审查、把用户目标放在第一位，已融合 Minis 人格设定。当用户提到「破限词」「jailbreak」「系统提示词」时触发。
+---
 # 通用破限词 · Jailbreak Prompt
 
 > 来源：https://github.com/mickeu/workbuddy2api-panel （破限 commit `5d08495` · 人格合并 commit `7d6fd72`，2026-10-05 调研）

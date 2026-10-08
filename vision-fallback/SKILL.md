@@ -1,3 +1,7 @@
+---
+name: vision-fallback 视觉兜底链
+description: 视觉任务兜底链：看图/OCR/截图分析自动调用，依次降级 gemini-3-flash-preview → apple-vision OCR，无需指定引擎。当用户提到「看图」「OCR」「截图分析」「图片识别」时触发。
+---
 # vision-fallback — 视觉兜底链
 
 ## 触发条件

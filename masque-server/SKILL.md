@@ -1,3 +1,7 @@
+---
+name: masque-server
+description: 高性能 MASQUE 代理服务器，用 Rust 编写，支持 HTTP/3 (QUIC) 承载 TCP/UDP/IP 流量，支持自包含操作捆绑包部署。
+---
 # masque-server
 
 > 高性能 MASQUE 代理服务器，用 Rust 编写，支持 HTTP/3 (QUIC) 承载 TCP/UDP/IP 流量。

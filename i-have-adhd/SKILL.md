@@ -1,5 +1,5 @@
 ---
-title: 我有 ADHD (i-have-adhd)
+name: 我有 ADHD (i-have-adhd)
 description: ADHD 友好输出技能——行动优先、步骤编号、不说废话
 source_url: https://github.com/ayghri/i-have-adhd
 source_file: https://github.com/ayghri/i-have-adhd/blob/main/skills/i-have-adhd/SKILL.md

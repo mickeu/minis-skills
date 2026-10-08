@@ -1,3 +1,7 @@
+---
+name: sing-box 知识库
+description: sing-box 官方文档全量中文镜像（168 个文件）+ 配置生成与排查能力，覆盖全部协议、路由、DNS、TUN、出站类型与示例配置。当用户提到「sing-box」「singbox」时触发。
+---
 # sing-box 知识库技能
 
 > sing-box 官方文档全量中文镜像 + 配置生成与排查能力。

@@ -1,3 +1,7 @@
+---
+name: ChatGPT2API 知识库
+description: ChatGPT 官网能力（图片生成、编辑、文本、搜索）的纯协议逆向封装，暴露 OpenAI 兼容 API/代理，自带网页画图工作台、号池管理、多账号导入，支持 Docker 自托管。当用户提到「ChatGPT2API」「chatgpt2api」「逆向封装 OpenAI 兼容」时触发。
+---
 # ChatGPT2API 知识库
 
 > 来源：https://github.com/basketikun/chatgpt2api

@@ -1,3 +1,7 @@
+---
+name: music-identify 音频识曲
+description: 音频识曲工具——调用 Shazam 公开免费 API 识别 MP3/M4A/AAC/WAV 音频的歌曲信息，无需注册或 API key，含实测踩坑记录。
+---
 # music-identify — 音频识曲（Shazam 免费 API，无需 key）
 
 拿到一段音频（MP3/M4A/AAC/WAV）想知道是什么歌，用这个。走 Shazam 公开 API，库最大、免费、不需要注册或 API key。

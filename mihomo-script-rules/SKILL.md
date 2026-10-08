@@ -1,3 +1,7 @@
+---
+name: Mihomo-Script-Rules 知识库
+description: Mihomo (Clash Meta) 订阅预处理脚本 + 自托管二进制规则集（anti-ad.mrs 广告拦截、fakeip-filter.mrs Fake-IP 过滤），面向 Bettbox 深度优化，脚本接管机场原始订阅自动执行节点重命名、无效节点过滤、策略组分流、智能 DNS 配置。
+---
 # Mihomo-Script-Rules 知识库
 
 > 来源：https://github.com/zzzhhe999/Mihomo-Script-Rules
