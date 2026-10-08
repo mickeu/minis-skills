@@ -3879,10 +3879,11 @@ Egern 支持组级测速 URL（`latency_test_url`），无需像 Surge 那样给
 ## 实战：油价小组件背景改造——纯白/纯黑 + 卡片描边立体感（2026-10-08）
 
 ### 需求与结论
-用户希望油价组件背景借鉴 IBL3ND 版（白底 + 卡片描边立体感），但**保留自己的纯白/纯黑配色**。已修改 `mickeu/Egern/实时油价.js` 并推送（最终 commit `675c485`，中间版本 `ff991a9`/`62026b9`）。
+用户希望油价组件背景借鉴 IBL3ND 版（白底 + 卡片描边立体感），但**保留自己的纯白/纯黑配色**。已修改 `mickeu/Egern/实时油价.js` 并推送（最终 commit `56c6463`，中间版本 `675c485`/`ff991a9`/`62026b9`）。
 
 ### 关键实现
 - **背景字段**：**完全照搬 IBL3ND 写法**——顶部定义 `const backgroundColor = { light:'#FFFFFF', dark:'#000000' }`，widget 根容器用 `backgroundColor: backgroundColor`；**不要用 `backgroundGradient` 渐变两端同色技巧**——用户实测 `backgroundGradient` 会残留阴影/默认背景（文档亦说明 `backgroundGradient` 优先级高于 `backgroundColor`）
+- **⚠️ widget 根容器不能设 `url` 字段**（阴影根因，2026-10-08 A/B 测试定论）：Egern 对设了 `url` 的可点击 widget 会套投影/阴影扩散；去掉 `url` 后阴影消失，加回又重现。需要无阴影纯色背景的 widget **不要在根容器设 `url`**
 - **背景色**：`backgroundColor: { light:'#FFFFFF', dark:'#000000' }`（纯白/纯黑，IBL3ND 是白/`#1C1C1E`）
 - **立体感**：卡片加 `borderWidth: 0.5 + borderColor`（IBL3ND 同款 `#E0E0E0`/`#3A3A3C`），同时浅色下卡片色从纯白改为微灰 `#F5F5F7`，与纯白背景形成层次对比
 
@@ -3893,6 +3894,7 @@ Egern 支持组级测速 URL（`latency_test_url`），无需像 Surge 那样给
 | 卡片背景 | `#F5F5F7` / `#2C2C2E` | `#F5F5F7` / `#2C2C2E`（同款） |
 | 卡片描边 | `#E0E0E0` / `#3A3A3C`，宽 0.5 | 同款 |
 | 背景字段 | `backgroundColor` | `backgroundColor`（同款，勿用渐变） |
+| 根容器 url | 无 | 无（**设 url 会导致阴影**，必须去掉） |
 
 ### 参考资料（来源）
 - 修改后脚本：https://raw.githubusercontent.com/mickeu/Egern/main/实时油价.js
