@@ -3908,25 +3908,37 @@ Egern 支持组级测速 URL（`latency_test_url`），无需像 Surge 那样给
 - 本组件原始出处：https://raw.githubusercontent.com/jnlaoshu/MySelf/master/Egern/Widget/GasPrice.js
 - 数据中心(DCH)脚本：https://raw.githubusercontent.com/mickeu/Egern/main/数据中心.js
 
-## 实战：数据中心(DCH) 脚本 POLICY 指定节点/策略组（2026-10-08）
+## 实战：数据中心(DCH) 脚本 POLICY 指定节点/策略组 + 漏设 policy 排查（2026-10-08）
 
 ### 场景
-用户问 `mickeu/Egern/数据中心.js` 的 `POLICY` 环境变量能否填单个节点名来检测，以及"自定义不生效"的原因。
+用户用 `mickeu/Egern/数据中心.js`，填 `POLICY` 环境变量后"无论怎么填都走 PROXY"，怀疑 policy 机制不生效。
 
-### 结论
-- **脚本不用改**。`数据中心.js` 通过 `ctx.env.POLICY` 读取环境变量，传给所有 `ctx.http.get/post` 的 `options.policy`（代码 `if (policy && policy !== "DIRECT") opts.policy = policy`）。`policy` 官方支持**代理节点名或策略组名**（`configuration_rules.md`：*You can also use the name of a proxy server or policy group*），`ctx.http` 的 `policy` 与规则同一套策略体系。
-- **不生效根因 = policy 名不匹配（精确匹配）**。用户配置 `POLICY: 日本🇯🇵`，但实际节点名是 `🇯🇵日本`、策略组是 `日本节点` → Egern 找不到该策略 → **静默忽略，请求回落默认规则**，不报错。
-- **修复**：把 POLICY 改成配置里存在的精确名字：
-  ```yaml
-  widgets:
-  - name: 数据中心
-    script_name: 数据中心
-    env:
-      POLICY: 🇯🇵日本   # 单个节点；或 日本节点 / PROXY / AIGC 等策略组
-  ```
-- **验证**：改完重新加载配置并刷新小组件，看「落地IP」是否变成该节点出口 IP。
+### 最终结论（实测确认）
+- **`ctx.http` 的 `policy` 选项确实生效**，支持**节点名和策略组名**（与规则 policy 同体系，`configuration_rules.md`：*You can also use the name of a proxy server or policy group*）。
+- **policy 名严格精确匹配**（emoji 顺序、空格都算）。用户填 `日本🇯🇵`（节点名是 `🇯🇵日本`）、`🇸🇬 新加坡`（带空格，节点名是 `🇸🇬新加坡`）→ 不匹配 → 静默失效（不报错，回落规则）。填策略组名 `AIGC` 后 env 传递成功、policy 生效。
+- **脚本本身有 bug（已修）**：流媒体检测用 `get()/post()/getRaw()` 封装函数（带 policy），但落地IP/风险检测的三个请求直接调 `ctx.http.get` **漏设了 policy**：
+  - `my.ippure.com`（落地IP）、`ip-api.com`（出口IP）、`api.ipapi.is`（风险）→ 没设 policy → 走规则 → 兜底 PROXY
+  - `myip.ipip.net` / `126.net`（本地IP检测）→ **本该直连**（检测国内真实IP），不能加 policy
+  - 修复：加 `po(timeout)` 辅助函数（带 policy），三处改用 `po()`；本地IP检测保持直连。commit `95788b0`、`f314e48`
+- **现象对照表**（用户填 POLICY=AIGC，AIGC=日本，PROXY=美国节点时）：
+  | 检测项 | 走的路径 | 显示 |
+  |---|---|---|
+  | 流媒体（get封装，带policy） | AIGC→日本 | JP ✓ |
+  | 落地IP（直接调，漏policy） | 规则→PROXY→美国 | 美国 ✗（已修）|
+  | 本地IP（直接调，本该直连） | DIRECT→国内 | 中国 ✓ |
 
-### 排查要点
-- Egern 的 policy 名称**严格匹配（区分 emoji 顺序、大小写）**，填错不会报错，只会静默失效——用户表现为"自定义不生效"。
-- 脚本里 `POLICY: DIRECT` **不会强制直连**（代码显式排除 `"DIRECT"`，此时不设 policy，仍走规则），想强制直连需改脚本逻辑。
-- 数据中心脚本各检测请求都带同一 policy，因此可用来检测**单个节点的流媒体解锁/IP 纯净度**。
+### 排查方法（可复用）
+1. **确认 env 是否传递**：脚本里临时在 widget 标题显示 `ctx.env.POLICY` 的值（`数据中心⟨${policy||'空'}⟩`），刷新看显示什么。`⟨空⟩`=env 没传；`⟨值⟩`=env 传了。
+2. **确认 policy 是否生效**：Egern 请求日志看域名实际命中策略。my.ippure.com 命中 PROXY 而非 AIGC = policy 没对该请求生效。
+3. **脚本排查**：检查所有 `ctx.http.get/post` 调用是否都设了 `opts.policy`——封装函数统一设了，但直接调的请求（IP 检测等）容易漏。
+4. **版本标记**：脚本头部注释写 `修改时间: yyyy.mm.dd HH:MM`，用户查看脚本代码即可确认拉到新版（小组件上不显示时间）。
+
+### 关键教训
+- "policy 不生效"要分清三层：① env 没传进 ctx.env（配置问题）② policy 名不匹配（静默失效）③ 脚本部分请求漏设 policy（代码 bug）。三层表现一样（走默认），但修法不同。
+- `POLICY: DIRECT` 在本脚本里不会强制直连（代码 `policy !== "DIRECT"` 时才设 opts.policy），想直连需改逻辑。
+- 数据中心脚本可用于检测**单个节点/策略组**的流媒体解锁 + IP 纯净度，所有代理请求统一走 POLICY。
+
+### 参考资料（来源）
+- 脚本：https://raw.githubusercontent.com/mickeu/Egern/main/数据中心.js
+- 官方 ctx.http policy 文档：`egern/docs/javascript-api.md`（`policy | string | 代理策略`）
+- 官方规则 policy 文档：`egern/docs/configuration_rules.md`（policy 可为代理名或策略组名）
