@@ -3907,3 +3907,26 @@ Egern 支持组级测速 URL（`latency_test_url`），无需像 Surge 那样给
 - IBL3ND 参考脚本：https://raw.githubusercontent.com/IBL3ND/module/refs/heads/main/Oil_Widget.JS
 - 本组件原始出处：https://raw.githubusercontent.com/jnlaoshu/MySelf/master/Egern/Widget/GasPrice.js
 - 数据中心(DCH)脚本：https://raw.githubusercontent.com/mickeu/Egern/main/数据中心.js
+
+## 实战：数据中心(DCH) 脚本 POLICY 指定节点/策略组（2026-10-08）
+
+### 场景
+用户问 `mickeu/Egern/数据中心.js` 的 `POLICY` 环境变量能否填单个节点名来检测，以及"自定义不生效"的原因。
+
+### 结论
+- **脚本不用改**。`数据中心.js` 通过 `ctx.env.POLICY` 读取环境变量，传给所有 `ctx.http.get/post` 的 `options.policy`（代码 `if (policy && policy !== "DIRECT") opts.policy = policy`）。`policy` 官方支持**代理节点名或策略组名**（`configuration_rules.md`：*You can also use the name of a proxy server or policy group*），`ctx.http` 的 `policy` 与规则同一套策略体系。
+- **不生效根因 = policy 名不匹配（精确匹配）**。用户配置 `POLICY: 日本🇯🇵`，但实际节点名是 `🇯🇵日本`、策略组是 `日本节点` → Egern 找不到该策略 → **静默忽略，请求回落默认规则**，不报错。
+- **修复**：把 POLICY 改成配置里存在的精确名字：
+  ```yaml
+  widgets:
+  - name: 数据中心
+    script_name: 数据中心
+    env:
+      POLICY: 🇯🇵日本   # 单个节点；或 日本节点 / PROXY / AIGC 等策略组
+  ```
+- **验证**：改完重新加载配置并刷新小组件，看「落地IP」是否变成该节点出口 IP。
+
+### 排查要点
+- Egern 的 policy 名称**严格匹配（区分 emoji 顺序、大小写）**，填错不会报错，只会静默失效——用户表现为"自定义不生效"。
+- 脚本里 `POLICY: DIRECT` **不会强制直连**（代码显式排除 `"DIRECT"`，此时不设 policy，仍走规则），想强制直连需改脚本逻辑。
+- 数据中心脚本各检测请求都带同一 policy，因此可用来检测**单个节点的流媒体解锁/IP 纯净度**。
