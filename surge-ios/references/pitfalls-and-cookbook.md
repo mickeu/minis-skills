@@ -304,3 +304,16 @@ startTasks().then(r => {
 **模块**：95598整合.sgmodule（网上国网签到，author/category=mickeu），面板脚本 95598Panel.js。
 
 **通用**：任何压缩脚本要面板加图标，都用这个"IIFE 前覆盖 $done"法。
+
+## 规则审计：不改配置的出口对照
+
+`surge-cli http probe <url> [policy]` 可为单次 HEAD 指定策略，无需临时规则或切组。先 `rule match` 记录实际命中，再比较默认请求与显式 `PROXY` 请求；修复后必须不带策略再测，证明真实分流生效。输出只保留 status/policy/rule/duration-ms，不回显 Set-Cookie 等响应头。
+
+- 国内 IP 不必然必须直连，国外 IP 不必然必须代理；静态集合交集仅为候选。
+- 广告在 Proxy_Supplement 之前：被 REJECT 的境外正常服务要放 Ad_Whitelist，不能只加代理补充。
+- `external-resource update` 后，新增域名实际命中新规则集即可证明该条已生效，不必额外植入测试域名。
+
+### 参考资料（来源）
+- 官方 CLI：https://manual.nssurge.com/tools/cli.html
+- 官方规则：https://manual.nssurge.com/rules/overview.html
+- 实测：2026-10-09，Surge iOS 5.102.0 build 3864，Controller 25；Steam/Copilot 默认直连失败、显式 PROXY 200，更新规则后默认请求 200。规则修复提交：https://github.com/mickeu/surge/commit/c1880c1
