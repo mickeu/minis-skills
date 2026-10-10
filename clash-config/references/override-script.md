@@ -5,7 +5,7 @@
 
 ## 一、本质与定位
 
-Hako 的"覆写脚本"= 在**订阅下载后、内核解析前**，用 **JavaScriptCore (JSContext)** 跑一段用户 JS，对完整配置对象做任意变换。等价于把 mihomo 老内核的 `experimental.preprocess-script` 放到 App 外壳实现——**Hako 内核（TokenPLS/Hako）的 `experimental` 段已砍掉 `preprocess-script`**，只留 `quic-go-disable-gso/ecn`、`ip4p-enable`，所以**只能通过 App 的"覆写脚本"入口实现配置预处理**，写配置文件 `preprocess-script:` 字段无效。
+Hako 的"覆写脚本"= 在**订阅下载后、内核解析前**，用 **JavaScriptCore (JSContext)** 跑一段用户 JS，对完整配置对象做任意变换。等价于把 mihomo 老内核的 `experimental.preprocess-script` 放到 App 外壳实现——**Hako 内核（ProjectClash/Clash-Legacy，原 TokenPLS/Hako）的 `experimental` 段已砍掉 `preprocess-script`**，只留 `quic-go-disable-gso/ecn`、`ip4p-enable`，所以**只能通过 App 的"覆写脚本"入口实现配置预处理**，写配置文件 `preprocess-script:` 字段无效。
 
 ## 二、接口规范（必须遵守，否则 Hako 拒绝）
 

@@ -1,6 +1,6 @@
 # Hako 相对 mihomo v1.19.31 的配置增量
 
-> 来源：`bind/hako/` 目录下非测试 `.go` 文件（约 130+ 个）。版本基线：mihomo v1.19.31（`UPSTREAM_VERSION` 文件确认），上游基线 `v1.19.31`。Hako HEAD `7ea70d15`（2026-09-24）。Hako（`github.com/TokenPLS/Hako`）是 mihomo 的独立 fork，`bind/hako` 为 Hako 独有目录，是相对 mihomo 的全部增量代码。
+> 来源：`bind/hako/` 目录下非测试 `.go` 文件（约 130+ 个）。版本基线：mihomo v1.19.31（`UPSTREAM_VERSION` 文件确认），上游基线 `v1.19.31`。Hako HEAD `7ea70d15`（2026-09-24）。Hako（`github.com/ProjectClash/Clash-Legacy`，原 `TokenPLS/Hako`）是 mihomo 的独立 fork，`bind/hako` 为 Hako 独有目录，是相对 mihomo 的全部增量代码。
 >
 > 本文只摘录**配置项 / 配置行为**层面的增量，不含纯运行时诊断、UI 路由、IPC 细节。所有结论均来自源码注释与函数体，未在代码中找到明确佐证的项标注「推断」。
 >
@@ -246,7 +246,7 @@ Hako 的校验原则：**只拒绝会改变 DNS/选路语义或上游自身也�
 
 ## 交叉验证记录（2026-09-22）
 
-方法：`TokenPLS/Hako` 完整克隆（4285 commits / 5 tags）可访问上游基线 commit `ac017cdd246ce8bd547653d927e7bf77d7ee73d5`（「fix: initialize DNS before NTP (#3103)」），用 `git ls-tree` / `git grep` / `git show <commit>:<file>` 逐一对照。**MetaCubeX/mihomo 主仓库现已不可用作验证源**——该 org 下同名仓库已被替换为一个 Python Pydantic 库（描述：*A simple Python Pydantic model for Honkai: Star Rail parsed data*，MIT License，与内核无关），org 其余仓库（`meta-rules-dat`/`metacubexd`/`mipstack`/`subconverter`/`utls`/`sing-quic` 等）仍在。
+方法：`ProjectClash/Clash-Legacy`（原 `TokenPLS/Hako`）完整克隆（4285 commits / 5 tags）可访问上游基线 commit `ac017cdd246ce8bd547653d927e7bf77d7ee73d5`（「fix: initialize DNS before NTP (#3103)」），用 `git ls-tree` / `git grep` / `git show <commit>:<file>` 逐一对照。**MetaCubeX/mihomo 主仓库现已不可用作验证源**——该 org 下同名仓库已被替换为一个 Python Pydantic 库（描述：*A simple Python Pydantic model for Honkai: Star Rail parsed data*，MIT License，与内核无关），org 其余仓库（`meta-rules-dat`/`metacubexd`/`mipstack`/`subconverter`/`utls`/`sing-quic` 等）仍在。
 
 | 待验证项 | 结论 | 证据 |
 |---|---|---|

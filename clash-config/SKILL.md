@@ -7,7 +7,7 @@ description: >
   18 种入站监听（listeners）、节点订阅（proxy-providers，含 override-expr yq v4 表达式覆写）、
   规则订阅（rule-providers）、TUN（system/gvisor/mixed/mips 四种 stack）、Sniffer、tunnels、hosts、
   **Hako 覆写脚本（Override Script，JSContext main(config)）**、完整配置模板与常见坑。
-  基于 TokenPLS/Hako 源码（mihomo v1.19.31 fork，Hako HEAD `7ea70d15`，上游基线 v1.19.31；
+  基于 ProjectClash/Clash-Legacy（原 TokenPLS/Hako）源码（mihomo v1.19.31 fork，Hako HEAD `7ea70d15`，上游基线 v1.19.31；
   Hako App 已随 1.0.11 Build116 升级内核至 mihomo v1.19.32，2026-10-06 更新日志确认）的 docs/config.yaml
   与 config/config.go 结构定义提取，字段类型与默认值对照 Go struct。
   当用户提到 mihomo、Clash Meta、Hako、Clash 配置、YAML 配置格式、DNS 配置、fake-ip、规则、
@@ -15,7 +15,7 @@ description: >
   覆写脚本、override-script、preprocess-script、main(config)、JSContext、过滤非法节点、
   vmess、vless、reality、xtls、hysteria2、tuic、trusttunnel、anytls、mieru、sudoku、wireguard、
   openvpn、masque、listeners、TUN、Sniffer、gost-relay、dialer-proxy、smux、mrs 等代理内核配置时触发。
-source_url: https://github.com/TokenPLS/Hako
+source_url: https://github.com/ProjectClash/Clash-Legacy
 license: GPL-3.0
 last_sync: 2026-09-24
 ---
@@ -39,15 +39,15 @@ last_sync: 2026-09-24
 
 | 来源 | 核对的 HEAD commit | 内容 | 本地路径 |
 |---|---|---|---|
-| **TokenPLS/Hako** | `7ea70d15` 2026-09-24 | 内核源码 = mihomo v1.19.31 fork | `/var/minis/workspace/Hako` |
+| **ProjectClash/Clash-Legacy**（原 TokenPLS/Hako） | `7ea70d15` 2026-09-24 | 内核源码 = mihomo v1.19.31 fork（官方存档） | `/var/minis/workspace/Hako` |
 | ├─ `docs/config.yaml` | — | 完整配置参考（2855 行带中文注释） | 技能库主要素材 |
 | ├─ `bind/hako/` | — | Apple 绑定层，121 个非测试 .go | 增量配置参考 |
 | ├─ `adapter/outbound/` | — | 30+ 出站协议配置字段 | 协议字段参考 |
 | └─ `config/config.go` | — | 配置结构体定义（约 2200 行） | 字段类型/默认值 |
-| **TokenPLS/Hako-Client** | `62aa2f2` 2026-09-24 | Apple 客户端源码（纯 Swift） | `/var/minis/workspace/Hako-Client` |
+| **ProjectClash/Clash-Client-Legacy**（原 TokenPLS/Hako-Client） | `62aa2f2` 2026-09-24 | Apple 客户端源码（纯 Swift） | `/var/minis/workspace/Hako-Client` |
 | ├─ `Dependencies.lock.json` | — | 依赖版本锁定（kernel `7ea70d15` 与 Hako HEAD 一致 ✅） | 版本追溯 |
 | └─ `apple/` | — | HakoClient（应用+扩展）/ HakoClientKit / HakoClientUI / HakoMacClient | 四模块结构 |
-| **TokenPLS/Hako-Adapter** | `6a47cf9` 2026-09-24 | Swift 数据包桥接 | `/var/minis/workspace/Hako-Adapter` |
+| **ProjectClash/Clash-Adapter-Legacy**（原 TokenPLS/Hako-Adapter） | `6a47cf9` 2026-09-24 | Swift 数据包桥接 | `/var/minis/workspace/Hako-Adapter` |
 | └─ `Sources/HakoAdapter/` | — | `PacketFlowBridge.swift` + `ProviderLifecycle.swift` | Swift 5.9，iOS15+/macOS13+/tvOS17+ |
 | **MetaCubeX/mihomo**（上游） | ✅ 已恢复 | 上游基线 v1.19.31，commit `ab405bad` | 直接 clone 可用 |
 | **chen08209/FlClash** | `c7be7023` 2026-09-17 | Flutter 客户端（mihomo 内核） | `/var/minis/workspace/FlClash` |
@@ -58,11 +58,13 @@ last_sync: 2026-09-24
 
 **⚠️ 上游仓库已恢复**：README 明确声明 Hako 基于 [mihomo v1.19.31](https://github.com/MetaCubeX/mihomo/tree/v1.19.31)，上游基线 commit `ab405bad5beeeac8b003bb01f60f134f6df54471`。旧基线 v1.19.30 (`ac017cdd`) 仍在历史中可查。
 
+**仓库迁移（2026-10-10）**：TokenPLS/Hako 系列已由 **ProjectClash** 官方接管。原仓库分别存档为 [`ProjectClash/Clash-Legacy`](https://github.com/ProjectClash/Clash-Legacy) / [`Clash-Client-Legacy`](https://github.com/ProjectClash/Clash-Client-Legacy) / [`Clash-Adapter-Legacy`](https://github.com/ProjectClash/Clash-Adapter-Legacy)（保留完整历史、分支、tags、releases，只读），活跃开发迁移至 [`ProjectClash/Clash`](https://github.com/ProjectClash/Clash) / [`Clash-Client`](https://github.com/ProjectClash/Clash-Client) / [`Clash-Adapter`](https://github.com/ProjectClash/Clash-Adapter)。本技能库引用的 commit 均在 Legacy 存档中可查；后续拉取用新地址（见第 7 节）。
+
 **版本锁定**（`Hako-Client/Dependencies.lock.json`）：
 
 ```
-kernel:   7ea70d15bf8b67257928efe45c12f16d4ffc9f61   (TokenPLS/Hako)
-adapter:  01b6f728973857b3c553a56ea1aeef24669c1128   (TokenPLS/Hako-Adapter)
+kernel:   7ea70d15bf8b67257928efe45c12f16d4ffc9f61   (ProjectClash/Clash-Legacy，原 TokenPLS/Hako)
+adapter:  01b6f728973857b3c553a56ea1aeef24669c1128   (ProjectClash/Clash-Adapter-Legacy，原 TokenPLS/Hako-Adapter)
 gomobile: github.com/sagernet/gomobile@v0.1.13
 上游基线: mihomo v1.19.31 @ ab405bad5beeeac8b003bb01f60f134f6df54471
 许可证:   GPL-3.0
@@ -782,12 +784,12 @@ rules:
 ```bash
 cd /var/minis/workspace
 # 主来源：完整克隆（必须带完整历史，上游基线 commit 只在历史里）
-rm -rf Hako && git clone https://github.com/TokenPLS/Hako.git
+rm -rf Hako && git clone https://github.com/ProjectClash/Clash-Legacy.git Hako
 git -C Hako rev-list --count HEAD && git -C Hako tag
 
 # 客户端与桥接（可浅克隆）
-git clone --depth 1 https://github.com/TokenPLS/Hako-Client.git
-git clone --depth 1 https://github.com/TokenPLS/Hako-Adapter.git
+git clone --depth 1 https://github.com/ProjectClash/Clash-Client-Legacy.git Hako-Client
+git clone --depth 1 https://github.com/ProjectClash/Clash-Adapter-Legacy.git Hako-Adapter
 ```
 
 上游基线 commit `ab405bad`（v1.19.31），也可从 Hako 仓库历史访问。旧基线 `ac017cdd`（v1.19.30）仍在历史中。

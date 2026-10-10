@@ -1,6 +1,6 @@
 # Hako 内核完整 YAML 配置结构参考
 
-> 基于 TokenPLS/Hako 源码（mihomo 分支内核）提取。源文件：`config/config.go`、`config/initial.go`、`config/utils.go`、`adapter/parser.go`、`adapter/outboundgroup/*.go`、`adapter/provider/parser.go`、`rules/parser.go`、`rules/provider/parse.go`、`listener/parse.go`、`listener/inbound/*.go`、`docs/config.yaml`。
+> 基于 ProjectClash/Clash-Legacy（原 TokenPLS/Hako）源码（mihomo 分支内核）提取。源文件：`config/config.go`、`config/initial.go`、`config/utils.go`、`adapter/parser.go`、`adapter/outboundgroup/*.go`、`adapter/provider/parser.go`、`rules/parser.go`、`rules/provider/parse.go`、`listener/parse.go`、`listener/inbound/*.go`、`docs/config.yaml`。
 >
 > 约定：YAML 字段名来自 struct tag（`yaml:"xxx"`）或 structure decoder tag（`group:"xxx"` / `provider:"xxx"` / `inbound:"xxx"`）。默认值来自 `DefaultRawConfig()` 函数及 parser 初始化逻辑。
 
