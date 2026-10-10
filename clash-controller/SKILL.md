@@ -5,6 +5,9 @@ description: 通过 mihomo/Hako RESTful API 实时监控和控制 Clash，对标
 
 # Clash 控制器（mihomo / Hako RESTful API）
 
+> **CLI 实现说明（2026-10-10）**：`clash-cli` 当前为非官方 Python 标准库移植，来源于官方 Go CLI：<https://github.com/ProjectClash/Clash-Client/tree/main/cli>。官方 Go 源码 sha256 清单见 `workspace/clash-cli/source-sha256.txt`。已通过 Go/Python mock 差分测试 **121/121**（method/path/query/body、JSON、退出码、TLS、重定向、流截止）；**未做真机测试**。Python 单文件入口已部署并保留 `/usr/local/bin/clash-cli` symlink。已知未实现 Go HTTP/2（见交付报告）。
+
+
 通过 `clash-cli`（封装 mihomo RESTful API）在 Minis 内实时监控和控制 Clash，能力对标 `surge-ios`。Clash 配置语法参考 `clash-config` 技能，本文档只管运行态操作。
 
 ## 1. 入口授权（前提检查）

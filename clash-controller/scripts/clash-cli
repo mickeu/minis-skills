@@ -1,305 +1,1165 @@
 #!/usr/bin/env python3
-"""clash-cli — mihomo / Hako RESTful API CLI for Minis.
-
-通过 external-controller (默认 127.0.0.1:9090) 查询和控制 Clash/Mihomo。
-对标 surge-cli 常用操作。secret 从 CLASH_SECRET 环境变量读取（无则不认证）。
+"""Non-official Python port of ProjectClash/Clash-Client/cli, GPL-3.0.
+Source: https://github.com/ProjectClash/Clash-Client/tree/main/cli
+Transport implementation; compatibility testing pending.
 """
-import sys, os, json, time, socket, urllib.request, urllib.error, urllib.parse
+import os, sys, json, ssl, socket, hashlib, http.client, time, threading, re
+from pathlib import Path
+from types import SimpleNamespace
+from urllib.parse import urlsplit, quote, urlencode
 
-BASE = os.environ.get("CLASH_API", "http://127.0.0.1:9090")
-SECRET = os.environ.get("CLASH_SECRET", "")
-TIMEOUT = int(os.environ.get("CLASH_TIMEOUT", "8"))
+class CliError(Exception):
+    def __init__(self, exit, code, message, fingerprint=None):
+        super().__init__(message)
+        self.exit, self.code, self.message = exit, code, message
+        self.fingerprint = fingerprint
 
-
-def _req(path, method="GET", data=None, timeout=TIMEOUT, raw=False):
-    """发请求，返回 parsed JSON 或 None(204)。失败 raise SystemExit。"""
-    url = BASE + path
-    headers = {}
-    if SECRET:
-        headers["Authorization"] = "Bearer " + SECRET
-    body = None
-    if data is not None:
-        body = json.dumps(data).encode()
-        headers["Content-Type"] = "application/json"
-    req = urllib.request.Request(url, data=body, method=method, headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            payload = resp.read()
-            if not payload or resp.status == 204:
-                return None
-            return payload if raw else json.loads(payload)
-    except urllib.error.HTTPError as e:
-        msg = e.read().decode(errors="replace")[:200]
-        sys.exit(f"HTTP {e.code} {e.reason}: {msg}")
-    except urllib.error.URLError as e:
-        sys.exit(f"连接失败 {BASE}（{e.reason}）——Clash/Hako 是否在运行？external-controller 是否开启？")
-    except Exception as e:
-        sys.exit(f"错误: {e}")
-
-
-def _sse(path, seconds=3, timeout=None):
-    """读 SSE 流 N 秒，yield parsed JSON 行。保证至少尝试读取第一帧。"""
-    if timeout is None:
-        timeout = seconds + 5
-    url = BASE + path
-    headers = {"Accept": "text/event-stream"}
-    if SECRET:
-        headers["Authorization"] = "Bearer " + SECRET
-    req = urllib.request.Request(url, headers=headers)
-    end = time.time() + seconds
-    buf = ""
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            while True:
-                try:
-                    chunk = resp.read(256)
-                except (urllib.error.URLError, OSError, socket.timeout):
-                    break
-                if not chunk:
-                    break
-                buf += chunk.decode(errors="replace")
-                while "\n" in buf:
-                    line, buf = buf.split("\n", 1)
-                    line = line.strip()
-                    # mihomo 的 /traffic 和 /memory 是"类 SSE"：直接裸 JSON 行 + 空行，
-                    # 无标准 `data:` 前缀，但也兼容标准 SSE 格式
-                    if line.startswith("data:"):
-                        line = line[5:].strip()
-                    if not line:
-                        continue
-                    try:
-                        yield json.loads(line)
-                    except json.JSONDecodeError:
-                        yield line
-                # 处理完当前缓冲后再检查时间（确保超时前读到的帧都会被处理）
-                if time.time() > end:
-                    break
-    except Exception as e:
-        sys.exit(f"SSE 读取失败: {e}")
-
-
-# ── 子命令 ──
-
-def cmd_status(args):
-    """概览：版本 + 配置 + 内存 + 策略组当前选择。"""
-    ver = _req("/version")
-    cfg = _req("/configs")
-    # /memory 是 SSE 流式端点（持续推送），不能整体读取，只取一帧
-    mem = next(iter(_sse("/memory", seconds=3)), {})
-    px = _req("/proxies").get("proxies", {})
-    groups = [(k, v.get("now")) for k, v in px.items()
-              if v.get("type") in ("Selector", "URLTest", "Fallback", "LoadBalance")]
-    print(f"mihomo {'.'.join(str(x) for x in ver.get('version','').split('.'))}  meta={ver.get('meta')}")
-    tun = cfg.get("tun", {})
-    print(f"mode={cfg.get('mode')}  mixed-port={cfg.get('mixed-port')}  tun={tun.get('enable')} stack={tun.get('stack')}")
-    print(f"内存 {mem.get('footprint',0)//1024//1024}MB  inuse={mem.get('inuse',0)//1024}KB")
-    print(f"策略组 {len(groups)} 个：")
-    for name, now in groups:
-        print(f"  {name:20s} → {now}")
-
-
-def cmd_version(args):
-    v = _req("/version")
-    print(json.dumps(v, indent=2))
-
-
-def cmd_proxies(args):
-    """列出代理/策略组。可选参数：组名（查看该组详情/成员）。"""
-    px = _req("/proxies").get("proxies", {})
-    if args:
-        name = urllib.parse.quote(args[0])
-        d = _req(f"/proxies/{name}")
-        print(f"名称: {d.get('name')}  类型: {d.get('type')}  now: {d.get('now','-')}")
-        if d.get("all"):
-            print(f"成员 ({len(d['all'])}):")
-            for m in d["all"]:
-                print(f"  - {m}")
-    else:
-        groups, leaves = [], []
-        for k, v in px.items():
-            (groups if v.get("type") in ("Selector","URLTest","Fallback","LoadBalance") else leaves).append((k, v))
-        print(f"策略组 {len(groups)} 个：")
-        for k, v in groups:
-            print(f"  {k:20s} [{v.get('type')}] → {v.get('now','-')}")
-        print(f"\n节点 {len(leaves)} 个（名称/类型）：")
-        for k, v in leaves:
-            print(f"  {k}  ({v.get('type')})")
-
-
-def cmd_proxy(args):
-    """proxy get <组> | proxy set <组> <节点>"""
-    if len(args) < 2 or args[0] not in ("get", "set"):
-        sys.exit("用法: clash-cli proxy get <组> | clash-cli proxy set <组> <节点>")
-    op, group = args[0], args[1]
-    qgroup = urllib.parse.quote(group)
-    if op == "get":
-        d = _req(f"/proxies/{qgroup}")
-        print(f"{group} → {d.get('now','-')}  [{d.get('type')}]")
-        if d.get("all"):
-            print("可选:", ", ".join(d["all"]))
-    elif op == "set":
-        node = args[2]
-        _req(f"/proxies/{qgroup}", method="PUT", data={"name": node})
-        d = _req(f"/proxies/{qgroup}")
-        print(f"✓ {group} → {d.get('now')}")
-
-
-def cmd_test(args):
-    """测节点/组延迟。test <名称> [url] [timeout_ms]"""
-    if not args:
-        sys.exit("用法: clash-cli test <名称> [url] [timeout_ms]")
-    name = urllib.parse.quote(args[0])
-    url = args[1] if len(args) > 1 else "https://www.gstatic.com/generate_204"
-    tmo = args[2] if len(args) > 2 else "5000"
-    qs = urllib.parse.urlencode({"url": url, "timeout": int(tmo)})
-    try:
-        d = _req(f"/proxies/{name}/delay?{qs}", timeout=int(tmo)//1000 + 5)
-        print(f"✓ {args[0]} 延迟 {d.get('delay','-')}ms")
-    except SystemExit as e:
-        print(f"✗ {args[0]} 测试失败: {e}")
-
-
-def cmd_connections(args):
-    """实时连接。connections [N]。"""
-    n = int(args[0]) if args else 15
-    d = _req("/connections")
-    cs = d.get("connections", [])
-    print(f"活跃连接 {len(cs)} 个（总 ↓{d.get('downloadTotal',0)//1024}KB ↑{d.get('uploadTotal',0)//1024}KB）：")
-    for c in cs[:n]:
-        m = c.get("metadata", {})
-        host = m.get("host") or m.get("destinationIP") or m.get("processPath","?") or "?"
-        chain = c.get("chains", ["?"])
-        rule = c.get("rulePayload") or c.get("rule", "-")
-        print(f"  {host:35s} → {chain[-1]:15s} [{rule}]  ↓{c.get('download',0)}B ↑{c.get('upload',0)}B")
-
-
-def cmd_conn_close(args):
-    """conn close <id|all>"""
-    if not args:
-        sys.exit("用法: clash-cli conn close <id|all>")
-    if args[0] == "all":
-        _req("/connections", method="DELETE")
-        print("✓ 已关闭所有连接")
-    else:
-        _req(f"/connections/{urllib.parse.quote(args[0])}", method="DELETE")
-        print(f"✓ 已关闭连接 {args[0]}")
-
-
-def cmd_traffic(args):
-    """实时流量（SSE）。traffic [秒数]。"""
-    secs = int(args[0]) if args else 3
-    print(f"实时流量（{secs}秒）：")
-    for frame in _sse("/traffic", seconds=secs):
-        if isinstance(frame, dict):
-            up, down = frame.get("up",0), frame.get("down",0)
-            ut, dt = frame.get("upTotal",0), frame.get("downTotal",0)
-            print(f"  ↑ {up:>8}B/s  ↓ {down:>8}B/s  | 累计 ↑{ut//1024}KB ↓{dt//1024}KB")
-
-
-def cmd_rules(args):
-    """规则列表。rules [N]。"""
-    d = _req("/rules")
-    rules = d.get("rules", [])
-    n = int(args[0]) if args else 0
-    print(f"规则 {len(rules)} 条：")
-    for r in (rules if not n else rules[:n]):
-        print(f"  {r.get('type'):20s} {r.get('payload','-'):30s} → {r.get('proxy')}")
-
-
-def cmd_configs(args):
-    """当前运行配置。"""
-    d = _req("/configs")
-    print(json.dumps(d, indent=2, ensure_ascii=False))
-
-
-def cmd_reload(args):
-    """重载配置。reload [配置文件路径]。"""
-    if args:
-        path = args[0]
-        with open(path) as f:
-            payload = {"path": os.path.abspath(path)}
-        _req("/configs?force=true", method="PUT", data=payload)
-    else:
-        _req("/configs?force=false", method="PUT", data={})
-    print("✓ 配置已重载")
-
-
-def cmd_dns(args):
-    """dns query <域名> [type]。"""
-    if len(args) < 2 or args[0] != "query":
-        sys.exit("用法: clash-cli dns query <域名> [type]")
-    name, dtype = args[1], args[2] if len(args) > 2 else "A"
-    qs = urllib.parse.urlencode({"name": name, "type": dtype})
-    d = _req(f"/dns/query?{qs}")
-    print(json.dumps(d, indent=2, ensure_ascii=False))
-
-
-def cmd_logs(args):
-    """日志（SSE）。logs [秒数] [level]。"""
-    secs = int(args[0]) if args else 3
-    level = args[1] if len(args) > 1 else "info"
-    print(f"日志（{secs}秒，level={level}）：")
-    for frame in _sse(f"/logs?level={level}", seconds=secs):
-        if isinstance(frame, dict):
-            print(f"  [{frame.get('type','')}] {frame.get('payload','')}")
+class Output:
+    def __init__(self, json_mode=False):
+        self.json = json_mode
+    def printf(self, fmt, *args):
+        print(fmt % args if args else fmt, end='', flush=True)
+    def succeed(self, data, human=None):
+        if self.json:
+            print(json.dumps(dict(cli=1, ok=True, data=data), ensure_ascii=False), flush=True)
+        elif human:
+            human()
+        return 0
+    emit = succeed
+    def fail(self, err):
+        error = dict(code=err.code, message=err.message)
+        if err.fingerprint is not None:
+            error['fingerprint'] = err.fingerprint
+        if self.json:
+            print(json.dumps(dict(cli=1, ok=False, error=error), ensure_ascii=False), flush=True)
         else:
-            print(f"  {frame}")
+            print('clash-cli: '+err.message, file=sys.stderr)
+        return err.exit
+    def bold(self, s): return s
+    def dim(self, s): return s
 
+KNOWN_PATH = Path.home()/'.config/clash-cli/known_hosts'
+def normalize_fingerprint(text):
+    text = text.strip().removeprefix('SHA256:').removeprefix('sha256:').replace(':','')
+    if not re.fullmatch('[0-9a-fA-F]{64}', text):
+        return None
+    return 'sha256:'+':'.join(text[i:i+2].upper() for i in range(0,64,2))
+def fingerprint(der):
+    return normalize_fingerprint(hashlib.sha256(der).hexdigest())
+def read_known_hosts(path=KNOWN_PATH):
+    try: lines = Path(path).read_text().splitlines()
+    except FileNotFoundError: return {}
+    result = {}
+    for line in lines:
+        parts = line.split()
+        if len(parts)==2 and not parts[0].startswith('#'):
+            fp = normalize_fingerprint(parts[1])
+            if fp: result[parts[0]]=fp
+    return result
 
-def cmd_group_test(args):
-    """对组内所有节点测速。grouptest <组名> [url] [timeout_ms]。"""
-    if not args:
-        sys.exit("用法: clash-cli grouptest <组名> [url] [timeout_ms]")
-    group = args[0]
-    url = args[1] if len(args) > 1 else "https://www.gstatic.com/generate_204"
-    tmo = int(args[2]) if len(args) > 2 else 5000
-    qg = urllib.parse.quote(group)
-    d = _req(f"/proxies/{qg}")
-    members = d.get("all", [])
-    print(f"{group} 成员 {len(members)} 个，测速中...")
-    for m in members:
-        qm = urllib.parse.quote(m)
-        qs = urllib.parse.urlencode({"url": url, "timeout": tmo})
+def forget_known_host(hostport, path=KNOWN_PATH):
+    path=Path(path)
+    try: lines=path.read_text().splitlines()
+    except FileNotFoundError: return False
+    kept=[]; removed=False
+    for line in lines:
+        parts=line.split()
+        if len(parts)==2 and parts[0]==hostport: removed=True
+        elif line.strip(): kept.append(line)
+    if removed: path.write_text('\n'.join(kept)+ ('\n' if kept else ''))
+    return removed
+
+def remember_known_host(hostport, fp, path=KNOWN_PATH):
+    path=Path(path)
+    if read_known_hosts(path).get(hostport)==fp: return
+    forget_known_host(hostport,path)
+    path.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+    fd=os.open(path,os.O_WRONLY|os.O_APPEND|os.O_CREAT,0o600)
+    with os.fdopen(fd,'a') as f: f.write(hostport+' '+fp+'\n')
+
+def tls_context():
+    ctx=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.check_hostname=False
+    ctx.verify_mode=ssl.CERT_NONE
+    ctx.minimum_version=ssl.TLSVersion.TLSv1_2
+    return ctx
+
+# Go url.PathEscape keeps only this byte set raw (empirically verified against
+# the official binary); everything else becomes %XX.  url.URL.String() then
+# re-escapes every '%' to '%25', so the on-wire path is DOUBLE-escaped, e.g.
+# "a b" -> /proxies/a%2520b.  Python must reproduce that exactly.
+_GO_PATH_SAFE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$-_.+:=@&~"
+def path_escape(name):
+    """Mimic Go url.PathEscape (single-escape stage)."""
+    out=[]
+    for ch in name:
+        if ch in _GO_PATH_SAFE:
+            out.append(ch)
+        else:
+            for b in ch.encode('utf-8'):
+                out.append('%%%02X' % b)
+    return ''.join(out)
+
+class Session:
+    def __init__(self, options, out):
+        self.options,self.out=options,out
         try:
-            r = _req(f"/proxies/{qm}/delay?{qs}", timeout=tmo//1000+5)
-            print(f"  {m:40s} {r.get('delay','-'):>6}ms")
-        except SystemExit:
-            print(f"  {m:40s}   超时/失败")
+            self.base=urlsplit(options.url)
+            self.host=self.base.hostname
+            self.port=self.base.port or (443 if self.base.scheme=='https' else 80)
+            if not self.host or self.base.scheme not in ('http','https'): raise ValueError()
+        except ValueError:
+            raise CliError(2,'usage','--url 不是 http:// 或 https:// 的控制器地址')
+        if self.base.username is not None:
+            raise CliError(2,'usage','--url 里不要带用户名密码，密钥用 --secret')
+        self.hostport=('['+self.host+']' if ':' in self.host else self.host)+':'+str(self.port)
+        self.expected,self.source='',''
+        if self.base.scheme=='https': self.expected,self.source=self.expected_fingerprint()
+        self.identify()
+        if self.source=='option':
+            try: remember_known_host(self.hostport,self.expected)
+            except OSError: pass
+    def expected_fingerprint(self):
+        if self.options.fingerprint:
+            fp=normalize_fingerprint(self.options.fingerprint)
+            if not fp: raise CliError(2,'usage','--fingerprint 不是 SHA-256 指纹')
+            return fp,'option'
+        try: known=read_known_hosts()
+        except OSError as e: raise CliError(1,'known-hosts',str(e))
+        if self.hostport in known: return known[self.hostport],'known_hosts'
+        try:
+            with socket.create_connection((self.host,self.port),self.options.timeout) as raw:
+                with tls_context().wrap_socket(raw,server_hostname=self.host) as conn:
+                    fp=fingerprint(conn.getpeercert(binary_form=True))
+        except OSError as e: raise self.unreachable(e)
+        question=f'{self.hostport} 的控制器出示的证书指纹是 {fp}。'
+        if not sys.stdin.isatty() or self.options.json:
+            raise CliError(6,'fingerprint-unknown',question+'请与 Clash App「外部控制器」页显示的指纹核对，再用 --fingerprint（或 $CLASH_FINGERPRINT）指定；或者在终端里运行一次，确认后会记住。未发送密钥。',fp)
+        print(question+'\n请与 Clash App「外部控制器」页显示的指纹核对。\n信任这个指纹吗？[y/N] ',end='',file=sys.stderr,flush=True)
+        if sys.stdin.readline().strip().lower() not in ('y','yes'):
+            raise CliError(6,'fingerprint-refused','没有信任这个指纹，未发送任何内容',fp)
+        try: remember_known_host(self.hostport,fp)
+        except OSError as e: raise CliError(1,'known-hosts',str(e))
+        return fp,'known_hosts'
+    def unreachable(self,e):
+        return CliError(3,'unreachable',f'连接失败 {self.options.url}（{e}）——Clash App 的隧道是否开着？外部控制器是否开启？')
+    def request(self,method,path,query=None,body=None,timeout=None):
+        conn=None
+        try:
+            kwargs=dict(host=self.host,port=self.port,timeout=self.options.timeout if timeout is None else timeout)
+            conn=http.client.HTTPSConnection(context=tls_context(),**kwargs) if self.base.scheme=='https' else http.client.HTTPConnection(**kwargs)
+            conn.connect()
+            if self.base.scheme=='https':
+                presented=fingerprint(conn.sock.getpeercert(binary_form=True))
+                if presented!=self.expected:
+                    changed=self.source=='known_hosts'
+                    raise CliError(6,'fingerprint-changed' if changed else 'fingerprint-mismatch',f'控制器的证书指纹 {presented} 与指定的 {self.expected} 不符，未发送任何内容',presented)
+            # Go builds target.Path then url.URL.String() re-escapes every '%'
+            # to '%25' (empirically confirmed).  quote() with a safe set that
+            # matches Go's PathEscape raw bytes reproduces the double escape.
+            target=quote(path,safe="/$-_.+:=@&~")
+            if query: target+='?'+urlencode(sorted(query.items()),doseq=True)
+            headers={}
+            if self.options.secret: headers['Authorization']='Bearer '+self.options.secret
+            data=None
+            if body is not None:
+                headers['Content-Type']='application/json'
+                data=json.dumps(body,ensure_ascii=False).encode()
+            conn.request(method,target,body=data,headers=headers)
+            response=conn.getresponse()
+            if response.status in (301,302,303,307,308):
+                raise CliError(1,'redirect','控制器回了一个重定向，clash-cli 不跟随重定向')
+            return conn,response
+        except CliError:
+            if conn: conn.close()
+            raise
+        except (OSError,http.client.HTTPException,ValueError) as e:
+            if conn: conn.close()
+            raise self.unreachable(e)
+    def peer_failure(self,status,data):
+        if status in (401,403):
+            return CliError(4,'unauthorized','控制器拒绝了密钥：在 Clash App 的 更多 › 客户端设置 › 外部控制器 里复制密钥（CLASH_SECRET）')
+        message=data.decode(errors='replace').strip()
+        try:
+            obj=json.loads(message)
+            if isinstance(obj,dict) and obj.get('message'): message=obj['message']
+        except ValueError: pass
+        return CliError(1,f'http-{status}',f'{message or http.client.responses.get(status,"")} (HTTP {status})')
+    def call(self,method,path,query=None,body=None):
+        timeout = 65 if path == '/clash/v1/provider-update' else 60 if path.endswith('/healthcheck') else float(query['timeout'])/1000+5 if path.endswith('/delay') and query else None
+        conn,resp=self.request(method,path,query,body,timeout=timeout)
+        try:
+            data=resp.read()
+            if resp.status>=400: raise self.peer_failure(resp.status,b'' if path.endswith('/healthcheck') else data[:65536])
+            if resp.status==204 or not data: return None
+            try: return json.loads(data)
+            except ValueError as e: raise CliError(1,'bad-response',f'{method} {path}：回复不是 JSON: {e}')
+        except (OSError,http.client.HTTPException) as e: raise self.unreachable(e)
+        finally: conn.close()
+    def identify(self):
+        conn,resp=self.request('GET','/clash/v1/capabilities')
+        try:
+            data=resp.read(1<<20)
+            if resp.status==404: raise CliError(5,'not-clash-app',f'{self.options.url} 上的控制器不是 Clash App 的（没有 /clash/v1/capabilities），未做任何改动')
+            if resp.status in (401,403): raise CliError(4,'unauthorized',f'{self.options.url} 拒绝了密钥：在 Clash App 的 更多 › 客户端设置 › 外部控制器 里复制密钥（CLASH_SECRET）；也可能这个端口上是别的程序的控制器')
+            if resp.status!=200: raise self.peer_failure(resp.status,data)
+            try:
+                caps=json.loads(data)
+                api=caps.get('api')
+                if type(api) is not int or api==0: raise ValueError()
+            except (ValueError,AttributeError): raise CliError(5,'not-clash-app',f'{self.options.url} 上的控制器没有说明自己是 Clash App 的')
+            if api>1: raise CliError(5,'upgrade-cli',f'对方的控制器 API 是 {api}，这个 clash-cli 只认识到 1：请更新 Clash App（clash-cli 随 App 内置）')
+            self.caps=caps
+        finally: conn.close()
+    def require(self,capability):
+        if capability not in (self.caps.get('capabilities') or []):
+            raise CliError(5,'unsupported',f'这个 Clash App（内核 {self.caps.get("coreVersion","")}）不支持 {capability}，请更新 App')
+    def follow(self,path,query,each,seconds=None,follow=False):
+        # Go streamContext: explicit seconds -> seconds+0.5s; -f -> unlimited;
+        # otherwise non-terminal (stdout piped) -> 3s; terminal -> unlimited.
+        if seconds is not None:
+            duration=seconds+0.5
+        elif follow:
+            duration=None
+        elif not sys.stdout.isatty():
+            duration=3
+        else:
+            duration=None
+        expired=threading.Event()
+        conn,resp=self.request('GET',path,query)
+        sock=conn.sock or (resp.fp.raw._sock if resp.fp else None)
+        timer=None
+        def stop():
+            expired.set()
+            if sock:
+                try: sock.shutdown(socket.SHUT_RDWR)
+                except OSError: pass
+        try:
+            if resp.status>=400: raise self.peer_failure(resp.status,resp.read(65536))
+            if sock: sock.settimeout(None)
+            if duration is not None:
+                timer=threading.Timer(duration,stop); timer.daemon=True; timer.start()
+            cause=None
+            try:
+                while not expired.is_set():
+                    line=resp.readline((16<<20)+1)
+                    if not line: break
+                    if len(line)>16<<20: raise ValueError('stream line exceeds 16 MiB')
+                    if line.strip():
+                        try: value=json.loads(line)
+                        except ValueError as e: raise CliError(1,'bad-response',str(e))
+                        each(value)
+            except (OSError,http.client.HTTPException,ValueError) as e: cause=e
+            except KeyboardInterrupt: return 0
+            if expired.is_set(): return 0
+        finally:
+            if timer: timer.cancel()
+            conn.close()
+        try:
+            c,r=self.request('GET','/clash/v1/capabilities')
+            status=r.status; c.close()
+        except CliError:
+            raise CliError(3,'stream-ended','控制器关闭了这条流，现在也连不上了（隧道可能已停止，或外部控制器的设置改了）')
+        if status in (401,403): raise CliError(4,'secret-changed','密钥已更换，用旧密钥打开的流已断开：在 Clash App 的 更多 › 客户端设置 › 外部控制器 里复制新密钥')
+        raise CliError(3,'stream-ended','控制器关闭了这条流'+('：'+str(cause) if cause else ''))
 
+class ParsedArguments:
+    def __init__(self): self.positional=[]; self.flags={}
+    def has(self,name): return bool(self.flags.get(name,''))
+
+def parse_timeout(text):
+    import math
+    try:
+        n=float(text)
+        if n>0 and math.isfinite(n): return n
+    except ValueError: pass
+    units={'ns':1e-9,'us':1e-6,'µs':1e-6,'μs':1e-6,'ms':1e-3,'s':1,'m':60,'h':3600}
+    pattern=r'(\d+(?:\.\d*)?|\.\d+)(ns|us|µs|μs|ms|s|m|h)'
+    parts=list(re.finditer(pattern,text.lstrip('+')))
+    if parts and ''.join(m.group() for m in parts)==text.lstrip('+'):
+        n=sum(float(m[1])*units[m[2]] for m in parts)
+        if n>0: return n
+    raise CliError(2,'usage',f'--timeout {json.dumps(text)} is not a positive duration')
+
+def parse_arguments(argv, options=None):
+    options=options or SimpleNamespace(url=os.getenv('CLASH_API') or 'http://127.0.0.1:9090',secret=os.getenv('CLASH_SECRET',''),fingerprint=os.getenv('CLASH_FINGERPRINT',''),timeout=8.0,json=False,secret_stdin=False)
+    if os.getenv('CLASH_TIMEOUT'): options.timeout=parse_timeout(os.environ['CLASH_TIMEOUT'])
+    p=ParsedArguments(); i=0
+    vals={'u':'url','url':'url','secret':'secret','fingerprint':'fingerprint','timeout':'timeout'}
+    bools={'json':'json','secret-stdin':'secret_stdin'}
+    cv={'level','test-url','delay-timeout','geodata-dir','interval'}
+    cb={'f':'follow','follow':'follow','resolve':'resolve','all':'all','h':'help','help':'help'}
+    while i<len(argv):
+        arg=argv[i]; i+=1
+        if arg=='--': p.positional.extend(argv[i:]); break
+        if arg=='-' or not arg.startswith('-'): p.positional.append(arg); continue
+        raw=arg.lstrip('-'); name,sep,value=raw.partition('=')
+        if name in vals or name in cv:
+            if not sep:
+                if i>=len(argv): raise CliError(2,'usage',f'option {arg} needs a value')
+                value=argv[i]; i+=1
+            if name in vals: setattr(options,vals[name],parse_timeout(value) if name=='timeout' else value)
+            else: p.flags[name]=value
+        elif name in bools or name in cb:
+            if sep: raise CliError(2,'usage',f'option {"--"+name if name in bools else arg} takes no value')
+            if name in bools: setattr(options,bools[name],True)
+            else: p.flags[cb[name]]='1'
+        else: raise CliError(2,'usage',f'unknown option {arg}')
+    return options,p
+
+
+"""Clash command handlers, ported from commands.go; transport lives in core."""
+import ipaddress
+import json
+from urllib.parse import urlsplit
+
+GROUP_TYPES = {'Selector', 'URLTest', 'Fallback', 'LoadBalance', 'Relay'}
+DEFAULT_URL = 'https://www.gstatic.com/generate_204'
+
+def usage(text):
+    raise CliError(2, 'usage', '用法: clash-cli ' + text)
+
+def esc(name):
+    # Go url.PathEscape: single-escape; core.request re-escapes like
+    # url.URL.String() so the on-wire path is double-escaped, matching Go.
+    return path_escape(str(name))
+
+def first_non_empty(*values):
+    for v in values:
+        if v:
+            return v
+    return ''
+
+def format_bytes(value):
+    value = float(value or 0)
+    units = ['B', 'KB', 'MB', 'GB', 'TB']
+    i = 0
+    while value >= 1024 and i < len(units) - 1:
+        value /= 1024
+        i += 1
+    if i == 0:
+        return '%.0f %s' % (value, units[i])
+    return '%.1f %s' % (value, units[i])
+
+def format_rate(value):
+    return format_bytes(value) + '/s'
+
+def display_width(text):
+    width = 0
+    for ch in text:
+        cp = ord(ch)
+        if (0x1100 <= cp <= 0x115f or cp == 0x2329 or cp == 0x232a or
+                (0x2e80 <= cp <= 0xa4cf and cp != 0x303f) or
+                (0xac00 <= cp <= 0xd7a3) or (0xf900 <= cp <= 0xfaff) or
+                (0xfe30 <= cp <= 0xfe6f) or (0xff00 <= cp <= 0xff60) or
+                (0xffe0 <= cp <= 0xffe6) or (0x1f300 <= cp <= 0x1faff) or
+                (0x20000 <= cp <= 0x3fffd)):
+            width += 2
+        elif cp in (0x200d,) or (0xfe00 <= cp <= 0xfe0f):
+            pass
+        else:
+            width += 1
+    return width
+
+def pad_right(text, width):
+    gap = width - display_width(text)
+    return text + (' ' * gap if gap > 0 else '')
+
+def emit(s, data, text=None):
+    def human():
+        if callable(text):
+            text()
+        else:
+            s.out.printf('%s\n', text if text is not None else json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True))
+    return s.out.succeed(data, human)
+
+def has(p, name):
+    h = p.has
+    return bool(h(name)) if callable(h) else bool(h.get(name)) if isinstance(h, dict) else name in h
+
+def flag(p, name, default=''):
+    return p.flags.get(name, default)
+
+def integer(value, label, minimum=1):
+    try:
+        n = int(str(value))
+    except (ValueError, TypeError):
+        usage(label)
+    if n < minimum:
+        usage(label)
+    return n
+
+def announce(s):
+    if not getattr(s.out, 'json', False):
+        platform = s.caps.get('platform', '')
+        s.out.printf('[%s · %s · 内核 %s]\n', s.base.netloc, {'ios':'iPhone/iPad','macos':'Mac','tvos':'Apple TV'}.get(platform,platform), s.caps.get('coreVersion', ''))
+
+def proxy_schema(e):
+    return dict(name=e.get('name') or '', type=e.get('type') or '', **{k: e[k] for k in ('now', 'all', 'fixed', 'hidden', 'history') if e.get(k)})
+
+def entries(s):
+    return {k: proxy_schema(v) for k,v in (s.call('GET', '/proxies').get('proxies') or {}).items()}
+
+def groups(items):
+    order = {name: i + 1 for i, name in enumerate(items.get('GLOBAL', {}).get('all', []))}
+    result = [dict(e, name=n) for n, e in items.items() if e.get('type') in GROUP_TYPES]
+    return sorted(result, key=lambda e: (order.get(e['name'], float('inf')), e['name']))
+
+def proxy(s, name):
+    return proxy_schema(s.call('GET', '/proxies/' + esc(name)))
+
+def list_proxies(s):
+    items = entries(s)
+    gs = groups(items)
+    leaves = [dict(items[n], name=n) for n in sorted(items) if items[n].get('type') not in GROUP_TYPES]
+    def human():
+        print('策略组 %d 个：' % len(gs))
+        for g in gs:
+            print('  %s [%s] → %s' % (pad_right(g['name'], 20), g['type'], first_non_empty(g.get('now'), '-')))
+        print()
+        print('节点 %d 个（名称/类型）：' % len(leaves))
+        for leaf in leaves:
+            print('  %s  (%s)' % (leaf['name'], leaf['type']))
+    return emit(s, {'groups': gs, 'nodes': leaves}, human)
+
+def group_get_text(name, e):
+    lines = ['%s → %s  [%s]' % (name, first_non_empty(e.get('now'), '-'), e.get('type', ''))]
+    if e.get('all'):
+        lines.append('可选: %s' % ', '.join(e['all']))
+    return '\n'.join(lines)
+
+def show_members_text(e):
+    lines = ['名称: %s  类型: %s  now: %s' % (e.get('name'), e.get('type'), first_non_empty(e.get('now'), '-'))]
+    if e.get('fixed'):
+        lines.append('固定: %s' % e['fixed'])
+    if e.get('all'):
+        lines.append('成员 (%d):' % len(e['all']))
+        lines.extend('  - %s' % m for m in e['all'])
+    return '\n'.join(lines)
+
+def select(s, group, node):
+    e = proxy(s, group)
+    if e.get('all') and node not in e['all']:
+        # Go: exitPeerError (1), not auth
+        raise CliError(1, 'no-such-member', '%s 没有成员 %s（节点名要逐字一致，含 emoji 与空格；clash-cli proxies %s 列出成员）' % (group, json.dumps(node, ensure_ascii=False), group))
+    announce(s)
+    s.call('PUT', '/proxies/' + esc(group), body={'name': node})
+    after = proxy(s, group)
+    return emit(s, after, '✓ %s → %s' % (group, after.get('now', '-')))
+
+def test_parameters(rest, p):
+    url = rest[0] if rest else (flag(p, 'test-url') or DEFAULT_URL)
+    text = rest[1] if len(rest) > 1 else (flag(p, 'delay-timeout') or '5000')
+    try:
+        timeout = int(text)
+        if timeout <= 0: raise ValueError()
+    except ValueError:
+        raise CliError(2, 'usage', '用法: timeout_ms 是正整数（毫秒），收到 ' + json.dumps(text, ensure_ascii=False))
+    return url, timeout
+
+def delay(s, name, url, timeout):
+    return s.call('GET', '/proxies/' + esc(name) + '/delay', query={'url': url, 'timeout': str(timeout)}).get('delay', 0)
+
+def test_proxy(s, name, rest, p):
+    url, timeout = test_parameters(rest, p)
+    ms = delay(s, name, url, timeout)
+    emit(s, {'name': name, 'delay': ms, 'url': url}, '✓ %s 延迟 %dms' % (name, ms))
+
+def test_group(s, name, rest, p, each=False):
+    url, timeout = test_parameters(rest, p)
+    if each:
+        entry = proxy(s, name)
+        result = {}
+        if not getattr(s.out, 'json', False):
+            s.out.printf('%s 成员 %d 个，测速中...\n', name, len(entry.get('all') or []))
+        for member in entry.get('all', []):
+            try:
+                result[member] = delay(s, member, url, timeout)
+                if not getattr(s.out, 'json', False):
+                    s.out.printf('  %s %6dms\n', pad_right(member, 40), result[member])
+            except CliError:
+                result[member] = None
+                if not getattr(s.out, 'json', False):
+                    s.out.printf('  %s   超时/失败\n', pad_right(member, 40))
+        if getattr(s.out, 'json', False):
+            return emit(s, {'group': name, 'url': url, 'delays': result})
+        return 0
+    if not getattr(s.out, 'json', False):
+        s.out.printf('注意：对 URLTest/Fallback 组，这次测速会先解除该组的固定选择（不想改动选择请用 clash-cli grouptest %s）。\n', name)
+    announce(s)
+    result = s.call('GET', '/group/' + esc(name) + '/delay', query={'url': url, 'timeout': str(timeout)})
+    def human():
+        for n in sorted(result, key=lambda k: result[k]):
+            print('  %s %6dms' % (pad_right(n, 40), result[n]))
+    return emit(s, {'group': name, 'url': url, 'delays': result}, human)
+
+def cmd_status(s, p):
+    version = s.call('GET', '/version')
+    configs = s.call('GET', '/configs')
+    memory = s.call('GET', '/clash/v1/memory')
+    traffic = s.call('GET', '/clash/v1/traffic')
+    conn = s.call('GET', '/connections')
+    remote = s.call('GET', '/clash/v1/remote-control')
+    items = entries(s)
+    gl = [{k: g.get(k, '') for k in ('name', 'type', 'now')} for g in groups(items)]
+    data = {'version': version, 'configs': configs, 'memory': memory, 'traffic': traffic,
+            'connections': {'count': len(conn.get('connections') or []), 'downloadTotal': conn.get('downloadTotal', 0), 'uploadTotal': conn.get('uploadTotal', 0)},
+            'capabilities': s.caps, 'remoteControl': remote, 'groups': gl}
+
+    def human():
+        tun = configs.get('tun') or {}
+        print('Clash %s  meta=%s  （%s，控制器 API %d）' % (version.get('version', ''), str(version.get('meta')).lower(), s.caps.get('platform', ''), s.caps.get('api', 0)))
+        print('mode=%s  mixed-port=%s  tun=%s stack=%s' % (configs.get('mode'), configs.get('mixed-port'), str(tun.get('enable')).lower(), tun.get('stack')))
+        footprint = float(memory.get('footprint') or 0) / 1024 / 1024
+        inuse = float(memory.get('inuse') or 0) / 1024 / 1024
+        print('内存 %dMB（RSS %dMB）' % (int(footprint), int(inuse)))
+        up = float(traffic.get('up') or 0)
+        down = float(traffic.get('down') or 0)
+        print('流量 ↑%s ↓%s  连接 %d 个（总 ↓%s ↑%s）' % (format_rate(up), format_rate(down), len(conn.get('connections') or []), format_bytes(conn.get('downloadTotal', 0)), format_bytes(conn.get('uploadTotal', 0))))
+        mode = remote.get('mode', '')
+        if mode and mode != 'config':
+            http = remote.get('http') or {}
+            tls = remote.get('tls') or {}
+            print('外部控制器 %s  http=%s  tls=%s' % (mode, http.get('address'), tls.get('address')))
+        print('策略组 %d 个：' % len(gl))
+        for g in gl:
+            print('  %s → %s' % (pad_right(g['name'], 20), first_non_empty(g['now'], '-')))
+
+    return emit(s, data, human)
+
+def cmd_proxies(s, p):
+    if len(p.positional) > 1:
+        e = proxy(s, p.positional[1])
+        emit(s, e, show_members_text(e))
+    else:
+        list_proxies(s)
+
+def cmd_proxy(s, p):
+    a = p.positional[1:]
+    if a and a[0] in ('get','set','test') and len(a) < (3 if a[0]=='set' else 2):
+        usage('proxy ' + {'get':'get <组>','set':'set <组> <节点>','test':'test <节点> [url] [timeout_ms]'}[a[0]])
+    if len(a) >= 2 and a[0] == 'get':
+        e = proxy(s, a[1])
+        return emit(s, e, group_get_text(a[1], e))
+    elif len(a) >= 3 and a[0] == 'set':
+        return select(s, a[1], a[2])
+    elif len(a) >= 2 and a[0] == 'test':
+        return test_proxy(s, a[1], a[2:], p)
+    else:
+        usage('proxy get <组> | clash-cli proxy set <组> <节点> | clash-cli proxy test <节点> [url] [timeout_ms]')
+
+def cmd_group(s, p):
+    a = p.positional[1:]
+    if a and a[0] in ('show','select','unfix','test') and len(a) < (3 if a[0]=='select' else 2):
+        usage('group ' + {'show':'show <组>','select':'select <组> <节点>','unfix':'unfix <组>','test':'test <组> [url] [timeout_ms]'}[a[0]])
+    if a and a[0] == 'list':
+        return list_proxies(s)
+    if len(a) >= 2:
+        if a[0] == 'show':
+            e = proxy(s, a[1])
+            return emit(s, e, show_members_text(e))
+        if a[0] == 'select' and len(a) >= 3:
+            return select(s, a[1], a[2])
+        if a[0] == 'test':
+            return test_group(s, a[1], a[2:], p)
+        if a[0] == 'unfix':
+            announce(s)
+            s.call('DELETE', '/proxies/' + esc(a[1]))
+            after = proxy(s, a[1])
+            return emit(s, after, '✓ %s 已解除固定 → %s' % (a[1], first_non_empty(after.get('now'), '-')))
+    usage('group list | show <组> | select <组> <节点> | unfix <组> | test <组> [url] [timeout_ms]')
+
+def cmd_test(s, p):
+    if len(p.positional) < 2:
+        usage('test <名称> [url] [timeout_ms]')
+    test_proxy(s, p.positional[1], p.positional[2:], p)
+
+def cmd_grouptest(s, p):
+    if len(p.positional) < 2:
+        usage('grouptest <组名> [url] [timeout_ms]')
+    test_group(s, p.positional[1], p.positional[2:], p, each=True)
+
+def print_table(header, rows):
+    widths = [display_width(h) for h in header]
+    for row in rows:
+        for i in range(len(header)):
+            if i < len(row) and display_width(row[i]) > widths[i]:
+                widths[i] = display_width(row[i])
+    def line(cells):
+        parts = []
+        for i in range(len(header)):
+            cell = cells[i] if i < len(cells) else ''
+            if i == len(header) - 1:
+                parts.append(cell)
+                break
+            parts.append(cell + ' ' * (widths[i] - display_width(cell) + 2))
+        print(''.join(parts).rstrip(' '))
+    line(header)
+    for row in rows:
+        line(row)
+
+def cmd_provider(s, p):
+    a = p.positional[1:]
+    if a and a[0]=='update' and (len(a)<3 or a[1] not in ('proxy','rule')): usage('provider update proxy|rule <名称>')
+    if a and a[0]=='test' and len(a)<2: usage('provider test <节点集>')
+    if a and a[0] == 'list':
+        proxy_sets = s.call('GET', '/providers/proxies').get('providers', {})
+        rule_sets = s.call('GET', '/providers/rules').get('providers', {})
+        def human():
+            rows = []
+            for label, sets in (('节点集', proxy_sets), ('规则集', rule_sets)):
+                for name, set_ in sorted(sets.items()):
+                    if set_.get('vehicleType') == 'Compatible':
+                        continue
+                    members = set_.get('proxies')
+                    count = len(members) if isinstance(members, list) else str(set_.get('ruleCount', ''))
+                    rows.append([label, name, str(set_.get('vehicleType', '')), str(count), str(set_.get('updatedAt', ''))])
+            if not rows:
+                print('没有节点集或规则集')
+                return
+            print_table(['种类', '名称', '来源', '条目', '更新于'], rows)
+        return emit(s, {'proxies': proxy_sets, 'rules': rule_sets}, human)
+    if len(a) >= 3 and a[0] == 'update' and a[1] in ('proxy', 'rule'):
+        s.require('provider-update-v1')
+        announce(s)
+        result = s.call('POST', '/clash/v1/provider-update', body={'kind': a[1], 'name': a[2], 'timeoutMilliseconds': 60000})
+        def human():
+            label = {'proxy': '节点集', 'rule': '规则集'}.get(a[1], a[1])
+            print('✓ 已更新 %s %s' % (label, a[2]))
+            if result:
+                print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        return emit(s, result, human)
+    if len(a) >= 2 and a[0] == 'test':
+        path = '/providers/proxies/' + esc(a[1])
+        s.call('GET', path + '/healthcheck')
+        members = s.call('GET', path).get('proxies', [])
+        result = {}
+        for m in members:
+            history = m.get('history') or []
+            value = history[-1].get('delay', 0) if history else 0
+            result[m.get('name', '')] = value if value > 0 else None
+        def human():
+            print('%s 成员 %d 个：' % (a[1], len(members)))
+            for m in members:
+                name = m.get('name', '')
+                v = result.get(name)
+                if v is not None:
+                    print('  %s %6dms' % (pad_right(name, 40), v))
+                else:
+                    print('  %s   超时/失败' % pad_right(name, 40))
+        return emit(s, {'provider': a[1], 'delays': result}, human)
+    usage('provider list | update proxy|rule <名称> | test <节点集>')
+
+def connection_text(c):
+    m = c.get('metadata') or {}
+    host = next((m[k] for k in ('host', 'destinationIP', 'processPath') if m.get(k)), '?')
+    chain = ' → '.join(reversed(c.get('chains') or [])) or '?'
+    rule = c.get('rule') or '-'
+    if c.get('rulePayload'):
+        rule += '(' + c['rulePayload'] + ')'
+    return '%s → %s [%s]  ↑%s ↓%s  %s' % (pad_right(host, 35), chain, rule, format_bytes(c.get('upload', 0)), format_bytes(c.get('download', 0)), c.get('id', ''))
+
+def connection_event_text(event):
+    conn = event.get('connection') or {}
+    m = conn.get('metadata') or {}
+    host = next((m[k] for k in ('host', 'destinationIP', 'processPath') if m.get(k)), '?')
+    chain = ' → '.join(reversed(conn.get('chains') or [])) or '?'
+    rule = conn.get('rule') or '-'
+    if conn.get('rulePayload'):
+        rule += '(' + conn['rulePayload'] + ')'
+    return '%s → %s [%s]' % (pad_right(host, 35), chain, rule)
+
+def frame_data(frame):
+    if isinstance(frame, (str, bytes, bytearray)):
+        try:
+            return json.loads(frame)
+        except (ValueError, UnicodeError):
+            return None
+    return frame if isinstance(frame, dict) else None
+
+def follow_connections(s, p):
+    s.require('connection-events-v1')
+    def each(frame):
+        data = frame_data(frame)
+        if data is None:
+            return
+        text = []
+        for event in data.get('events') or []:
+            if event.get('type') == 'new':
+                text.append('+ %s  %s' % (connection_event_text(event), event.get('id', '')))
+            elif event.get('type') == 'closed':
+                text.append('- %s' % event.get('id', ''))
+        emit(s, data, '\n'.join(text))
+    return s.follow('/clash/v1/connections/events', None, each, follow=True)
+
+def list_connections(s, p, rest):
+    if has(p, 'follow'):
+        return follow_connections(s, p)
+    n = integer(rest[0], 'connections [N]', 0) if rest else 20
+    data = s.call('GET', '/connections')
+    all_items = data.get('connections') or []
+    listed = all_items[:n] if n else all_items
+    def human():
+        print('活跃连接 %d 个（总 ↓%s ↑%s）：' % (len(all_items), format_bytes(data.get('downloadTotal', 0)), format_bytes(data.get('uploadTotal', 0))))
+        for c in listed:
+            print('  ' + connection_text(c))
+    return emit(s, {'downloadTotal': data.get('downloadTotal', 0), 'uploadTotal': data.get('uploadTotal', 0), 'count': len(all_items), 'connections': listed}, human)
+
+def cmd_connections(s, p):
+    return list_connections(s, p, p.positional[1:])
+
+def cmd_conn(s, p):
+    a = p.positional[1:]
+    if a and a[0] == 'list':
+        return list_connections(s, p, a[1:])
+    if a and a[0] == 'close':
+        all_connections = has(p, 'all') or (len(a) > 1 and a[1] == 'all')
+        if not all_connections and len(a) < 2:
+            usage('conn close <id|all>')
+        announce(s)
+        path = '/connections'
+        if not all_connections:
+            current = s.call('GET', path).get('connections') or []
+            if not any(c.get('id') == a[1] for c in current):
+                # Go: exitPeerError (1), not auth
+                raise CliError(1, 'no-such-connection', '没有这条连接：%s（clash-cli connections 列出当前连接；它可能已经结束）' % a[1])
+            path += '/' + esc(a[1])
+        s.call('DELETE', path)
+        return emit(s, None, '✓ 已关闭所有连接' if all_connections else '✓ 已关闭连接 ' + a[1])
+    usage('conn list [N] [-f] | conn close <id|all>')
+
+def seconds_argument(args, command):
+    if not args:
+        return None, args
+    try:
+        seconds = int(args[0])
+    except (ValueError, TypeError):
+        return None, args
+    if seconds <= 0:
+        usage(command + ' [秒数]：秒数是正整数')
+    return seconds, args[1:]
+
+def cmd_traffic(s, p):
+    seconds, _ = seconds_argument(p.positional[1:], 'traffic')
+    if not s.out.json: print('实时流量（%d秒）：' % seconds if seconds is not None else '实时流量：')
+    def each(frame):
+        data = frame_data(frame)
+        if data is not None:
+            emit(s, data, '  ↑ %10s  ↓ %10s  | 累计 ↑%s ↓%s' % (format_rate(data.get('up',0)),format_rate(data.get('down',0)),format_bytes(data.get('upTotal',0)),format_bytes(data.get('downTotal',0))))
+    return s.follow('/traffic', None, each, seconds=seconds, follow=has(p, 'follow'))
+
+def cmd_logs(s, p):
+    seconds, rest = seconds_argument(p.positional[1:], 'logs')
+    level = rest[0] if rest else (flag(p, 'level') or 'info')
+    if level not in ('debug', 'info', 'warning', 'error', 'silent'):
+        usage('logs [秒数] [debug|info|warning|error]')
+    if not s.out.json: print('日志（%d秒，level=%s）：' % (seconds,level) if seconds is not None else '日志（level=%s）：' % level)
+    def each(frame):
+        data = frame_data(frame)
+        if data is not None:
+            emit(s, data, '  [%s] %s' % (data.get('type', ''), data.get('payload', '')))
+    return s.follow('/logs', {'level': level}, each, seconds=seconds, follow=has(p, 'follow'))
+
+def list_rules(s, rest):
+    n = integer(rest[0], 'rules [N]（0 = 全部）', 0) if rest else 10
+    items = s.call('GET', '/rules').get('rules') or []
+    listed = items[:n] if n else items
+    def human():
+        print('规则 %d 条：' % len(items))
+        for r in listed:
+            payload = str(r.get('payload') or '')
+            if payload == '':
+                payload = '-'
+            print('  %s %s → %s' % (pad_right(str(r.get('type', '')), 20), pad_right(payload, 30), r.get('proxy', '')))
+    return emit(s, {'count': len(items), 'rules': listed}, human)
+
+def cmd_rules(s, p):
+    return list_rules(s, p.positional[1:])
+
+def rule_match_query(target, pairs, resolve=False):
+    host, port = target, ''
+    if '://' in target:
+        try:
+            parsed = urlsplit(target)
+            host = parsed.hostname
+            port = str(parsed.port) if parsed.port is not None else {'http': '80', 'https': '443', 'ws': '80', 'wss': '443'}.get(parsed.scheme.lower(), '')
+            if not host:
+                raise ValueError()
+        except ValueError:
+            usage('rule match：' + json.dumps(target, ensure_ascii=False) + ' 不是 URL')
+    elif target.startswith('[') and ']:' in target:
+        host, port = target[1:].split(']:', 1)
+    elif target.count(':') == 1:
+        host, port = target.rsplit(':', 1)
+    bare = host.strip('[]')
+    try:
+        ipaddress.ip_address(bare)
+        query = {'ip': bare}
+    except ValueError:
+        query = {'host': host}
+    if port:
+        query['port'] = port
+    for pair in pairs:
+        key, sep, value = pair.partition('=')
+        if not sep or not value:
+            usage('rule match：参数写成 key=value（port、network、src、process），收到 ' + json.dumps(pair, ensure_ascii=False))
+        if key not in ('port', 'network', 'src', 'process'):
+            usage('rule match：不认识的参数 ' + json.dumps(key, ensure_ascii=False) + '（port、network、src、process）')
+        query[key] = value
+    if resolve:
+        query['resolve'] = '1'
+    return query
+
+def rule_description(rule):
+    text = '#%s %s' % (rule.get('index', 0), rule.get('type', ''))
+    if rule.get('payload'):
+        text += '(' + rule['payload'] + ')'
+    if rule.get('subRules'):
+        text += '（子规则集 ' + rule['subRules'] + '）'
+    return text
+
+def cmd_rule(s, p):
+    a = p.positional[1:]
+    if a and a[0]=='match' and len(a)<2: usage('rule match <域名|IP|URL> [port=N] [network=tcp|udp] [src=IP[:端口]] [process=名称] [--resolve]')
+    if a and a[0] not in ('list','match'): usage('rule list [N] | rule match <域名|IP|URL> ...')
+    if a and a[0] == 'list':
+        return list_rules(s, a[1:])
+    if len(a) >= 2 and a[0] == 'match':
+        s.require('rules-match-v1')
+        query = rule_match_query(a[1], a[2:], has(p, 'resolve'))
+        data = s.call('GET', '/clash/v1/rules/match', query=query)
+        return emit(s, data, rule_match_text(query, data))
+    usage('rule list [N] | rule match <域名|IP|URL> [port=N] [network=tcp|udp] [src=IP[:端口]] [process=名称] [--resolve]')
+
+def cmd_configs(s, p):
+    emit(s, s.call('GET', '/configs'))
+
+def cmd_mode(s, p):
+    a = p.positional[1:]
+    if not a:
+        mode = s.call('GET', '/configs').get('mode')
+        return emit(s, {'mode': mode}, 'mode=%s' % mode)
+    mode = a[0].lower()
+    if mode not in ('rule', 'global', 'direct'):
+        usage('mode [rule|global|direct]')
+    announce(s)
+    s.call('PATCH', '/configs', body={'mode': mode})
+    emit(s, {'mode': mode}, '✓ mode → ' + mode)
+
+def rule_match_text(query, data):
+    subject = query.get('host') or query.get('ip', '')
+    if data.get('fakeIP') and data.get('host'):
+        subject += '（fake-ip → ' + data['host'] + '）'
+    elif data.get('host') and data['host'] != subject:
+        subject += '（→ ' + data['host'] + '）'
+    if data.get('dropped'):
+        return subject + '：隧道按 IP 版本策略直接丢弃这条连接，不走任何规则'
+    lines = ['%s (%s) → %s' % (subject, query.get('network', 'tcp'), ' → '.join(data.get('chain') or []))]
+    rule = data.get('rule')
+    if data.get('mode') != 'rule':
+        lines.append('模式 %s：不看规则' % data.get('mode'))
+    elif rule:
+        lines.append('命中规则 ' + rule_description(rule))
+        through = rule.get('through')
+        while through:
+            lines.append('  经由 ' + rule_description(through))
+            through = through.get('through')
+    else:
+        lines.append('没有规则命中，走 DIRECT')
+    if not data.get('decided'):
+        lines.append('未定：前面有规则需要下面的信息，结果可能不同')
+    for item in data.get('missing') or []:
+        if item == 'ip':
+            lines.append('  · IP 类规则需要解析域名，这次没解析（加 --resolve 解析）')
+        elif item == 'process':
+            lines.append('  · PROCESS 规则需要进程，这次没给（process=名称或路径）')
+    for key, label in [('hostsIP', 'hosts 把它指到 '), ('resolvedIP', '解析得到 ')]:
+        if data.get(key):
+            lines.append('  · ' + label + data[key])
+    assumptions = []
+    labels = {'src-port=0': '来源端口按 0', 'inbound=tun': '入站按隧道（tun）', 'process-path=unknown': '进程路径未知（PROCESS-PATH 规则按不命中）', 'uid=unknown': 'UID 未知（UID 规则按不命中）'}
+    for item in data.get('assumed') or []:
+        key, _, value = item.partition('=')
+        assumptions.append(labels.get(item, '端口按 ' + value if key == 'port' else '来源按本机隧道地址 ' + value if key == 'src' else item))
+    if assumptions:
+        lines.append('  · 假设：' + '；'.join(assumptions))
+    for note in data.get('notes') or []:
+        if note.startswith('this device does not name the process'):
+            note = '这台设备拿不到连接的进程名，PROCESS 规则在这里永远不命中'
+        elif note.startswith("the chain is the groups' current choice"):
+            note = '链路是各组当前的选择，之后可能变化'
+        lines.append('  · ' + note)
+    if data.get('error'):
+        lines.append('  · ' + data['error'])
+    return '\n'.join(lines)
+
+DNS_TYPES = {1: 'A', 2: 'NS', 5: 'CNAME', 6: 'SOA', 12: 'PTR', 15: 'MX', 16: 'TXT', 28: 'AAAA', 33: 'SRV', 64: 'SVCB', 65: 'HTTPS'}
+
+def dns_answer_text(name, kind, data):
+    answers = data.get('Answer') or []
+    if not answers:
+        return '%s %s：没有记录（rcode %s）' % (name, kind.upper(), data.get('Status', 0))
+    lines = ['%s %s：' % (name, kind.upper())]
+    for record in answers:
+        t = record.get('type')
+        t = DNS_TYPES.get(t, 'TYPE%d' % t) if isinstance(t, (int, float)) else str(t)
+        lines.append('  %s  %s  TTL %s  %s' % (record.get('name'), t, record.get('TTL', 0), record.get('data')))
+    return '\n'.join(lines)
+
+def dns_explanation_text(data):
+    title = '%s %s：走 %s' % (data.get('domain'), data.get('type'), data.get('source'))
+    if data.get('matchedRule'):
+        title += '（命中 %s）' % data['matchedRule']
+    lines = [title]
+    if data.get('candidates'):
+        lines.append('  候选解析器：')
+        lines.extend('    ' + str(c) for c in data['candidates'])
+    cache = data.get('cache')
+    if isinstance(cache, dict):
+        lines.append('  缓存：命中，到期 %s（%s）' % (cache.get('expiresAt'), '已过期，仍在用并在后台刷新' if cache.get('stale') else '有效') if cache.get('hit') else '  缓存：未命中')
+    if data.get('answeredBy'):
+        lines.append('  实际查询由 %s 回答：%s' % (data['answeredBy'], data.get('answer')))
+    return '\n'.join(lines)
+
+def cmd_dns(s, p):
+    a = p.positional[1:]
+    if len(a) < 2 or a[0] not in ('query', 'explain'):
+        usage('dns query <域名> [type] | dns explain <域名> [type]')
+    kind = a[2] if len(a) > 2 else 'A'
+    if a[0] == 'query':
+        data = s.call('GET', '/dns/query', query={'name': a[1], 'type': kind})
+        text = dns_answer_text(a[1], kind, data)
+    else:
+        s.require('dns-explain-v1')
+        data = s.call('GET', '/clash/v1/dns/explain', query={'domain': a[1], 'type': kind})
+        text = dns_explanation_text(data)
+    emit(s, data, text)
+
+def cmd_flush(s, p):
+    a = p.positional[1:]
+    if len(a) != 1 or a[0] not in ('fakeip', 'dns'):
+        usage('flush fakeip|dns')
+    announce(s)
+    s.call('POST', '/cache/' + a[0] + '/flush')
+    emit(s, None, '✓ 已清空 DNS 缓存' if a[0] == 'dns' else '✓ 已清空 fake-ip 池（App 手里的旧假 IP 会失效，相关连接可能要重连）')
 
 COMMANDS = {
-    "status": cmd_status,
-    "version": cmd_version,
-    "proxies": cmd_proxies,
-    "proxy": cmd_proxy,
-    "test": cmd_test,
-    "connections": cmd_connections,
-    "conn": cmd_conn_close,  # conn close <id|all>
-    "traffic": cmd_traffic,
-    "rules": cmd_rules,
-    "configs": cmd_configs,
-    "reload": cmd_reload,
-    "dns": cmd_dns,
-    "logs": cmd_logs,
-    "grouptest": cmd_group_test,
+    'status': cmd_status, 'proxies': cmd_proxies, 'proxy': cmd_proxy,
+    'test': cmd_test, 'grouptest': cmd_grouptest,
+    'connections': cmd_connections, 'conn': cmd_conn,
+    'traffic': cmd_traffic, 'rules': cmd_rules, 'configs': cmd_configs,
+    'dns': cmd_dns, 'logs': cmd_logs, 'log': cmd_logs, 'mode': cmd_mode,
+    'group': cmd_group, 'provider': cmd_provider, 'rule': cmd_rule,
+    'flush': cmd_flush,
 }
+
+def dispatch(s, p):
+    if not p.positional or p.positional[0] not in COMMANDS:
+        usage(' <' + '|'.join(COMMANDS) + '>')
+    return COMMANDS[p.positional[0]](s, p)
+
+
+#!/usr/bin/env python3
+"""Python standard-library port of ProjectClash's clash-cli.
+
+Entry point aligned with the official Go main.go:
+  - help / no-args / --help exit codes (0 vs 2)
+  - reload / check -> exit 5 (managed-by-app / check-in-app)
+  - version -> connects, best-effort core info, never fails
+  - skill -> prints the embedded HELP.txt (SKILL.md for AI agents)
+  - forget -> hostport normalization + known_hosts update
+  - --secret-stdin reads the first stdin line
+  - unknown command -> exit 2 usage
+"""
+import os
+import sys
+
+
+
+
+VERSION = "1.0.0"
+
+USAGE = """clash-cli —— Clash App 内置的命令行工具
+
+从 Mac 终端查询和控制 Clash App 的内核：本机（外部控制器「仅本机」档），
+或局域网里的 iPhone / iPad / Apple TV（「局域网」档，TLS + 证书指纹）。
+只连 Clash App 的控制器。
+
+用法: clash-cli [全局选项] <命令> [参数...]
+
+全局选项（也可用环境变量）:
+  -u, --url URL          控制器地址（$CLASH_API，默认 http://127.0.0.1:9090）；
+                         设备的局域网档是 https://<设备 IP>:<端口>
+  --secret 密钥           控制器密钥（$CLASH_SECRET；在 App 的 更多 › 客户端设置 › 外部控制器 里复制）
+  --secret-stdin         从标准输入第一行读密钥
+  --fingerprint 指纹      期望的证书指纹 sha256:AB:CD:...（$CLASH_FINGERPRINT）；不给时首次连接会问一次并记住
+  --json                 每条命令在 stdout 输出一个 JSON：{"cli":1,"ok":...}
+  --timeout 时长          单次请求超时（$CLASH_TIMEOUT，默认 8 秒；不作用于流）
+
+查看（只读）:
+  status                         版本、模式、内存、流量、连接数、各策略组当前选择
+  proxies [组]                   列策略组与节点；带组名看该组成员
+  proxy get <组>                 该组当前选择与可选成员
+  connections [N] [-f]           活跃连接（host → 策略链 → 命中规则 → 上下行），默认前 20；-f 持续
+  rules [N]                      规则列表，默认前 10（0 = 全部）
+  rule match <域名|IP|URL> [port=N] [network=tcp|udp] [src=IP] [process=名称] [--resolve]
+                                 这条连接会命中哪条规则、走哪条链（不建连接；默认不解析 DNS）
+  configs                        当前运行配置
+  traffic [秒] [-f]              实时流量；给秒数读这么多秒
+  logs [秒] [level] [-f]         日志（debug|info|warning|error）
+  dns query <域名> [type]         走内核 DNS 查询
+  dns explain <域名> [type]       解释这次查询会用哪组 DNS
+  provider list                  节点集与规则集
+  test <节点> [url] [timeout_ms]  测一个节点的延迟（不改任何选择）
+  grouptest <组> [url] [timeout_ms]
+                                 逐个测组内成员（不改任何选择）
+  version | skill                版本 | 给 AI 代理的 SKILL.md
+  forget <地址:端口>               忘记记住的证书指纹（设备重新生成证书后用），下次连接重新确认
+
+改动（先确认目标存在）:
+  proxy set <组> <节点>           切换节点（节点名逐字一致，含 emoji 与空格）
+  mode [rule|global|direct]      查看或切换出站模式
+  group unfix <组>               解除组的固定选择
+  group test <组> [url] [timeout_ms]
+                                 用组接口测速；对 URLTest/Fallback 组会先解除固定
+  provider update proxy|rule <名称>
+                                 让内核重新下载这个集合
+  provider test <节点集>          对节点集做一次健康检查
+  conn close <id|all>            关闭一条或全部连接（all 会打断下载与 SSH）
+  flush fakeip|dns               清空 fake-ip 池或 DNS 缓存
+
+不提供: reload、check（配置由 Clash App 管理和检查，退出码 5）。
+
+退出码: 0 成功；1 控制器报错；2 用法；3 连不上；4 密钥被拒；5 不是 Clash App 的控制器或不支持；
+6 证书指纹不符或未确认。
+"""
+
+_EMBEDDED_HELP = '---\nname: Clash App 控制器\ndescription: 通过 Clash App 内置的 clash-cli，在 Mac 终端里实时监控和控制 Clash App（本机 Mac，或局域网里的 iPhone / iPad / Apple TV）。支持状态/连接/流量/规则查询、规则命中分析、节点与策略组切换、节点测速、DNS 查询。当用户提到 Clash App、切换节点、查看连接、实时流量、规则匹配、节点测速、外部控制器时使用。\n---\n\n# Clash App 控制器（Clash App 内置的 clash-cli）\n\n`clash-cli` 随 Clash App 内置（Mac 上在 `/Applications/Clash.app/Contents/Helpers/clash-cli`），\n封装 Clash RESTful API 与 Clash App 自己的 `/clash/v1` 接口。它**只连 Clash App**：\n连到别的程序的控制器时会以退出码 5 拒绝，不下任何命令。\n配置语法请参考官方文档，本文档只管运行态操作。\n\n## 1. 入口授权（前提检查）\n\n- **Clash App 的隧道必须开着**，并且在 App 的 **更多 › 客户端设置 › 外部控制器** 里选了「仅本机」或「局域网」。\n  选「使用配置」时用的是配置文件自己写的控制器。\n- **密钥总是必填**：在同一页复制密钥，设为环境变量 `CLASH_SECRET`。密钥错了报退出码 4。\n- 地址：\n  - 控制本机 Mac：`http://127.0.0.1:9090`（默认，即 `CLASH_API`）。\n  - 控制 iPhone / iPad / Apple TV：设备上选「局域网」档，地址写成 `https://<设备 IP>:<TLS 端口>`（页面上有完整命令可复制）。\n    第一次连接会显示对方的证书指纹，与 App 页面上的指纹核对后输入 y，之后自动记住；\n    也可以直接设 `CLASH_FINGERPRINT`（连上后同样记住）。指纹对不上时退出码 6，**此时不会发出密钥**。\n    设备重新生成证书后：重新复制 App 里的终端命令（带新指纹），或执行 `clash-cli forget <地址:端口>` 后再连。\n- 入口检查：`clash-cli status` 能返回版本、模式、内存、策略组即通过。\n\n```bash\nexport CLASH_SECRET=<在 App 里复制的密钥>\nclash-cli status\n# Clash 1.19.32  meta=true  （macos，控制器 API 1）\n# mode=rule  mixed-port=7890  tun=true stack=gVisor\n# 内存 31MB  inuse=0KB\n# 流量 ↑1.2 KB/s ↓36.0 KB/s  连接 42 个（总 ↓30.5 MB ↑1.2 MB）\n# 策略组 13 个：\n#   PROXY                → AUTO\n```\n\n## 2. 状态检查（只读，随便用）\n\n| 命令 | 说明 |\n|---|---|\n| `clash-cli status` | 版本/模式/内存/流量/连接数 + 所有策略组当前选择 |\n| `clash-cli proxies` | 列全部策略组与节点 |\n| `clash-cli proxies <组>` | 查看某策略组当前选择、类型、成员列表 |\n| `clash-cli traffic [秒]` | 实时流量（瞬时速率 + 累计） |\n| `clash-cli connections [N]` | 活跃连接列表（host → 策略链 → 命中规则 → 上下行），默认前 20 |\n| `clash-cli configs` | 当前运行配置（端口/tun/dns 等） |\n| `clash-cli rules [N]` | 规则列表（默认前 10，0 = 全部） |\n| `clash-cli rule match <域名\\|IP\\|URL>` | **规则命中分析**：这条连接会命中哪条规则、走哪条链 |\n| `clash-cli provider list` | 节点集与规则集 |\n| `clash-cli dns query <域名> [type]` | 走内核 DNS 查询，返回 Answer 数组 |\n| `clash-cli dns explain <域名> [type]` | 解释这次查询会用哪组 DNS |\n| `clash-cli logs [秒数] [level]` | 日志（debug / info / warning / error） |\n\n流（`traffic`、`logs`、`connections -f`）：给秒数就读这么多秒；`-f` 一直读；都不给时，\n在终端里一直读（Ctrl-C 结束），**不在终端里（代理调用）默认读 3 秒就退出**。\n\n## 3. 常用任务\n\n- **查当前选中节点**：`clash-cli proxy get <组>`（如 `PROXY`）\n- **切换节点/策略**：`clash-cli proxy set <组> <节点>`（组内任意成员名，含 DIRECT）\n  ```bash\n  clash-cli proxy set PROXY DIRECT    # 直连\n  clash-cli proxy set PROXY AUTO      # 切回自动测速组\n  ```\n- **节点测速**：`clash-cli test <节点名> [url] [timeout_ms]`；对组内全部节点逐个测速\n  `clash-cli grouptest <组名> [url] [timeout_ms]`（都不改任何选择）。\n- **规则命中分析**（Clash App 独有；mihomo 本身没有这个接口）：\n  ```bash\n  clash-cli rule match www.google.com\n  clash-cli rule match https://example.com/path\n  clash-cli rule match 1.1.1.1 port=53 network=udp\n  clash-cli rule match example.com --resolve      # 允许解析域名，让 IP 类规则参与\n  ```\n  - 不建连接；默认不做 DNS 解析，IP 类规则会标「已跳过」。\n  - 没给端口按 443 算，没给来源按本机隧道地址算，输出里写明。\n  - 前面有规则缺信息时标「未定」。链路是各组当前的选择，之后可能变化。\n- **出站模式**：`clash-cli mode` 查看，`clash-cli mode rule|global|direct` 切换。\n- **日志**：`clash-cli logs [秒数] [level]`（默认 3 秒）。\n- **机器读**：任何命令加 `--json`，stdout 输出一个 `{"cli":1,"ok":true,"data":…}`；\n  失败也写 stdout：`{"cli":1,"ok":false,"error":{"code":…,"message":…}}`；流命令每行一个。\n\n## 4. 影响边界（写操作）\n\n- **写操作**：`proxy set`、`mode`、`group unfix`、`group test`、`provider update`、`conn close <id|all>`、`flush`\n  会改变运行状态，执行前先确认目标存在（`proxy get`、`proxies`、`connections`）。\n  每次写操作前，人读输出会先打印要改的是哪台设备、哪个内核版本。\n- `conn close all` 会断开全部连接（SSH/下载会被打断）。\n- `flush fakeip` 清空 fake-ip 池，App 手里的旧假 IP 会失效，相关连接可能要重连；`flush dns` 清空 DNS 缓存。\n- `group test` 走组的测速接口，对 URLTest / Fallback 组**会先解除该组的固定选择**；只想看延迟请用 `grouptest`。\n- **`reload`、`check` 不可用**：配置由 Clash App 管理（组合、切换、检查都在 App 里），这两个命令返回退出码 5。\n  要换配置、更新订阅或检查配置文件，请在 App 里操作。\n\n## 5. 环境与安全注意事项\n\n- 拿到密钥的人可以完全控制 Clash（模式、局域网共享、选节点、断连接、清缓存）。不要把密钥贴进公开的地方；\n  在 App 里「重新生成」后旧密钥立即失效，用旧密钥打开的流也会断开。\n- 局域网档只走 TLS，并只接受局域网来源；本机档只听 127.0.0.1。\n- 环境变量：`CLASH_API`（默认 `http://127.0.0.1:9090`）、`CLASH_SECRET`、`CLASH_FINGERPRINT`、`CLASH_TIMEOUT`（默认 8 秒）。\n- 切换节点时节点名必须与策略组成员**精确匹配**（含空格/emoji/特殊字符，如「🇭🇰香港trojan1」）。\n- 退出码：0 成功；1 控制器报错；2 用法；3 连不上；4 密钥被拒；5 不是 Clash App 的控制器或不支持（含 `reload`、`check`）；\n  6 证书指纹不符或未确认。\n- 已知指纹记在 `~/.config/clash-cli/known_hosts`（App 内置版在沙盒容器里：\n  `~/Library/Containers/<App 标识>.clash-cli/Data/.config/clash-cli/known_hosts`）。\n\n## 6. 安装方式\n\n`clash-cli` 随 Clash App for Mac 内置，不需要单独下载。把它放进 PATH（任选一种）：\n\n```sh\nsudo ln -sf /Applications/Clash.app/Contents/Helpers/clash-cli /usr/local/bin/clash-cli\n# 或者\nalias clash-cli=/Applications/Clash.app/Contents/Helpers/clash-cli\n```\n\nApp 的 更多 › 客户端设置 › 外部控制器 页面也给了这条命令。iPhone / iPad 上没有这个二进制：\n那里的 AI 代理直接打 `http://127.0.0.1:<端口>`（带 `Authorization: Bearer <密钥>`）。\n\n`clash-cli skill` 打印本文件，可以直接交给 AI 代理安装成技能。\n\n**验证安装**\n```sh\nclash-cli status   # 返回版本/模式/策略组即成功；\n                   # 报「连接失败」说明隧道没开或外部控制器没选本机/局域网档；报退出码 4 说明密钥不对\n```\n\n## 参考资料（来源）\n\n- mihomo（MetaCubeX）GitHub：https://github.com/MetaCubeX/mihomo\n- Clash 原始 RESTful API 文档：https://clash.gitbook.io/doc/restful-api\n'
+
+
+def skill_text() -> str:
+    try:
+        return _EMBEDDED_HELP
+    except OSError:
+        return USAGE
+
+
+def read_first_line() -> str:
+    line = []
+    while True:
+        ch = sys.stdin.read(1)
+        if not ch or ch == "\n":
+            break
+        line.append(ch)
+    text = "".join(line).rstrip("\r")
+    if not text:
+        raise CliError(2, "usage", "--secret-stdin: the first line of standard input is empty")
+    return text
+
+
+def controller_host_port(hostname: str, port, scheme: str) -> str:
+    host = '[' + hostname + ']' if ':' in hostname else hostname
+    return f'{host}:{port or (443 if scheme == "https" else 80)}'
+
+
+def run_forget(p, out) -> int:
+    if len(p.positional) != 2:
+        return out.fail(CliError(2, "usage", "用法: clash-cli forget <地址:端口>（例如 192.168.1.20:9443，或设备的 https:// 地址）"))
+    target = p.positional[1]
+    if "://" not in target:
+        target = "https://" + target
+    try:
+        from urllib.parse import urlsplit
+        parsed = urlsplit(target)
+        if not parsed.hostname:
+            raise ValueError()
+        hostport = controller_host_port(parsed.hostname, parsed.port, parsed.scheme)
+    except ValueError:
+        return out.fail(CliError(2, "usage", "用法: clash-cli forget <地址:端口>"))
+    try:
+        removed = forget_known_host(hostport)
+    except OSError as e:
+        return out.fail(CliError(1, "known-hosts", f"忘记 {hostport} 的指纹失败: {e}"))
+    return out.succeed({"forgotten": removed, "host": hostport}, lambda: print(
+        f"✓ 已忘记 {hostport} 的证书指纹，下次连接会重新确认" if removed
+        else f"没有记住 {hostport} 的指纹，不用忘记"))
+
+
+def run_version(options, out) -> int:
+    data = {"cli": VERSION}
+    core = ""
+    try:
+        session = Session(options, out)
+        version = session.call("GET", "/version")
+        data["core"] = version
+        data["platform"] = session.caps.get("platform", "")
+        core = str(version.get("version", ""))
+    except CliError:
+        pass
+
+    def human():
+        print(f"clash-cli {VERSION}（Clash App 内置）")
+        if core:
+            print(f"内核 {core}")
+        else:
+            print(f"内核：没有连上控制器（{options.url}）")
+
+    return out.succeed(data, human)
+
+
+def run(argv) -> int:
+    out = Output(False)
+    try:
+        from types import SimpleNamespace
+        options = SimpleNamespace(url=os.getenv("CLASH_API") or "http://127.0.0.1:9090", secret=os.getenv("CLASH_SECRET", ""), fingerprint=os.getenv("CLASH_FINGERPRINT", ""), timeout=8.0, json=False, secret_stdin=False)
+        try:
+            options, p = parse_arguments(argv, options)
+        except CliError:
+            out = Output(options.json)
+            raise
+        out = Output(options.json)
+
+        if not p.positional or p.positional[0] == "help" or p.has("help"):
+            sys.stdout.write(USAGE)
+            if not p.positional and not p.has("help"):
+                return 2
+            return 0
+
+        if options.secret_stdin:
+            options.secret = read_first_line()
+
+        command = p.positional[0]
+
+        if command == "reload":
+            return out.fail(CliError(5, "managed-by-app",
+                "配置由 Clash App 管理，请在 App 里更新或切换配置（clash-cli 不重载配置）"))
+        if command == "version":
+            return run_version(options, out)
+        if command == "skill":
+            if options.json:
+                return out.succeed({"skill": skill_text()})
+            sys.stdout.write(skill_text())
+            return 0
+        if command == "forget":
+            return run_forget(p, out)
+        if command == "check":
+            return out.fail(CliError(5, "check-in-app",
+                "clash-cli 不检查配置文件：请在 Clash App 里导入或编辑配置，App 会检查并说明问题"))
+
+        if command not in COMMANDS:
+            return out.fail(CliError(2, "usage", f"未知命令: {command}（clash-cli help 查看可用命令）"))
+
+        session = Session(options, out)
+        result = dispatch(session, p)
+        return 0 if result is None else result
+    except CliError as e:
+        return out.fail(e)
+    except KeyboardInterrupt:
+        return 130
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
-        print(__doc__)
-        print("\n用法: clash-cli <命令> [参数...]")
-        print("\n命令:")
-        for cmd in sorted(COMMANDS):
-            doc = COMMANDS[cmd].__doc__ or ""
-            print(f"  {cmd:14s} {doc}")
-        print("\n环境变量: CLASH_API(默认 http://127.0.0.1:9090)  CLASH_SECRET  CLASH_TIMEOUT(默认8)")
-        return
-    cmd = sys.argv[1]
-    fn = COMMANDS.get(cmd)
-    if not fn:
-        sys.exit(f"未知命令: {cmd}（clash-cli --help 查看可用命令）")
-    fn(sys.argv[2:])
+    raise SystemExit(run(sys.argv[1:]))
 
 
 if __name__ == "__main__":
