@@ -1,8 +1,8 @@
 ---
 name: iCTRL iOS 真机控制
 description: iCTRL 基于 DDI 挂载 + StikDebug 启动的 iOS 真机控制工具知识库。涵盖自签名闪退根因与修复、JSON-RPC 控制接口（device_info / shot / tap / swipe / type / launch_app）、PlugIns 保留规则、开发者模式要求、待机消耗与服务重启。当用户提到「iCTRL」「ictrl.sh」「iOS 真机控制」「自签名闪退」「iOS 控件操作」「device_info」「截取真机屏幕」「xctest 模块」时触发。
-version: 1.0.0
-last_sync: 2026-10-05
+version: 1.2.0
+last_sync: 2026-10-11
 ---
 
 # iCTRL iOS 真机控制
@@ -49,6 +49,17 @@ Reason: tried: .../Frameworks/XCTest.framework (no such file),
 - 否（如 `XCTest` 权限/`EXC_CRASH`）→ 再查签名/描述文件/PlugIns
 
 **关联**：iOS 27 上 StikDebug 3.1.13 主线 tunnel 失败（issue #471），StikDebug 起不来则先按 `stikdebug` 技能排错。
+
+## iOS 27 手机端直接挂载 DDI（2026-10-11）
+
+用户实测确认：iOS 27 可完全在手机端完成 DDI 挂载，不必连接电脑。推荐流程：
+
+1. 先使用 **StikPair** 获取设备对应的 **Pairing File**。
+2. 将 Pairing File 导入 **StikDebug**。
+3. StikDebug 默认会直接启动并挂载对应 DDI；挂载成功后即可使用 iCTRL 等依赖 Developer Disk Image 的工具。
+4. 然后打开 iCTRL，开始执行真机控制。
+
+本次用户提供的 `iCTRLUITests-Runner.ipa` 已确认保留 `PlugIns/iCTRLUITests.xctest/`、`iCTRLUITests` 测试二进制及 `XCTest` 兼容库，适合按上述 DDI 链路使用。若点击 iCTRL 仍闪退，优先确认 Pairing File 是否匹配设备、StikDebug 是否已成功挂载 DDI，再排查签名和 PlugIns。
 
 ## AI 自动签名（zsign 方案，2026-10-06）
 
@@ -114,11 +125,14 @@ sh /usr/local/bin/ictrl.sh shot /tmp/screen.jpg
 
 | 版本 | 日期 | 要点 |
 |---|---|---|
+| 1.2.0 | 2026-10-11 | 新增 iOS 27 手机端 StikPair → StikDebug 导入 Pairing File、默认挂载 DDI 的流程。
 | 1.1.0 | 2026-10-06 | 新增「点击图标闪退之二」：`@rpath/XCTest.framework` 加载失败 = DDI 未挂载，先启动 StikDebug 而非重签；附 DYLD 排查顺序 |
 | 1.0.0 | 2026-10-05 | 首版：自签名闪退根因（PlugIns/xctest 保留 + 开发者模式）、device_info/shot/控件 JSON-RPC 接口、待机消耗与服务重启经验 |
 
 ## 来源
 
+- 用户实测经验（2026-10-11）：iOS 27 手机端使用 StikPair 获取 Pairing File，导入 StikDebug 后默认挂载 DDI。
+- IPA 结构核验（2026-10-11）：用户提供的 iCTRLUITests-Runner.ipa 保留 PlugIns/xctest 及兼容库。
 - 用户实测经验（2026-10-05）：自签名闪退已解决，附避坑要点与接口示例。
 - 崩溃日志分析（2026-10-06）：用户上传 `.ips`（iOS 27.0 24A437，bug_type 309）+ Mach-O RPATH 解析，确认 `@rpath/XCTest.framework` 加载失败根因是 DDI 未挂载。
 - 关联：`stikdebug` 技能（DDI / StikDebug 链路排错）。
