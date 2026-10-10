@@ -1,8 +1,8 @@
 ---
 name: StikDebug iOS JIT 加速
 description: StikDebug（旧名 StikJIT）免电脑启用 iOS JIT 加速工具的完整知识库。涵盖侧载安装、iLoader 配对文件生成、LocalDevVPN、启用 JIT、GPS 虚拟定位、iOS 26 兼容性与排错。当用户提到「StikDebug」「StikJIT」「免电脑启用 JIT」「iOS JIT 加速」「配对文件 pairingFile」「LocalDevVPN」「iLoader」「模拟器 JIT」时触发。
-version: 1.0.0
-last_sync: 2026-10-03
+version: 1.1.0
+last_sync: 2026-10-11
 ---
 
 # StikDebug 免电脑启用 iOS JIT 加速
@@ -47,6 +47,15 @@ StikDebug（旧名 **StikJIT**）是 **on-device JIT enabler**：免电脑、无
 - 主线 3.1.13 在 iOS 27.0/27.2 上**不可靠**，最常见失败是 tunnel 建立后 App 列表不加载
 - 可尝试社区 fork（zeuzmakessoftware）的 Actions IPA 解决 DDI 挂载部分，但 #471 的 tunnel 问题不一定被覆盖
 - 建议关注 #471/#470 修复进度后再折腾；若必须用，优先在 iOS 17.4–18.x 设备上使用
+
+## iOS 27 手机端 Pairing File 流程（2026-10-11）
+
+用户更正并实测确认：这里使用的是 **StikPair** 和 **StikDebug**，不是 iLoader。
+
+1. 在手机端打开 **StikPair**，获取当前设备对应的 `Pairing File`。
+2. 将 Pairing File 导入 **StikDebug**。
+3. StikDebug 默认即可启动并挂载 DDI。
+4. DDI 挂载成功后，再打开 iCTRL 或其他依赖 Developer Disk Image 的工具。
 
 ## 安装链路（四步）
 
