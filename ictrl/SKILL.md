@@ -1,7 +1,7 @@
 ---
 name: ictrl-phone-control
 description: Control an iPhone over HTTP to automate real apps — tap, type, swipe, read the screen's view tree, launch apps, take screenshots. Use when the user asks to operate a phone, drive an iOS app, automate a mobile task (search a product, check an order, fill a form), or inspect what's on a device's screen. The service is iCTRL, JSON-RPC 2.0 on port 8200; requests are encrypted, so drive it with a client downloaded from the device (a static CLI needing no interpreter, or a Python one) rather than hand-written HTTP.
-skill_version: "1.86.0"
+skill_version: "1.96.1"
 ---
 
 # iCTRL — control an iPhone over HTTP
@@ -46,7 +46,7 @@ $I call tap '{"ref":"<ref>"}'
 
 ## Waiting: actions settle for you — never sleep
 
-`tap`, `double_tap`, `long_press`, `swipe`, `drag`, `page`, `scroll`, `type`, `clear_text` **wait until the screen stops changing** (low-res frame compare, up to 2s) and report it:
+`tap`, `double_tap`, `long_press`, `swipe`, `drag`, `page`, `scroll`, `type`, `clear_text`, `open_url` **wait until the screen stops changing** (low-res frame compare, up to 2s) and report it:
 `settle:{stable, screen_changed, waited_ms}`, plus a `hint` saying so.
 - **`stable:true` → read right away, no waiting of any kind.** That is the whole point.
 - `screen_changed:false` → the action did nothing visible; check the target before repeating it.
@@ -110,6 +110,8 @@ Most responses carry a **`hint`** for that exact result — which limits applied
 - **Default: `page_source{visible_only:true, max_children:50}`** — on-screen nodes only, well under 1s even on long feeds. Omit `visible_only` only when you need off-screen structure.
 - `filter:{text|label|type:"…"}` returns matching nodes + ancestors — the cheap way to harvest repeated values (prices, titles).
 - **Thin tree?** When `channel.recommended` is `ocr` (or `sparse_hint`/`viewport_warning` appears), read with `screen_text`: text plus tappable point coordinates.
+- `page_source enhanced:true` adds text drawn inside images (v1.96+).
+- **Screen-state flags**: each read reports `system_alert`, overlays, `loading:true`, login walls, anti-bot checks and promotional popups; refs refuse to act on a screen that has changed since the ref was resolved.
 - `max_elements` (default 2000, cap 4000): if the response says `truncated:true`, narrow with `filter`/`visible_only` instead of raising it. An app scrolled for a long time accumulates rows and slows every read; relaunching it clears them.
 
 ## Scrolling
@@ -138,6 +140,38 @@ Most responses carry a **`hint`** for that exact result — which limits applied
 - `reset`: clears refs and rebuilds the UI channel state, then `launch_app` the target. `config{stop_server:true}` stops the runner (keys persist); it must be relaunched on the device.
 - `/schema` unreachable = the runner isn't running; the user must start it (the Developer Disk Image is lost on every reboot).
 - On cellular the device isn't reachable from the LAN.
+
+## Runner 图标与通知中心白图标排查与修复
+
+XCTest-Runner 应用（如 `iCTRLUITests-Runner.app`）在自签名安装后容易出现**主屏幕图标或通知中心横幅变白**（显示系统网格线占位图），核心规则与排错指南：
+
+1. **白图标根因**：
+   - **缺少对应尺寸物理 PNG**：iOS 针对通知横幅使用 `20pt` 规格（`AppIcon20x20@2x.png` 40×40、`AppIcon20x20@3x.png` 60×60），原包若只有 `60x60@2x`，SpringBoard / usernoted 找不到对应分辨率资源即显示白网格。
+   - **`CFBundleIcons` 配置错误**：若在 `CFBundlePrimaryIcon` 下声明了 `CFBundleIconName: "AppIcon"`，iOS 会强制要求必须在 `Assets.car`（Asset Catalog）中寻址；若缺少对应的 car，散落的物理 PNG 就会被忽略并变白。
+   - **禁止塞入外来 `Assets.car`**：若从其他 App 复制 `Assets.car` 试图解决缺失，系统会优先按该 car 解析，导致主图标直接被替换成该外部 App 图标。
+2. **正确配置**：
+   - 生成全套通知、设置、Spotlight、主屏尺寸 PNG。
+   - `Info.plist` 只保留 `CFBundleIconFiles` 纯文件名映射，**不写** `CFBundleIconName`。
+3. **系统缓存陷阱**：
+   - 修复重签并安装后，iOS 系统级图标缓存（`com.apple.IconsCache`）不会立即刷新，甚至仍显示旧的白色网格。**重启手机**能触发系统全面重建图标缓存。
+4. **自动化脚本**：
+   - 技能库内置修复脚本：`/var/minis/skills/ictrl/scripts/fix_runner_icons.sh <input.ipa> <output.ipa>`
+   - 执行后配合 `sign_ictrl.sh` 重签名即可。
+
+## 参考资料（来源）
+- Apple Developer Documentation - App Icons and Notification Assets Specification (iOS 16-18)
+- 调研与验证日期：2026-10-11
+- 案例样本：iCTRLUITests-Runner / Spotify-Pro / 贴吧纯净版（巨魔商店-LC）
+
+## 版本更新
+- **v1.96.1**（2026-10，OpenMinis/iCTRL release tag v1.96.1，SHA-256 见发布页）：
+  - `open_url` 加入 settle-aware 动作（等屏幕稳定）。
+  - 有界无障碍遍历：元素查找/ref 点击使用封顶树遍历，慢 App 不再阻塞 UI 队列。
+  - `page_source enhanced:true` 可读图片内文字；`collect` 一次读取长列表，树薄时自动切 OCR。
+  - 每次读取上报屏幕状态标志：系统弹窗、覆盖层、加载中、登录墙、反爬检测、推广弹窗；屏幕变化后 ref 拒绝操作。
+  - `GET /remote` 远程控制页：抓屏快数倍、最高 30fps 低延迟流、支持横滑/长按/右键 Home。
+  - Runner 主屏图标；iCTRL app 在 iOS 26.4+ 挂载 cryptex Developer Disk Image、实际连通 LocalDevVPN 隧道、首启检查网络权限。
+  - 产物：`iCTRLUITests-Runner.ipa`（必需，自动化引擎）+ 可选 `iCTRL.ipa`（挂载 DDI 并启动 runner）。均未签名，需自签（新版 SideStore 自动处理嵌套 .xctest；旧版 SideStore 会跳过导致 runner 启动崩溃；付费账号用 `Scripts/sign-ipa.sh -i iCTRLUITests-Runner.ipa`）。
 
 ## Protocol
 
