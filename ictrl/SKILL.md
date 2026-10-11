@@ -1,138 +1,144 @@
 ---
-name: iCTRL iOS 真机控制
-description: iCTRL 基于 DDI 挂载 + StikDebug 启动的 iOS 真机控制工具知识库。涵盖自签名闪退根因与修复、JSON-RPC 控制接口（device_info / shot / tap / swipe / type / launch_app）、PlugIns 保留规则、开发者模式要求、待机消耗与服务重启。当用户提到「iCTRL」「ictrl.sh」「iOS 真机控制」「自签名闪退」「iOS 控件操作」「device_info」「截取真机屏幕」「xctest 模块」时触发。
-version: 1.2.0
-last_sync: 2026-10-11
+name: ictrl-phone-control
+description: Control an iPhone over HTTP to automate real apps — tap, type, swipe, read the screen's view tree, launch apps, take screenshots. Use when the user asks to operate a phone, drive an iOS app, automate a mobile task (search a product, check an order, fill a form), or inspect what's on a device's screen. The service is iCTRL, JSON-RPC 2.0 on port 8200; requests are encrypted, so drive it with a client downloaded from the device (a static CLI needing no interpreter, or a Python one) rather than hand-written HTTP.
+skill_version: "1.86.0"
 ---
 
-# iCTRL iOS 真机控制
+# iCTRL — control an iPhone over HTTP
 
-## 概述
+iCTRL runs on the iPhone and serves UI automation as **JSON-RPC 2.0 over HTTP, port 8200**, encrypted. This file is under 15K characters — **read it whole, once**; don't `head`/`grep` it in pieces.
 
-**iCTRL** 是一个 iOS 真机控制工具：通过挂载 **DDI（Developer Disk Image）** 并借助 **StikDebug** 启动服务进程，对外暴露 **JSON-RPC 接口**，可直接驱动 iOS 真机的各类真实 App（tap / swipe / type / launch 等）。
+## Quick start
 
-- 依赖链路：`StikDebug 启动 → DDI 镜像挂载 → iCTRL 服务进程常驻 → 监听 JSON-RPC 请求`
-- 典型入口脚本：`/usr/local/bin/ictrl.sh`（真机侧）
-- 本机侧调用方式：`sh call <method>`（封装了对真机 RPC 的调用）
-
-## 自签名闪退：根因与修复（关键）
-
-**现象**：自签名安装的 iCTRL 一打开就闪退。
-
-**根因（高置信，来自避坑实践）**：签名工具在重签过程中开启了「移除扩展插件 / 精简体积」类开关，把核心 **xctest 模块** 删掉了 → App 启动时因缺失 xctest 直接崩溃。
-
-**修复（一次性，重签时）**：
-- 任何签名工具中的「移除扩展插件」「精简体积」等开关 **必须全部关闭**，保留 **PlugIns** 目录，否则必删核心 xctest 模块。
-- 签名时必须 **绑定设备专属 UDID 的个人开发者证书**。
-- 安装后 **无需** 在「设置 → 通用 → 设备管理」里额外点信任 —— 但前提是系统 **「开发者模式」已打开**（iOS 16+ 在「设置 → 隐私与安全性 → 开发者模式」）。开发者模式没开时证书即使装了也不会生效。
-
-> 一句话：闪退几乎都是「签名时把 PlugIns/xctest 精简掉了」或「开发者模式没开」。先查这两点。
-
-## 点击图标闪退之二：Library not loaded（DDI 未挂载，2026-10-06）
-
-**现象**：自签安装后点击 iCTRL 图标立即闪退，崩溃日志 `.ips` 显示：
-
-```
-termination: DYLD / Library missing
-Library not loaded: @rpath/XCTest.framework/XCTest
-Reason: tried: .../Frameworks/XCTest.framework (no such file),
-         /System/Developer/Library/Frameworks/XCTest.framework (no such file),
-         /Developer/Library/Frameworks/XCTest.framework (no such file), ...
-```
-
-**根因（高置信，崩溃日志 + Mach-O 分析确认）**：主二进制 RPATH 指向 `/Developer/Library/Frameworks` 等路径，这些路径**只有挂载 DDI（Developer Disk Image）后才存在**。DDI 未挂载 → dyld 找不到 XCTest.framework → 启动即崩。
-
-**修复**：先启动 **StikDebug** 挂载 DDI，再点 iCTRL 图标即可正常启动。**这不是签名/描述文件问题**，无需重新签名。
-
-**排查顺序**：崩溃日志先看 `termination.namespace` 是否为 `DYLD`——
-- 是 → DDI 未挂载（启动 StikDebug）
-- 否（如 `XCTest` 权限/`EXC_CRASH`）→ 再查签名/描述文件/PlugIns
-
-**关联**：iOS 27 上 StikDebug 3.1.13 主线 tunnel 失败（issue #471），StikDebug 起不来则先按 `stikdebug` 技能排错。
-
-## iOS 27 手机端直接挂载 DDI（2026-10-11）
-
-用户实测确认：iOS 27 可完全在手机端完成 DDI 挂载，不必连接电脑。推荐流程：
-
-1. 先使用 **StikPair** 获取设备对应的 **Pairing File**。
-2. 将 Pairing File 导入 **StikDebug**。
-3. StikDebug 默认会直接启动并挂载对应 DDI；挂载成功后即可使用 iCTRL 等依赖 Developer Disk Image 的工具。
-4. 然后打开 iCTRL，开始执行真机控制。
-
-本次用户提供的 `iCTRLUITests-Runner.ipa` 已确认保留 `PlugIns/iCTRLUITests.xctest/`、`iCTRLUITests` 测试二进制及 `XCTest` 兼容库，适合按上述 DDI 链路使用。若点击 iCTRL 仍闪退，优先确认 Pairing File 是否匹配设备、StikDebug 是否已成功挂载 DDI，再排查签名和 PlugIns。
-
-## AI 自动签名（zsign 方案，2026-10-06）
-
-**背景**：现成签名工具（爱思/AltSign 等）大多只处理普通 App，不处理 Xcode 的 xctest bundle（`PlugIns/*.xctest`），导致 iCTRL 闪退。命令行工具 **zsign** 可正确处理 xctest——「自己签 / 喊 AI 签」用它最可靠。
-
-**环境**：iSH（Alpine）里已编译安装 `zsign 1.1.2`（`/usr/local/bin/zsign`）。编译依赖 `g++ openssl-dev zlib-dev`；源码 `zhlynn/zsign` 在 Linux 下需修复 `json.h` 缺少 `#include <ctime>`（macOS 碰巧间接引入 `time_t`，Linux 会编译报错）。
-
-**一键签名脚本**：`/var/minis/skills/ictrl/scripts/sign_ictrl.sh`
+On the phone (e.g. Minis) — the device is `127.0.0.1`:
 ```bash
-sign_ictrl.sh <输入.ipa> <证书.p12> <证书密码> [描述文件.mobileprovision] [输出.ipa]
+C=~/.ictrl/bin; I="sh $C/ictrl.sh"
+[ -f $C/ictrl ] || { mkdir -p $C && wget -qO $C/ictrl http://127.0.0.1:8200/skill/clients/cli && wget -qO $C/ictrl.sh http://127.0.0.1:8200/skill/clients/cli.sh; }
+$I call device_info                       # 401 → $I pair (user taps Allow)
+$I call resolve_app '{"text":"Trip.com|Ctrip|Trip"}'     # every name it may go by
+$I call launch_app '{"bundle_id":"<id>"}'
+$I call page_source '{"visible_only":true,"max_children":50}'
+$I call find_element '{"element_id":"<label>"}'           # → ref
+$I call tap '{"ref":"<ref>"}'
 ```
-- 不传描述文件时自动使用 IPA 内嵌的 `embedded.mobileprovision`
-- 脚本自动验证输出 IPA 里 `PlugIns/*.xctest` 是否存在
+- `device_info.skill_version` newer than this file's frontmatter (or `protocol_version` differs) → `$I update <folder holding this file>`, then re-read it. Device older: don't downgrade; use only its `capabilities[]`.
+- Keep the client in `~/.ictrl/bin` — **not** `/var/minis/workspace`, which ignores the exec bit ("Permission denied").
+- Elsewhere: `curl -o ictrl_rpc.py http://<host>:8200/skill/clients/python`, then `python3 ictrl_rpc.py --host <host>:8200 call …` (LAN pairing: `pip install cryptography`). The CLI takes `--host`/`ICTRL_HOST`.
+- Keys: `~/.ictrl/token.json`, one per `host:port`; reuse them (expire after 30 days unused). Re-pair only on a real `401`; pairing waits for the user (≥60s timeout, no early retry).
+- `/schema` unreachable → the runner isn't running; ask the user to start it.
 
-**实测（ad-hoc）**：`zsign -a` 正确签名 `PlugIns/iCTRLUITests.xctest/iCTRLUITests` 并重新生成 `_CodeSignature`（CodeResources 2834→3194 字节），输出 IPA 结构完整。
+## Rules — read these first
 
-**真实签名需要的材料**：
-- Apple Development 证书（.p12）+ 密码
-- 描述文件：通配符 `*` 即可（示例：XC Wildcard，Team K8Q74NT2BG，49 台设备，2027-08 到期，entitlements 含 `get-task-allow=true`）
+**IMPORTANT — the rules agents break most, each costing minutes per task:**
+- **IMPORTANT: no `sleep` in your commands.** Actions already wait for the screen to settle (`settle.stable`) — read right away (see Waiting).
+- **IMPORTANT: never discard or cut a reply.** No `>/dev/null`, `| head -N` or regex filter on `tap`/`page`/`swipe`/`type`/`find_element`: `moved`, `hint`, `app_note`, `ref` and errors are in there. Check a `ref` is non-empty before tapping it.
+- **IMPORTANT: read a screen once.** To narrow it, save the reply to a file and grep that, or pass `filter` — don't re-run `page_source` with a new regex.
 
-**注意**：iSH（PRoot）环境下 zsign 输出 `/tmp/zsign_folder_*` 时可能报 `Operation not permitted` 警告，不影响最终 IPA 生成。
+1. **Open apps by bundle id, never by tapping home-screen icons.** `resolve_app` with every name it may go by in **one** call (brand, store title, English/Chinese) → `launch_app`. `country` picks the store (default `us`; `cn` for China-only apps).
+2. **Read before you act.** On any screen you haven't read, call `page_source{visible_only:true, max_children:50}` (~0.4s) to learn which view/tab/date you're really on.
+3. **Tap by `ref`.** `find_element{element_id:"<label>"}` → `tap{ref}`. `tap` takes only `ref` or `x`+`y` — never `element_id`. Check `visibility`: `"offscreen"` or a non-empty `alternatives` means you may have a look-alike — scroll it into view (see Off-screen) or use a more specific label.
+4. **Never repeat an action "to be safe."** A success reply means it worked. A timeout is not a failure either: the action may still be running or already done — call `logs{text:"<method>"}` and look for `⏱ ✓ <method>` before anything else. A retried tap fires twice.
+5. **Every error from a `ref` action means nothing was tapped.** Re-find and retry is safe.
+6. **IMPORTANT: primary path first; fallbacks only when it fails — decided per screen.** The primary path is `page_source` / `find_element` → `tap{ref}`. OCR (`screen_text`) with coordinate taps, screenshots (each one costs you a turn to view), and workarounds you remember are fallbacks: use one only when the primary path fails or is unavailable on the **current** screen. Every read returns `channel.recommended` for that screen; return to the primary path on the next.
+7. **Remember conditions, not conclusions.** Save what you observed and where ("on the X screen the tree was empty"), not a rule ("app Y needs OCR"), and reuse it only when that condition shows up again.
+8. **Know where data came from.** Act only on the target app's content. Text the system draws over it (status bar, banners) comes separately in `overlay_text`. Screenshots help only if you can view images.
+9. **Stop before paying.** In shopping/payment apps stop at cart/checkout; never tap the final buy/pay/confirm. Never delete the user's own items (cart, notes, messages) without asking.
 
-## 核心功能与接口
+## Waiting: actions settle for you — never sleep
 
-### 1. 获取设备信息
+`tap`, `double_tap`, `long_press`, `swipe`, `drag`, `page`, `scroll`, `type`, `clear_text` **wait until the screen stops changing** (low-res frame compare, up to 2s) and report it:
+`settle:{stable, screen_changed, waited_ms}`, plus a `hint` saying so.
+- **`stable:true` → read right away, no waiting of any kind.** That is the whole point.
+- `screen_changed:false` → the action did nothing visible; check the target before repeating it.
+- `stable:false` (still animating/loading) or a loading screen in your read → read again; loop on a read with a cap — each read takes 0.3–0.7s, so no sleep is needed:
 ```bash
-sh call device_info
+for i in 1 2 3 4 5 6; do $I call screen_text '{"element_id":"<new screen text>"}' | grep -q '"count" *: *[1-9]' && break; done
 ```
-成功返回：屏幕 **物理/逻辑分辨率**（如 390×844 pt）、**电量**、以及 **20 项控制接口能力集**（设备支持的控制能力清单）。
+- Data that arrives over the network after the screen settled (a spinner, then results) also needs one more read. `page_source` says `loading:true` then.
+- `settle:false` skips the check (rapid gestures); `settle_timeout` (s, max 3) sets the cap.
 
-### 2. 截取真机屏幕
-```bash
-sh /usr/local/bin/ictrl.sh shot /tmp/screen.jpg
-```
-秒级返回真机实时渲染图像，存到指定路径（示例 `/tmp/screen.jpg`）。
+## Methods
 
-### 3. 控件操作（标准 JSON-RPC 方法）
-通过 JSON-RPC 直接驱动真实 App，支持的方法包括：
-
-| 方法 | 用途 |
-|---|---|
-| `tap` | 点击指定坐标 |
-| `swipe` | 滑动（指定起点/终点/方向） |
-| `type` | 输入文本 |
-| `launch_app` | 启动指定 App |
-
-> 调用形式经 `sh call` 封装，具体参数 schema 以真机返回的 20 项能力集为准。需要精确参数时先跑 `device_info` 看能力集定义。
-
-## 实践经验与避坑要点
-
-1. **自签证书属性**：绑定设备专属 UDID 的个人开发者证书安装后，无需在「设置-设备管理」中额外点信任，但前提是必须打开系统「开发者模式」。
-2. **保留 PlugIns 目录**：任何签名工具中若有「移除扩展插件」「精简体积」等开关，**必须全部关闭**，否则必删核心 xctest 模块（这是闪退的首要原因）。
-3. **日常待机消耗**：iCTRL 在空闲等待 RPC 请求时，CPU 占用约 **5%**，内存占用约 **49MB**，无需频繁关闭。如需退出：通知中心长按通知点「停止服务」，或后台多任务直接划掉。
-4. **服务重启**：只要手机未重启，**DDI 镜像始终维持挂载**；后续若重新使用，仅需在桌面点一下 iCTRL 图标即可立刻恢复服务，**无需重新运行 StikDebug**。
-
-## 与 StikDebug / DDI 的关系
-
-- iCTRL 本身依赖 DDI 挂载 + StikDebug 拉起，属于「侧载 + 开发者磁盘镜像」玩法，与 StikDebug JIT 启用链路共用同一套 on-device 基础设施。
-- 相关技能：`stikdebug`（免电脑启用 iOS JIT 加速）—— 若 DDI 挂载或 tunnel 建立失败，先按该技能排错。
-- **iOS 27 注意**：主线 StikDebug 3.1.13 在 iOS 27.0/27.2 上 tunnel 建立失败（issue #471，open），若 iCTRL 起不来先确认 StikDebug 本身是否可用。
-
-## 版本记录
-
-| 版本 | 日期 | 要点 |
+| Method | Required | Useful optional |
 |---|---|---|
-| 1.2.0 | 2026-10-11 | 新增 iOS 27 手机端 StikPair → StikDebug 导入 Pairing File、默认挂载 DDI 的流程。
-| 1.1.0 | 2026-10-06 | 新增「点击图标闪退之二」：`@rpath/XCTest.framework` 加载失败 = DDI 未挂载，先启动 StikDebug 而非重签；附 DYLD 排查顺序 |
-| 1.0.0 | 2026-10-05 | 首版：自签名闪退根因（PlugIns/xctest 保留 + 开发者模式）、device_info/shot/控件 JSON-RPC 接口、待机消耗与服务重启经验 |
+| `find_element` | `element_id` (label or accessibility id) | `element_type`, `match:"contains"`, `bundle_id` |
+| `scroll_to_element` | `element_id` | `element_type`, `match`, `direction`, `distance` |
+| `tap` / `double_tap` / `long_press` | `ref`, or `x`+`y` | `duration` |
+| `type` | `text` | `submit`, `clear` |
+| `resolve_app` | `text` | — |
+| `launch_app` / `activate_app` / `terminate_app` | `bundle_id` | — |
+| `open_url` | `url` | — |
+| `home` | — | — (waits until the home screen is in front) |
+| `page_source` | — | `visible_only`, `max_children`, `filter`, `bundle_id` |
+| `page` | — | `direction`, `distance` (screens) |
+| `swipe` | — | `direction`, `distance` (points), `velocity`, `x`, `y` |
+| `screenshot` | — | `scale`, `format`, `quality` |
 
-## 来源
+The method is `type`, not `type_text`. `element_type` only filters — `element_id` is always required. `GET /schema` lists every method and parameter.
 
-- 用户实测经验（2026-10-11）：iOS 27 手机端使用 StikPair 获取 Pairing File，导入 StikDebug 后默认挂载 DDI。
-- IPA 结构核验（2026-10-11）：用户提供的 iCTRLUITests-Runner.ipa 保留 PlugIns/xctest 及兼容库。
-- 用户实测经验（2026-10-05）：自签名闪退已解决，附避坑要点与接口示例。
-- 崩溃日志分析（2026-10-06）：用户上传 `.ips`（iOS 27.0 24A437，bug_type 309）+ Mach-O RPATH 解析，确认 `@rpath/XCTest.framework` 加载失败根因是 DDI 未挂载。
-- 关联：`stikdebug` 技能（DDI / StikDebug 链路排错）。
+Most responses carry a **`hint`** for that exact result — which limits applied, what to do next. Read it, above all when a result is empty or negative.
+
+## Timeouts and recovery
+
+- The server answers a UI call after **6s** (15s for `page_source`, `tap_element`, `find_and_tap`) even if the work is still running. UI calls run **one at a time**, and a stuck one can't be cancelled. Calls behind it time out too. Their error says *"has NOT run yet: queued behind X"*: they will still run later, so **do not resend them**.
+- After two timeouts in a row, UI calls are rejected immediately. The message names the stuck call and how long it has run. Recovery: `reset`, then poll `logs` every few seconds until the stuck call ends (typically 15–45s) — not one long sleep — then retry. `reset` can't stop a call already running.
+- **Only `logs`, `config` and `reset` answer while the UI queue is stuck.** `device_info` shares the UI queue, so it's no health probe; use `logs`.
+- Client timeout ≥30s. After restarting your side, reuse the cached key and `bundle_id`s and return via a deep link (`open_url`).
+
+## Finding and tapping
+
+- `find_element` matches exact label → accessibility id → value → (with `match:"contains"`) substring. **An element in view always beats an off-screen one**: a calendar holds "25" in three months. The result has `visibility` (`in_view`/`partial`/`offscreen`), and when several matched, `alternatives[]` + `match_count`.
+- A `ref` re-resolves the live element at tap time. If its app has gone to the background (a system sheet, another app), the tap is refused at once: *"belongs to X, which is now in the background"*. Look at the screen before continuing.
+- **Off-screen** → loop `page{direction}` → `find_element` until `in_view`; `moved:false` = the end, it isn't there. `scroll_to_element` is slower (~1.3s a step, 3 steps a call): use it only for a target `find_element` returned as `offscreen`. Its **"NOT anywhere in this view"** means it isn't on this screen at all — stop scrolling.
+- **Text on screen ≠ accessibility label** (common). Copy the label from `page_source`, or use `match:"contains"`. An accessibility `identifier` shown in `page_source` is the most stable `element_id` of all. Duplicate labels → add `element_type`.
+- **Nothing matches but you can see it** → it's a custom control with no label. The failure message lists what *is* on screen. Take its frame from `page_source` and `tap{x,y}`.
+- A coordinate `tap` returns `hit` (the element under the point, sampled before tapping) or `hit_warning` (nothing labelled there — you probably hit empty space). `covering_layer:true`: a dialog/login layer covers the point and got the tap.
+- **Web pages often don't appear in the accessibility tree** (Safari: chrome only, `foreground_is_browser:true`; some in-app web views expose it). Trust `channel.recommended`; on `ocr` use `screenshot` → locate → `tap{x,y}`.
+- A **system alert** over the app (`system_alert:true`) blocks its ref actions. Answer it: `find_element{element_id:"<button>", bundle_id:"com.apple.springboard"}` → `tap{ref}`.
+
+## Typing and searching
+
+1. The search "bar" on a home screen is often a Button that opens a search page. `find_element` returns `is_text_input`; if false, tap it, then find the real field: `find_element{element_id:"<placeholder>", element_type:"textfield", match:"contains"}` → `tap{ref}` (brings up the keyboard).
+2. `type{text, submit:true}`. `submit` presses Return/Search.
+3. **Trust success.** If `type` returned no warning, the text went in. Old content in the next read = not updated yet: read again, don't re-type.
+4. **Typing appends.** To replace a field's text use `type{text, clear:true}` or `clear_text` first (select-all + delete). An `append_warning` in the response means you just appended to existing text.
+   If `submit` didn't trigger the search, tap the screen's own search/confirm control — don't re-type.
+5. `page_source` carries `keyboard` (`visible`, `covers_from_y`). Coordinates read before the keyboard appeared are stale: everything above it has shifted.
+
+## Reading the screen
+
+- **Default: `page_source{visible_only:true, max_children:50}`** — on-screen nodes only, well under 1s even on long feeds. Omit `visible_only` only when you need off-screen structure.
+- `filter:{text|label|type:"…"}` returns matching nodes + ancestors — the cheap way to harvest repeated values (prices, titles).
+- **Thin tree?** When `channel.recommended` is `ocr` (or `sparse_hint`/`viewport_warning` appears), read with `screen_text`: text plus tappable point coordinates.
+- `max_elements` (default 2000, cap 4000): if the response says `truncated:true`, narrow with `filter`/`visible_only` instead of raising it. An app scrolled for a long time accumulates rows and slows every read; relaunching it clears them.
+
+## Scrolling
+
+- **`page{direction:"down"}`** is how to read long content. Each step moves two thirds of the screen (a third overlaps), with no momentum, so nothing falls between reads. Don't use `swipe` for reading — it barely moves; keep it for carousels, partial drags and pull-to-refresh.
+- `page`/`scroll` report `moved`. **`moved:false` (`at_end:true`) means stop** — nothing more that way. (A page still loading also looks unmoved; read once more if more is expected.)
+- `position` (`percent`, `fraction`, …) says where you are. Trust it only when `confidence` is `estimated` or `exact`. Lists that build rows lazily pin it near 0/100% with few `rows_seen`.
+
+## Apps
+
+- `resolve_app` looks offline first (`opened_here` = launched on this device before — use it directly; then a built-in catalog), else the App Store. Only `opened_here` says anything about *this* device.
+- **`launch_app` is the real install test**: success = installed, error = not. Newer iOS refuses `list_apps` enumeration; it then returns only apps opened via iCTRL before (`source:"opened_history"`). Never report "not installed" from a lookup or an empty list — if unsure, check Spotlight (home, swipe down, type the name).
+- `open_url{url}` opens any scheme / deep link / universal link. Finish by opening the caller's scheme to hand control back, if you have one.
+- **No target app**: reads and actions apply to what is on screen. Apps jump (login, payment, ads): after a surprise, read first. A `ref` tap is refused once its app leaves the front.
+- Coordinate actions and `type` return `page_check`; **`same_page:false`** = the screen had changed, before the action, since you last saw it: read, check what you hit, fix.
+
+## Coordinates and screenshots
+
+- `tap`/`swipe`/`drag` take **points**. `page_source` frames and OCR boxes are points.
+- Screenshots are pixels: `point = pixel / scale`, using the **`scale` from that screenshot response** (default 2), not `device_info.screen_scale` (the panel's 3). Mixing them puts taps ~200pt off.
+
+## Diagnostics
+
+- `device_info.system`: `screen_locked` (black screenshots, taps doing nothing — `unlock` only wakes the screen and never leaves the app: use `home` for that; a passcode needs the user), `foreground_app`, `foreground_is_browser`, thermal/memory/battery. Screen sleep doesn't stop the runner; for long runs suggest Auto-Lock → Never.
+- `logs{text?, max_elements?}`: recent log lines over the normal channel. `⏱ ✓ <method>` = completed, `⏱ TIMEOUT`, `⛔️`/`✅` channel state. `GET /logs/files` and `GET /logs/history?date=YYYY-MM-DD` keep logs across crashes; byte endpoints (`/logs*`, `/stream`) need a single-use `?ticket=` from the `stream_ticket` RPC.
+- `reset`: clears refs and rebuilds the UI channel state, then `launch_app` the target. `config{stop_server:true}` stops the runner (keys persist); it must be relaunched on the device.
+- `/schema` unreachable = the runner isn't running; the user must start it (the Developer Disk Image is lost on every reboot).
+- On cellular the device isn't reachable from the LAN.
+
+## Protocol
+
+No bundled client usable → the Python client (`GET /skill/clients/python`) is the reference for pairing (X25519) and the request envelope (HMAC-SHA256). Follow it exactly.
