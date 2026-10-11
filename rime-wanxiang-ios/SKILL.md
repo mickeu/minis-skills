@@ -143,10 +143,53 @@ jsonnet jsonnet/main.jsonnet -o /tmp/WanxiangSkin.json
 - 万象更新工具：`rimeinn/rime-wanxiang-update-tools`（全平台含 iOS）
 - 作者 iOS 方案管理：`BlackCCCat/Scripting-Scripts`（基于 Scripting App）
 
+## 七、天枢笔画输入法参考（BG5CGQ-Stroke-Rime）
+
+> 天枢笔画输入法项目：`mickeu/tianshu-stroke`（基于 Hamster/RIME 的 iOS 键盘开源构建，公开无签名 IPA）。BG5CGQ 是**专为 Hamster 框架做的现成九宫格笔画方案**，天枢基于 Hamster fork，可直接移植/参考。本地副本与参考文件见 `references/bg5cgq-stroke-rime/`。
+
+### 核心资产
+
+- `stroke_bg5cgq.schema.yaml`：Rime 方案定义（数字编码 `alphabet: "12345?'"`，`preedit_format` 把 12345 转笔画图形一丨丿丶乛）
+- `stroke_bg5cgq.dict.yaml`：**27,755 字码表 + 20,511 通配变体**
+- `hamster.yaml`：九宫格笔画键盘布局（仿百度）+ 深色配色 `stroke_ninegrid_dark`
+- 六份文档：使用说明 / 数据源深度分析 / 编码数据推荐 / 详细实施方案 / 部署记录
+
+### 键位（九宫格，数字编码）
+
+```
+ ， │ 一(1) │ 丨(2) │ 丿(3) │ ⌫
+ 。 │ 丶(4) │ 乛(5) │ 分词(6) │ 换行
+ ？ │ 通配(7) │ ，(8) │ 。(9) │ 符号
+ 中英 │ 123 │ 空格 │ 回车
+```
+上划出数字、下划出符号。编码规范与百度一致：竖钩归竖（丁=12）、提归横（打=121）、捺归点（人=34）。
+
+### 零 Swift 修改（关键优势）
+
+键盘布局、配色、方案**全部通过 YAML 配置**实现，完全复用 Hamster 自定义键盘机制（`keyboards/rows/keys/action.character.char`、`swipe`、`colorSchemas`），无需改 Swift。对天枢这类 fork 项目友好。
+
+### 与天枢现有原型（StrokePrototype，hspnz 字母五键）对比
+
+| 维度 | 天枢 hspnz 原型 | BG5CGQ |
+|---|---|---|
+| 编码键 | 字母 `h s p n z` | 数字 `1-5` |
+| 码表 | 少量示例词组 | 27,755 字 |
+| 通配符 | ❌ 未实现 | ✅ 20,511 个 `?` 变体 |
+| 分词 | 仅 `'` 分隔符 | ✅ 6 键 + 词组组合 |
+| 上下划 | 无 | ✅ 数字/符号 |
+| 配色 | 2 个原型色 | ✅ 深色九宫格皮肤 |
+
+### 移植到天枢要点
+
+1. **确认 fork 版本兼容**：天枢基线 Hamster commit 的 `Models.swift` 是否支持 `swipe`、`colorSchemas`、通配键（天枢原型已用 swipe/percentage，大概率兼容，需核对）
+2. **布局取舍**：接受九宫格数字布局 → 直接移植 BG5CGQ；保留 hspnz 字母布局 → 改 `speller/alphabet` 和键盘 `char` 映射
+3. **集成方式**：`stroke_bg5cgq.schema.yaml` + `.dict.yaml` 打进天枢 SharedSupport，`hamster.yaml` 笔画键盘段合并进天枢 `hamster.custom.yaml`
+
 ## 参考资料（来源）
 
 - **rime-wanxiang**：https://github.com/amzxyz/rime-wanxiang ，调研于 2026-10-12，commit `abb8cde7682028dca76d3d449562b6854b33efaf`（2026-10-11 "dict: 词库调整"），文档 `docs/doc/hamster3.md`、`docs/doc/intro.md`
 - **ResourceforHamster**：https://github.com/BlackCCCat/ResourceforHamster ，调研于 2026-10-12，commit `6a3e1aea4f392a0616608cb095196062da70b1bf`（2026-10-08 "反查custom patch更新"），含 `Skin_Keyboard/万象-元书/WanxiangSkin` 与 `WanxiangSkin-modifier`
+- **BG5CGQ-Stroke-Rime**：https://github.com/zny05/BG5CGQ-Stroke-Rime ，调研于 2026-10-12，commit `181f10fb85c621cdf6ea69012b3ff3bf22e55f28`（2026-08-27 "v1.0 仿百度九宫格笔画"）。子模块：deps/chinese-stroke `cd2b264`、deps/rime-stroke `1e8fff9`、deps/Chinese-characters-code-table `8db2c1c`。数据源：yukunqian/chinese-stroke（10,087 字）、yefeijiang/Chinese-characters-code-table（11,091 字）、rime/rime-stroke（6,577 字）、rime-essay 语料、通用规范汉字表加权。天枢笔画输入法项目：https://github.com/mickeu/tianshu-stroke
 - 元书输入法 App Store：https://apps.apple.com/us/app/元书输入法/id6744464701
 - 仓输入法 App Store：https://apps.apple.com/us/app/仓输入法/id6446617683
 - 天枢（TianShu）：https://www.tianshuapp.tech （本地多角色 AI Agent 工作台，后续改造对象）

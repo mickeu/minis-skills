@@ -1,0 +1,127 @@
+# Rime schema settings
+# encoding: utf-8
+#
+# 【BG5CGQ笔画输入法】
+# 九宫格笔画输入, 参照百度输入法笔画输入方式
+#
+# 键位映射 (九宫格, 由键盘布局层发送):
+#   1 → 一 (横, 含提)
+#   2 → 丨 (竖, 含竖钩)
+#   3 → 丿 (撇)
+#   4 → 丶 (点, 含捺)
+#   5 → 乛 (折, 除竖钩外各类折笔)
+#   6 → 分词 (词组分隔符 ')
+#   7 → 通配 (?) 匹配任意一笔
+#   8 → ，
+#   9 → 。
+#
+# 编码规范: 教育部《通用规范汉字笔顺规范》
+#   竖钩(亅)归竖(2), 与百度输入法一致
+#   提(㇀)归横(1), 捺(㇏)归点(4)
+#
+# 首笔即可选字: 依赖码表字频排序, 笔画越多候选越精确
+
+schema:
+  schema_id: stroke_bg5cgq
+  name: BG5CGQ笔画
+  version: "1.3"
+  author:
+    - BG5CGQ
+    - Hamster Team
+  description: |
+    九宫格笔画输入法
+    键位: 1一 2丨 3丿 4丶 5乛 6分词 7通配 8， 9。
+    采用教育部《通用规范汉字笔顺规范》
+
+switches:
+  - name: ascii_mode
+    reset: 0
+    states: [ 中文, 西文 ]
+  - name: full_shape
+    states: [ 半角, 全角 ]
+  # 联想开关 (librime-predict 插件)
+  # 上屏一词后自动给出下一个词候选
+  - name: prediction
+    reset: 1
+    states: [ 关闭联想, 开启联想 ]
+
+engine:
+  processors:
+    # predictor: librime-predict 插件 (Hamster 已内置编译)
+    # 监听上屏事件, 用上屏词查 predict.db 触发联想
+    # 注意: 必须在 key_binder 之前 (官方 README 要求)
+    - predictor
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - matcher
+    - abc_segmentor
+    - punct_segmentor
+    - fallback_segmentor
+  translators:
+    - punct_translator
+    # predict_translator: 输出联想候选到候选栏
+    - predict_translator
+    - table_translator
+
+speller:
+  # 编码字母表: 数字 1-5 为笔画编码, ' 为分词符, ? 为通配符
+  alphabet: "12345?'"
+  delimiter: " "
+
+menu:
+  page_size: 9
+
+translator:
+  dictionary: stroke_bg5cgq
+  # 编码区显示: 数字转笔画图形 (1一 2丨 3丿 4丶 5乛)
+  preedit_format:
+    - xlit/12345/一丨丿丶乛/
+  enable_sentence: true
+  enable_completion: true
+  # 开放用户词库: Rime 自动记录选字/选词频率, 动态调频
+  # 机制: 选词上屏 → Memorize → UpdateEntry(commits+1)
+  #       下次同码输入 → userdb 权重参与排序 → 常用字/词优先
+  enable_user_dict: true
+  user_dict: stroke_bg5cgq.userdb
+  db_class: userdb
+  # 连续上屏多词时, 自动组合造词的最大长度 (如连续选"你好"→造词"你好")
+  enable_encoder: true
+  encode_commit_history: true
+  max_phrase_length: 4
+  # 词组初始权重: 码表词组相对单字的排序加成
+  initial_quality: 1.0
+
+# librime-predict 联想配置 (Hamster 已内置编译 predict 插件)
+# predict.db: 官方词频联想库 (rime/librime-predict releases data-1.0)
+# 放置于 Rime 用户目录 (Rime/predict.db)
+predictor:
+  db: predict.db
+  # 每次联想最多给出的候选数
+  max_candidates: 9
+  # 连续联想次数: 1 = 联想一个词后停止 (再次输入编码后可继续)
+  max_iterations: 1
+
+key_binder:
+  import_preset: default
+  bindings:
+    # 分词: 6 映射为分隔符 ' (词组输入: 字1编码 + ' + 字2编码)
+    - { when: composing, accept: "6", send: "'" }
+    # 空格: 有候选时首选上屏
+    - { when: has_menu, accept: space, send: Select }
+    # 回车: 清空编码区
+    - { when: composing, accept: Return, send: Escape }
+
+punctuator:
+  import_preset: default
+  mappings:
+    # 8/9 键由键盘层直接发送标点字符, 此处仅兜底
+    "8": "，"
+    "9": "。"
