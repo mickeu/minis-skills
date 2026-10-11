@@ -159,6 +159,7 @@ XCTest-Runner 应用（如 `iCTRLUITests-Runner.app`）在自签名安装后容�
    - 执行后配合 `sign_ictrl.sh` 重签名即可。
 
 ## 参考资料（来源）
+- OpenMinis/iCTRL release v1.96.1：https://github.com/OpenMinis/iCTRL/releases/tag/v1.96.1（访问于 2026-10-12）
 - Apple Developer Documentation - App Icons and Notification Assets Specification (iOS 16-18)
 - 调研与验证日期：2026-10-11
 - 案例样本：iCTRLUITests-Runner / Spotify-Pro / 贴吧纯净版（巨魔商店-LC）
@@ -172,6 +173,7 @@ XCTest-Runner 应用（如 `iCTRLUITests-Runner.app`）在自签名安装后容�
   - `GET /remote` 远程控制页：抓屏快数倍、最高 30fps 低延迟流、支持横滑/长按/右键 Home。
   - Runner 主屏图标；iCTRL app 在 iOS 26.4+ 挂载 cryptex Developer Disk Image、实际连通 LocalDevVPN 隧道、首启检查网络权限。
   - 产物：`iCTRLUITests-Runner.ipa`（必需，自动化引擎）+ 可选 `iCTRL.ipa`（挂载 DDI 并启动 runner）。均未签名，需自签（新版 SideStore 自动处理嵌套 .xctest；旧版 SideStore 会跳过导致 runner 启动崩溃；付费账号用 `Scripts/sign-ipa.sh -i iCTRLUITests-Runner.ipa`）。
+  - 来源：https://github.com/OpenMinis/iCTRL/releases/tag/v1.96.1（访问于 2026-10-12）
 
 ## Protocol
 
