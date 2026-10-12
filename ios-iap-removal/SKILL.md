@@ -1,6 +1,6 @@
 ---
 name: ios-iap-removal
-description: 去除解密 iOS IPA 的内购/订阅功能，并修复重新签名（换 Bundle ID/Team）导致的 App Group 不匹配问题。适用于 Swift 编写的 App（如基于元书/Hamster 的输入法）。当需要给解密 IPA 去订阅/去内购/解锁 Pro、或重签后 App 报"未能完成操作"（App Group 失效）时使用。
+description: 去除解密 iOS IPA 的内购/订阅功能，并修复重新签名（换 Bundle ID/Team）导致的 App Group 不匹配、文件共享未开启致 RimeUserData 不可见等问题。适用于 Swift 编写的 App（如基于元书/Hamster 的输入法）。当需要给解密 IPA 去订阅/去内购/解锁 Pro、或重签后 App 报"未能完成操作"（App Group 失效）、方案目录切换为空时使用。
 ---
 
 # iOS IPA 去订阅 + App Group 修复
@@ -64,8 +64,11 @@ Lcsign 之类的工具不递归处理嵌套 bundle，会导致所有设置项报
 - `r2 aaa` 在 iSH 跑大二进制会超时，用 capstone 分块扫 adrp 定位字符串引用。
 - 描述文件若用新 Team，原 App Group/iCloud 必然失效，需替换二进制里的 ID。
 - 重签后验证 zsign 是否处理了嵌套 bundle（`find . -path "*bundle*CodeResources"`）。
+- **重签名后方案目录/文件管理失效的隐形坑**：若 IPA 的 Info.plist 里 `UIFileSharingEnabled` 与 `LSSupportsOpeningDocumentsInPlace` 为 `False`，iOS 不会在「我的 iPhone」下建立 App 文件夹 → `RimeUserData` 不可见、方案无法正常落盘 → 输入法的「下载方案/压缩包导入」显示成功但方案目录切换为空。**修复：重签名前把主 app + 插件的 Info.plist 这两个 key 改为 `True` 再签名**（zsign 默认不改这两个值）。
+- **不要靠注入 entitlements 补权限**：描述文件的权限（如 iCloud 容器、App Group）由 Apple 后台签发，zsign `-e` 强行注入描述文件里没有的 entitlement（如 `icloud-container-identifiers`）会导致 **iOS 直接拒绝安装**（App 无法安装）。缺权限只能改二进制/Info.plist 里可改的内容，或让用户重新生成带该权限的描述文件。
 
 ## 参考资料（来源）
 - 2026-10-12 实战：天枢输入法（基于元书 Hamster 1.11.0）去订阅 + App Group 修复，产物 `天枢输入法_v4_AppGroup.ipa`。
+- 2026-10-12 实战二：天枢 v4 重签名后「下载方案/压缩包导入成功但方案目录切换为空」→ 根因是 `UIFileSharingEnabled=False`（文件共享未开启），重签名时改 Info.plist 两个 key 为 True 即解决（产物 `天枢输入法_v6_文件共享.ipa`，用户确认方案下载成功）。v5 曾因注入 iCloud entitlement 导致装不上，已废弃。
 - 二进制补丁偏移（Hamster 1.11.0 参考，其他版本需重新定位）：主程序 h3kb Store getter 0x4e3678 / Redux getter 0x4eb6d0 / setter 0x4e986c / 直接写入 0x4e7e7c；插件 h3kb_plugin Store getter 0x39e30c / Redux getter 0x3a63a4 / setter 0x3a4540 / 直接写入 0x3a2b10。
 - 工具：radare2/rabin2、capstone、zsign。

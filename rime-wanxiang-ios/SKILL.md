@@ -185,6 +185,30 @@ jsonnet jsonnet/main.jsonnet -o /tmp/WanxiangSkin.json
 2. **布局取舍**：接受九宫格数字布局 → 直接移植 BG5CGQ；保留 hspnz 字母布局 → 改 `speller/alphabet` 和键盘 `char` 映射
 3. **集成方式**：`stroke_bg5cgq.schema.yaml` + `.dict.yaml` 打进天枢 SharedSupport，`hamster.yaml` 笔画键盘段合并进天枢 `hamster.custom.yaml`
 
+## 八、重签名后方案目录不生效排查（元书/天枢类输入法）
+
+> 2026-10-12 实战结论。天枢输入法（元书 Hamster3 的 fork，去订阅重签名版）出现「下载方案/压缩包导入显示成功，但方案目录切换为空」，App Store 原版正常。
+
+### 症状
+- 「下载方案」显示成功，但「方案目录切换」列表为空
+- 「压缩包导入」（用元书打开 zip）也不生效
+- 关闭 iCloud 后，iOS 文件 App 的「我的 iPhone」下不出现「元书输入法」文件夹
+
+### 根因（关键）
+- **Info.plist 的 `UIFileSharingEnabled = False`、`LSSupportsOpeningDocumentsInPlace = False`**
+- → iOS 不在「我的 iPhone」建立 App 文件夹 → `RimeUserData` 不可见、方案无法正常落盘 → 方案目录切换为空
+- 容易被误判为 iCloud 容器权限缺失（二进制引用 `iCloud.com.ihsiao.apps.Hamster3`，而新描述文件 `icloud-container-identifiers` 为空）——但**这不是主因**
+
+### 修复
+1. 基于可正常安装的版本重新解压
+2. 修改主 app + 插件 Info.plist：`UIFileSharingEnabled=True`、`LSSupportsOpeningDocumentsInPlace=True`
+3. **不注入任何额外 entitlements**（保持描述文件原始权限）
+4. zsign 用原描述文件 + 证书重新签名
+5. 安装后文件 App「我的 iPhone」出现元书文件夹 → 方案下载/导入恢复正常
+
+### 反例（装不上）
+- 强行用 zsign `-e` 注入 `icloud-container-identifiers`（描述文件没有该权限）→ iOS 直接拒绝安装。描述文件权限是 Apple 后台签发的，**不能靠注入补**。
+
 ## 参考资料（来源）
 
 - **rime-wanxiang**：https://github.com/amzxyz/rime-wanxiang ，调研于 2026-10-12，commit `abb8cde7682028dca76d3d449562b6854b33efaf`（2026-10-11 "dict: 词库调整"），文档 `docs/doc/hamster3.md`、`docs/doc/intro.md`
@@ -194,3 +218,4 @@ jsonnet jsonnet/main.jsonnet -o /tmp/WanxiangSkin.json
 - 仓输入法 App Store：https://apps.apple.com/us/app/仓输入法/id6446617683
 - 天枢（TianShu）：https://www.tianshuapp.tech （本地多角色 AI Agent 工作台，后续改造对象）
 - 万象更新工具：https://github.com/rimeinn/rime-wanxiang-update-tools
+- 2026-10-12 实战：天枢输入法重签名后「方案目录切换为空」的根因与修复（文件共享未开启），产物 `天枢输入法_v6_文件共享.ipa`（用户确认方案下载成功）。详见本技能库「八、重签名后方案目录不生效排查」及 `ios-iap-removal` 技能库。
