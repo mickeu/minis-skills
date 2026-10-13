@@ -209,6 +209,17 @@ jsonnet jsonnet/main.jsonnet -o /tmp/WanxiangSkin.json
 ### 反例（装不上）
 - 强行用 zsign `-e` 注入 `icloud-container-identifiers`（描述文件没有该权限）→ iOS 直接拒绝安装。描述文件权限是 Apple 后台签发的，**不能靠注入补**。
 
+## 九、BG5CGQ 动态分段造词：真机成功基线
+
+**2026-10-14 用户确认 v7.0「造词完美通过」。** 遇到笔画造词、短码词＋后段字、选词后残留笔画、单笔画/偏旁优先级时，先读 [成功实现与验收纪律](references/bg5-staged-compose.md)。
+
+- 前段短码能成词也要保留；整词命中不应吞前段词和后段候选。
+- 当前分段约定下，部分候选消费后置分隔符：`31'12'25112141` 的「我要」范围 `[0,6)`，后段「国」`[6,14)`；不是旧模拟测试的 end=5。
+- translator 与 filter 均使用候选局部 preedit；filter 按候选覆盖子段计数，并忽略已消费的末尾分隔符。
+- 单笔画、既有偏旁部首显式类别优先，不靠提高词频模拟；同字不同范围按 type/start/end/text 去重。
+- 模拟候选/暂存拼接不等于真实点击。v7.0 用户已确认造词真机通过，后续不得在未完成新版本端到端验证时沿用该结论。
+- 成功 zip SHA-256：`a65e80d12c46e36b1e9aaf09ef60fdd6b7497c3d9f2322a5605d39bbc0d4b606`；完整来源、复现命令、性能反例见引用文档。
+
 ## 参考资料（来源）
 
 - **rime-wanxiang**：https://github.com/amzxyz/rime-wanxiang ，调研于 2026-10-12，commit `abb8cde7682028dca76d3d449562b6854b33efaf`（2026-10-11 "dict: 词库调整"），文档 `docs/doc/hamster3.md`、`docs/doc/intro.md`
