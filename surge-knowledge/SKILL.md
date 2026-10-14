@@ -10936,6 +10936,34 @@ RULE-SET:https://example.com/rules.txt = server:https://223.5.5.5/dns-query
 
 （来源：@SurgeTestFlightFeed）
 
+### Surge 5.102.0 (3871) — TestFlight（2026-10-14 收录）
+
+**Tailscale 入站连接**
+- 新增 `accept-incoming = true`：允许其他 tailnet 设备通过本机 tailnet 地址访问本机，包括 Surge HTTP/SOCKS5 代理及本机运行的其他服务。
+- 新增 `advertise-exit-node = true`：宣告本机为 Tailscale exit node；其他设备选择该节点后，其互联网流量经过本机 Surge 规则。需要在 Tailscale 管理后台批准。
+- 新增 `advertise-routes = 192.168.1.0/24, ...`：宣告本机可达的子网路由。需要在 Tailscale 管理后台批准。
+- Tailscale 入站请求按照普通请求经过 Surge 规则和策略，并显示在请求列表。
+- Surge 不自动应用 Tailscale access control policy；应使用 `SRC-IP` 等 Surge 规则限制来源和目的地。
+
+**WireGuard 入站连接**
+- 新增 `accept-incoming = true`：允许 peer 通过已有隧道连接本机。
+- 新增 `listen-port = 51820`：Surge 可作为 WireGuard server 接受手机、电脑等客户端连接。
+- peer 可省略 `endpoint`；Surge 在客户端连接时学习地址，并在地址变化时保持连接。
+- 客户端可以将 Surge tunnel address 设置为 DNS，由 Surge 回答 DNS 查询。
+
+**适用边界**
+- Tailscale 通常不需要自有公网 IP、端口映射或同一局域网；优先尝试直连，失败时使用 DERP relay。DERP 仍需要双方能访问 Tailscale 控制/中继服务。
+- 这使“远端设备通过 Tailscale 访问 Surge 的 HTTP/SOCKS5 代理或使用其 exit node”成为可行场景；远程控制 Surge 还需要单独开启 `external-controller-access`，入站能力只负责提供网络可达性，不等于手机屏幕远控。
+- 原生 WireGuard 不自动具备 Tailscale 的打洞和 DERP；不能把 Tailscale 的免公网结论直接套用到 WireGuard。
+- iOS 上独立 Tailscale App 与 Surge 的系统 VPN 接管通常不能同时运行；可使用 Surge 内置 Tailscale，或让另一台设备使用独立 Tailscale 连接此设备。
+
+**参考资料（来源）**
+- 原文：用户于 2026-10-14 提供的 Surge 5.102.0 (3871) TestFlight 英文公告。
+- 官方频道：https://t.me/SurgeTestFlightFeed（用户提供；具体消息 URL 未提供）。
+- 官方手册入口：https://manual.nssurge.com/ 。
+- 详细整理：`references/ios-3871-incoming.md`。
+- 校验状态：版本/构建号以用户原文为准；未进行双机真机验收。
+
 ### Surge 5.102.0 (3870) — Beta Updates（2026-10-14 收录）
 
 **Adaptive QUIC Block**
