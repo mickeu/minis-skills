@@ -220,6 +220,31 @@ jsonnet jsonnet/main.jsonnet -o /tmp/WanxiangSkin.json
 - 模拟候选/暂存拼接不等于真实点击。v7.0 用户已确认造词真机通过，后续不得在未完成新版本端到端验证时沿用该结论。
 - 成功 zip SHA-256：`a65e80d12c46e36b1e9aaf09ef60fdd6b7497c3d9f2322a5605d39bbc0d4b606`；完整来源、复现命令、性能反例见引用文档。
 
+## 十、元书皮肤双排工具栏与候选栏经验（2026-10-14 用户真机确认）
+
+**背景**：为「多功能大包」皮肤加两排工具栏、压缩候选卡片高度，反复调整真机无变化，最终通过**换新皮肤名导入**解决。经验沉淀如下。
+
+### 双排工具栏正确做法
+1. **不要用额外 gap 行控制两排间距**：HStack/VStack 不支持直接 `insets`；在 `toolbarLayout` 中间插入 gap 行（如 `toolbarRowGapStyle: {size: {height: 2.5}}`）会被当作普通行参与高度分配，导致两排之间出现不可控的大间距。
+2. **两排直接相邻**：`toolbarLayout` 只放两个 HStack 即可，两排之间无间隔行。
+3. **用按钮背景的上下 insets 控制视觉间距**：工具栏按钮背景（`toolbarButtonBackgroundStyleKS` 等）的 `insets: {top: 1, bottom: 1}` 让图标贴近卡片边缘，两排视觉贴合；卡片背景高度不变。
+4. **工具栏卡片高度 = toolbarHeight / 行数**：每排高度由 `toolbarHeight` 均分，改 `toolbarHeight` 即可整体缩放卡片。
+
+### 候选栏高度与工具栏联动
+- 元书「横向候选文字栏尺寸与工具栏尺寸相同」：`toolbarHeight` 过高会导致候选栏被拉高。
+- **独立固定候选栏高度**：给 `horizontalCandidates` 设置 `size: {width: 7/8, height: 30}`，候选栏高度不再跟随工具栏。
+- **候选区做成固定卡片**：`horizontalCandidatesStyle.backgroundStyle` 指向自定义几何卡片（日间白 `#FFFFFF` / 夜间 `#2C2C2E`，`cornerRadius: 10`，轻阴影），比动态透明区域更优雅。
+- **候选区贴近打字区**：`horizontalCandidatesStyle.insets: {top: 0, bottom: 0}`，`keyboardStyle.insets.top` 压到 2。
+
+### 同名皮肤缓存坑（最重要）
+- **元书按皮肤名缓存旧版**：同一皮肤名反复导入新 `.cskin`，元书可能继续使用旧缓存，改参数后真机显示毫无变化。
+- **解决：换新皮肤名导入**（ZIP 根目录 + `config.yaml` 的 `name` 同步改新名字，如「多功能大包-紧凑版」），作为新皮肤加载即可看到修改。
+- 修改挂载目录 `/var/minis/mounts/Skins/<皮肤名>/` 后，元书不会自动热更新，仍需重新导入 `.cskin` 或重新选择皮肤。
+
+### 产物
+- `/var/minis/workspace/多功能大包.cskin`（SHA-256 `839273415bd39fd8de2d06b319aa0d5d504b4e43ad6ca76fee3ac75beaa40cc0`）
+- `/var/minis/workspace/多功能大包-紧凑版.cskin`（SHA-256 `b47a5a71888b7bfa5873c2864b899ebbf817baea881edeaca48bfaa4d3ef9869`，用户确认效果正确）
+
 ## 参考资料（来源）
 
 - **rime-wanxiang**：https://github.com/amzxyz/rime-wanxiang ，调研于 2026-10-12，commit `abb8cde7682028dca76d3d449562b6854b33efaf`（2026-10-11 "dict: 词库调整"），文档 `docs/doc/hamster3.md`、`docs/doc/intro.md`
