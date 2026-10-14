@@ -3696,6 +3696,7 @@ On supported systems, ECN is enabled by default for QUIC-based proxy protocols s
 
 Optional, `auto` / `on` / `off`, default: `auto`.
 
+> **版本覆盖：Surge 5.102.0 Beta Build 3870** 新增 `adaptive`；`auto` 对除 DIRECT 外的所有策略使用自适应模式，无法转发 UDP 的策略仍阻断 QUIC。先阻断，1 秒内未回退 TCP 则按主机放行并记忆。以下英文内容为旧手册镜像，不能覆盖新版 auto 语义；详见下方 3870 更新记录。
 
 Forwarding QUIC traffic through a proxy may cause performance issues. Enabling this option blocks QUIC traffic, causing the client to fall back to the traditional HTTPS/TCP protocol.
 
@@ -10934,6 +10935,25 @@ RULE-SET:https://example.com/rules.txt = server:https://223.5.5.5/dns-query
 - 修复其他一些小问题
 
 （来源：@SurgeTestFlightFeed）
+
+### Surge 5.102.0 (3870) — Beta Updates（2026-10-14 收录）
+
+**Adaptive QUIC Block**
+- 新增代理策略参数 `block-quic=adaptive`：先阻断 QUIC，让应用回退到 HTTPS over TCP；若应用在 1 秒内未回退，则对该主机放行 QUIC，兼容仅支持 QUIC 的应用。结果按主机记忆。
+- Mac 与 iOS 代理编辑器均可选择该模式。
+- `block-quic=auto` 对除 DIRECT 外的所有策略使用自适应模式；无法转发 UDP 的策略仍阻断 QUIC。不要把旧手册的 auto 行为当作此构建的行为。
+- QUIC 主机名识别支持跨多个数据包的 TLS ClientHello（常见于近期浏览器的后量子密钥交换），并新增 QUIC v2 与 draft-29 支持；规则、MITM 与请求记录可识别更多 QUIC 连接的主机名。此处不表示新增 QUIC 内容解密能力。
+
+**HTTP API**
+- `GET /v1/policies?include_external=true` 会在响应中增加 `external-policies` 字段，列出通过外部策略组 `policy-path` 加载的策略。
+- 每项包括策略名称、所属策略组及标识符；公告未给出条目内部的精确字段名，不推测 JSON 结构。
+- 使用 `$httpClient` 的 `policy` 选项指定外部策略时，必须传入该标识符，不能按外部策略名称引用。
+
+**参考资料（来源）**
+- 原文：用户于 2026-10-14 提供的英文 Beta Updates，版本 5.102.0；构建号经用户明确更正为 **3870**（不是 3170）。发布日期未独立核验，标题日期仅为收录日期。
+- 官方 Beta 发布渠道：https://t.me/SurgeTestFlightFeed 、https://x.com/SurgeBeta （本次公告的单条原文 URL 未提供，未独立抓取验证）。
+- 官方手册：https://manual.nssurge.com/ 。旧镜像保留历史语义，与此更新冲突时按版本区分，以 3870 公告为准。
+- 校验状态：按用户提供原文整理；未进行本机 API 或 QUIC 行为实测。不推断省略 `block-quic` 参数时的默认值发生变化。
 
 ---
 ## 实战场景：Tailscale exit node 借道家里电脑翻墙（免 VPS，2026-08-19 落地）
