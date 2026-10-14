@@ -233,7 +233,7 @@ jsonnet jsonnet/main.jsonnet -o /tmp/WanxiangSkin.json
 ### 候选栏高度与工具栏联动
 - 元书「横向候选文字栏尺寸与工具栏尺寸相同」：`toolbarHeight` 过高会导致候选栏被拉高。
 - **独立固定候选栏高度**：给 `horizontalCandidates` 设置 `size: {width: 7/8, height: 30}`，候选栏高度不再跟随工具栏。
-- **候选区做成固定卡片**：`horizontalCandidatesStyle.backgroundStyle` 指向自定义几何卡片（日间白 `#FFFFFF` / 夜间 `#2C2C2E`，`cornerRadius: 10`，轻阴影），比动态透明区域更优雅。
+- **候选区做成固定卡片**：`horizontalCandidatesStyle.backgroundStyle` 指向自定义几何卡片。**背景建议直接复用工具栏卡片同款渐变**（`candidateCardBackgroundStyle = toolbarButtonBackgroundStyleKS` 去掉 `insets`）：日间 `#FDFDFF→#F6F7FB`、夜间 `#3F3F40→#383839`，`cornerRadius: 10`、阴影同款，使候选区与其他卡片视觉统一（用户确认"好看多了"）。
 - **候选区贴近打字区**：`horizontalCandidatesStyle.insets: {top: 0, bottom: 0}`，`keyboardStyle.insets.top` 压到 2。
 
 ### 同名皮肤缓存坑（最重要）
