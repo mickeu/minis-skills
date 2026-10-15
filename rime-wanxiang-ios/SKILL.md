@@ -236,6 +236,23 @@ jsonnet jsonnet/main.jsonnet -o /tmp/WanxiangSkin.json
 - **候选区做成固定卡片**：`horizontalCandidatesStyle.backgroundStyle` 指向自定义几何卡片。**背景建议直接复用工具栏卡片同款渐变**（`candidateCardBackgroundStyle = toolbarButtonBackgroundStyleKS` 去掉 `insets`）：日间 `#FDFDFF→#F6F7FB`、夜间 `#3F3F40→#383839`，`cornerRadius: 10`、阴影同款，使候选区与其他卡片视觉统一（用户确认"好看多了"）。
 - **候选区贴近打字区**：`horizontalCandidatesStyle.insets: {top: 0, bottom: 0}`，`keyboardStyle.insets.top` 压到 2。
 
+### 元书 `#次选上屏` / `#三选上屏` 的正确配置（2026-10-15 用户真机确认「搞定」）
+- **官方语义**（仓输入法「自定义键盘」文档）：`#次选上屏` = 候选文字列表中次选文字上屏；`#三选上屏` = 第三位候选文字上屏。
+- **皮肤侧**：空格键 `swipeUpAction: {shortcut: '#次选上屏'}`、`swipeDownAction: {shortcut: '#三选上屏'}`（元书内置 Noctua / Write_2026 的空格键就是 `swipeUpAction: {shortcut: '#次选上屏'}`）。
+- **方案侧必须用 `editor.bindings` 配置空格键**（照抄元书内置方案 rime-ice），否则 `#次选上屏` 选中候选后空格键无法上屏：
+  ```yaml
+  key_binder:
+    import_preset: default   # 不要自定义 space 的 key_binder 绑定（会干扰）
+  editor:
+    bindings:
+      space: confirm          # 空格键：上屏候选项
+      Return: commit_raw_input
+      BackSpace: revert
+      Escape: cancel
+  ```
+- **踩坑记录**：用 key_binder `{when: has_menu, accept: space, send: Select}` + `{when: composing, accept: space, send: Commit}` 时，`#次选上屏` 选中候选后轻点空格不上屏；改用 rime-ice 的 `editor` 配置后用户真机确认「搞定」。
+- 参考：元书内置方案包（rime-ice_1.zip）`rime_ice.schema.yaml` 的 `editor` 配置；元书内置皮肤 `Noctua/Write_2026` 的 `spaceButton`。
+
 ### 同名皮肤缓存坑（最重要）
 - **元书按皮肤名缓存旧版**：同一皮肤名反复导入新 `.cskin`，元书可能继续使用旧缓存，改参数后真机显示毫无变化。
 - **解决：换新皮肤名导入**（ZIP 根目录 + `config.yaml` 的 `name` 同步改新名字，如「多功能大包-紧凑版」），作为新皮肤加载即可看到修改。
