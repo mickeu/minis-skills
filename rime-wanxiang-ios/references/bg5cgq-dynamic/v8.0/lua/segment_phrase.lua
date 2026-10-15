@@ -1163,6 +1163,17 @@ local function translator(input, seg, env)
   if input and input:sub(1, 1) == 'V' then return end
   init(env)
 
+  -- 顶部 preedit 显示笔画符号（如 323'53 -> 丿丨丿'乛丿），不显示阿拉伯数字
+  if input and input ~= '' then
+    local ctx = env.engine and env.engine.context
+    if ctx and ctx.composition and not ctx.composition:empty() then
+      local segobj = ctx.composition:back()
+      if segobj then
+        segobj.preedit = to_stroke_symbol(input)
+      end
+    end
+  end
+
   -- 情况 0: 空输入状态（字/词刚刚上屏，等待用户打下一个字或点击联想）
   if not input or input == '' then
     emit_predict_continuation(seg, env)

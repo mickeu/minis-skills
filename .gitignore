@@ -24,3 +24,11 @@ codex-chatgpt-web/launcher/src/assets/*.gif
 weather-broadcast/assets/birds.mp3
 scripting/llms-full.txt
 weather-broadcast/assets/*.mp3
+
+# BG5CGQ 动态学习版大体积数据（本地技能库保留，不上传 GitHub）
+rime-wanxiang-ios/references/bg5cgq-dynamic/v7.6/lua/words.lua
+rime-wanxiang-ios/references/bg5cgq-dynamic/v7.6/lua/phrase_stroke_index.lua
+rime-wanxiang-ios/references/bg5cgq-dynamic/v7.6/predict.db
+rime-wanxiang-ios/references/bg5cgq-dynamic/v8.0/lua/words.lua
+rime-wanxiang-ios/references/bg5cgq-dynamic/v8.0/lua/phrase_stroke_index.lua
+rime-wanxiang-ios/references/bg5cgq-dynamic/v8.0/predict.db

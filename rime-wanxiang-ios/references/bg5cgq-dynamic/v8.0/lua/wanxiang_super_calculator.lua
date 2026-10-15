@@ -113,7 +113,8 @@ function T.init(env)
     local config = env.engine.schema.config
     env.name_space = env.name_space:gsub('^*', '')
     local _calc_pat = config:get_string("recognizer/patterns/calculator") or nil
-    T.prefix = _calc_pat and _calc_pat:match("%^.?([a-zA-Z/=]+).*") or "V"
+    -- 优先使用 calculator/prefix 显式配置（独立计算方案可设为空字符串，直接计算）
+    T.prefix = config:get_string("calculator/prefix") or (_calc_pat and _calc_pat:match("%^.?([a-zA-Z/=]+).*") or "V")
     T.tips = config:get_string("calculator/tips") or "计算器"
 end
 
@@ -3221,12 +3222,50 @@ register_method("P", permutation, "排列数")
 register_method("u", dwhs, "单位换算")
 register_method("base", convertBase, "进制转换")
 
+-- 自动补全未闭合的括号（如 msq(9 -> msq(9)），让表达式可执行
+local function auto_close_parentheses(code)
+    local open, close = 0, 0
+    for i = 1, #code do
+        local ch = code:sub(i, i)
+        if ch == "(" then
+            open = open + 1
+        elseif ch == ")" then
+            close = close + 1
+        end
+    end
+    if open > close then
+        return code .. string.rep(")", open - close)
+    end
+    return code
+end
+
+-- 生成计算候选：preedit 设为表达式原文（隐藏 V 前缀），结果候选高优先级
+local function calc_cand(seg, text, comment)
+    local cand = Candidate("calculator", seg.start, seg._end, text, comment or "")
+    cand.preedit = T._preedit or (text or "")
+    cand.quality = 99999
+    return cand
+end
+
 -- 执行普通计算的辅助函数
 local function execute_normal_calculation(input, seg, express, env)
-    if (string.len(express) < 2) and (not calc_methods[express]) then return end
-    if (string.len(express) == 2) and (express:match("^%d[^%!]$")) then return end
+    if (string.len(express) < 2) and (not calc_methods[express]) then
+        yield(calc_cand(seg, express, ""))
+        return
+    end
+    if (string.len(express) == 2) and (express:match("^%d[^%!]$")) then
+        yield(calc_cand(seg, express, ""))
+        return
+    end
     local code = replacePercentExpression(replaceToFactorial(normalize_calculator_expression(express)))
     local loaded_func, load_error = load("return " .. code, "calculate", "t", calc_methods)
+    if not loaded_func then
+        -- 表达式未闭合时自动补全右括号（如 msq(9 -> msq(9) = 3）
+        local closed = auto_close_parentheses(code)
+        if closed ~= code then
+            loaded_func, load_error = load("return " .. closed, "calculate", "t", calc_methods)
+        end
+    end
     if loaded_func then
         local success, result = pcall(loaded_func)
         if success then
@@ -3236,13 +3275,17 @@ local function execute_normal_calculation(input, seg, express, env)
             else
                 display_value = tostring(result)
             end
-            yield(Candidate("calculator", seg.start, seg._end, display_value, ""))
-            yield(Candidate("calculator", seg.start, seg._end, express .. "=" .. display_value, ""))
+            yield(calc_cand(seg, display_value, ""))
+            yield(calc_cand(seg, express .. "=" .. display_value, ""))
         else
-            yield(Candidate("calculator", seg.start, seg._end, express, "执行错误"))
+            -- 表达式未完成/非法：输出当前表达式候选（保持 preedit 隐藏 V）
+            yield(calc_cand(seg, express, ""))
+            return
         end
     else
-        yield(Candidate("calculator", seg.start, seg._end, express, "解析失败"))
+        -- 表达式未完成/非法：输出当前表达式候选（保持 preedit 隐藏 V）
+        yield(calc_cand(seg, express, ""))
+        return
     end
 end
 
@@ -3250,7 +3293,7 @@ end
 local function execute_function_call(input, seg, func_name, params, env)
     -- 检查函数是否存在
     if not calc_methods[func_name] then
-        yield(Candidate("calculator", seg.start, seg._end, "错误: 函数 " .. func_name .. " 不存在", ""))
+        yield(calc_cand(seg, "错误: 函数 " .. func_name .. " 不存在", ""))
         return
     end
     local func = calc_methods[func_name]
@@ -3276,7 +3319,7 @@ local function execute_function_call(input, seg, func_name, params, env)
     -- 如果有明确的参数数量要求，进行验证
     if expected_param_count and expected_param_count > 0 then
         if #params ~= expected_param_count then
-            yield(Candidate("calculator", seg.start, seg._end, 
+            yield(calc_cand(seg, 
                 "错误: 函数 " .. func_name .. " 需要 " .. expected_param_count .. " 个参数，但提供了 " .. #params .. " 个", ""))
             return
         end
@@ -3346,7 +3389,7 @@ local function execute_function_call(input, seg, func_name, params, env)
             -- 如果结果是函数，说明需要执行它
             success, result = pcall(result)
             if not success then
-                yield(Candidate("calculator", seg.start, seg._end, "错误: 函数执行失败: " .. tostring(result), ""))
+                yield(calc_cand(seg, "错误: 函数执行失败: " .. tostring(result), ""))
                 return
             end
         end
@@ -3357,14 +3400,14 @@ local function execute_function_call(input, seg, func_name, params, env)
             display_value = tostring(result)
         end
         -- 显示当前结果
-        yield(Candidate("calculator", seg.start, seg._end, display_value, ""))
+        yield(calc_cand(seg, display_value, ""))
         -- 显示完整调用
         local param_display = #params > 0 and table.concat(params, ", ") or ""
         local call_display = func_name .. "(" .. param_display .. ")"
-        yield(Candidate("calculator", seg.start, seg._end, call_display .. " = " .. display_value, ""))
+        yield(calc_cand(seg, call_display .. " = " .. display_value, ""))
     else
         -- 显示错误信息
-        yield(Candidate("calculator", seg.start, seg._end, "错误: " .. tostring(result), ""))
+        yield(calc_cand(seg, "错误: " .. tostring(result), ""))
     end
 end
 
@@ -3373,15 +3416,20 @@ function T.func(input, seg, env)
     if composition:empty() then return end
     local segment = composition:back()
     if startsWith(input, T.prefix) or (seg:has_tag("calculator")) then
-        segment.prompt = "〔" .. T.tips .. "〕"
+        -- 不在候选前显示「计算器」提示
+        segment.prompt = ""
         segment.tags = segment.tags + Set({ "calculator" })
         -- 提取算式
         local express = normalize_calculator_expression(input:gsub(T.prefix, ""):gsub("^/vs", ""))
 
+        -- 隐藏 V 前缀：所有候选 preedit 与顶部显示都只保留表达式原文
+        T._preedit = express
+        segment.preedit = express
+
         local code = replaceToFactorial(express)
         local loaded_func, load_error = load("return " .. code, "calculate", "t", calc_methods)
         if loaded_func and (type(methods_desc[code]) == "string") then
-            yield(Candidate("calculator", seg.start, seg._end, express .. ":" .. methods_desc[code], ""))
+            yield(calc_cand(seg, express .. ":" .. methods_desc[code], ""))
         end
 
         -- 检查是否是单个全局变量（不包含运算符的纯标识符）

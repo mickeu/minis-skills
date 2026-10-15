@@ -61,10 +61,39 @@ local function filter(input, env)
 
   -- 计算模式保留原始算式与结果，不转笔画或按字数过滤。
   if inpt:sub(1, 1) == 'V' then
+    local expr = inpt:gsub('V', '')
+
+    -- 隐藏 composition preedit 中的 V 前缀（顶部只显示表达式原文）
+    local comp = ctx.composition
+    if comp then
+      local seg = comp:back()
+      if seg then
+        seg.preedit = expr
+      end
+    end
+
     for cand in input:iter() do
-      if cand.type == 'calculator' or cand.type == 'calculator_expression' then yield(cand) end
+      if cand.type == 'calculator' or cand.type == 'calculator_expression' then
+        local ok, nc = pcall(function()
+          local c = Candidate(cand.type, cand.start, cand._end, cand.text, cand.comment or '')
+          c.preedit = expr
+          return c
+        end)
+        if ok and nc then yield(nc) else yield(cand) end
+      end
     end
     return
+  end
+
+  -- 强制顶部 preedit 显示笔画符号（323'53 -> 丿丨丿'乛丿），不显示阿拉伯数字
+  if inpt ~= "" then
+    local comp = ctx.composition
+    if comp and not comp:empty() then
+      local segobj = comp:back()
+      if segobj then
+        segobj.preedit = to_stroke_symbol(inpt)
+      end
+    end
   end
 
   -- 核心保障 1: 如果当前输入为空（字词刚上屏，进入连续联想阶段），无条件放行所有联想候选！

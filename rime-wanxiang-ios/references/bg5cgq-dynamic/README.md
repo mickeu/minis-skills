@@ -3,14 +3,14 @@
 本目录是 BG5CGQ 笔画输入法「动态学习版」主开发核心的可运行源码备份。
 
 ## 来源
-- 主开发会话：`BE297AE8-293E-49FD-9B7D-D01A2F540524`「对比Rime配置排查导入空白」（2048 条消息，覆盖 v6.x~v7.9 全部开发过程）
+- 主开发会话：`BE297AE8-293E-49FD-9B7D-D01A2F540524`「对比Rime配置排查导入空白」（2048 条消息，覆盖 v6.x~v8.0 全部开发过程）
 - 备份时间：2026-10-16
 - 触发原因：主开发核心会话删除前，确认核心经验已入技能库（SKILL.md 第九章 + `bg5-staged-compose.md`），但可运行源码此前仅散落在 /tmp 临时目录，需持久归档。
 
-## 版本沿革（重要）
+## 版本沿革（2026-10-16 用户确认）
 - **v7.6**：主开发过程版本，9 个 Lua（无计算器）。
-- **v8.0**：计算器独立方案（`bg5cgq_calc`）——**已废弃回退**（会跨方案外泄），交付后即被「关死」清理，勿使用。
-- **v7.9（最终版，本目录 v7.9/）**：计算器**内嵌主方案**，前缀 `V` 触发，不切方案。含完整计算器 Lua（`wanxiang_super_calculator.lua` / `calculator.lua` / `bg5_math.lua` / `bg5_calc_*.lua`）。这是用户当前使用的版本。
+- **v8.0 独立计算方案（`bg5cgq_calc`）**：**已废弃回退**——会跨方案外泄，勿用。
+- **v8.0 计算器版（本目录 v8.0/，当前最新交付版）**：计算器**内嵌主方案**，前缀 `V` 触发，不切方案。交付包名为 `BG5CGQ-learning-v8.0-计算器版.zip`，**内部 schema/dict version 仍为 7.9**（计算器内嵌在主方案里，无需独立方案）。含 `wanxiang_super_calculator.lua` 等计算器 Lua。**这是用户当前使用的版本。**
 
 ## 目录结构
 ```
@@ -24,9 +24,10 @@ bg5cgq-dynamic/
 │   ├── stroke_bg5cgq.dict.yaml
 │   ├── stroke_bg5cgq_learning.schema.yaml
 │   └── lua/
-└── v7.9/                  # 最终版（15 Lua，含内嵌计算器）
+└── v8.0/                  # 最新交付版（10 Lua，含内嵌计算器）
     ├── default.custom.yaml
     ├── hamster.yaml
+    ├── installation.yaml
     ├── predict.db         # 7.5M，本地保留，不上传 GitHub
     ├── stroke_bg5cgq.dict.yaml
     ├── stroke_bg5cgq_learning.schema.yaml
