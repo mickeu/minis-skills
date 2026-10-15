@@ -253,6 +253,21 @@ jsonnet jsonnet/main.jsonnet -o /tmp/WanxiangSkin.json
 - **踩坑记录**：用 key_binder `{when: has_menu, accept: space, send: Select}` + `{when: composing, accept: space, send: Commit}` 时，`#次选上屏` 选中候选后轻点空格不上屏；改用 rime-ice 的 `editor` 配置后用户真机确认「搞定」。
 - 参考：元书内置方案包（rime-ice_1.zip）`rime_ice.schema.yaml` 的 `editor` 配置；元书内置皮肤 `Noctua/Write_2026` 的 `spaceButton`。
 
+### 移植皮肤背景消除工具栏色差（2026-10-15 用户真机确认「完美」）
+**场景**：把另一款皮肤（如内置皮肤 Write_2026/森林集）的背景移植到大包皮肤，要求「不换按键、只要背景」，且键盘/候选区/工具栏三者背景无色差。
+
+**核心：让键盘、候选区、工具栏共用同一张背景图，而不是各用各的。**
+1. **背景用元书内置共享资源直接引用，无需复制图片**：内置皮肤（如 Write_2026）引用的 `file: "bj"` 等资源不在皮肤包里，是元书 App 内置资源，新皮肤直接写 `file: "bj"` 即可生效，不要试图从皮肤包找/复制该 png。
+2. **统一背景引用**（照抄源皮肤写法）：
+   - `keyboardBackgroundStyle`：`fileImage` + `file:"bj", image:"IMG2"`（键盘背景）
+   - `toolbarBackgroundStyle`：同上 `bj` IMG2（工具栏背景）
+   - `preeditBackgroundStyle`（候选区背景）：`fileImage` + `file:"bj", image:"IMG1"`
+   - 三者同源同图切片 → 工具栏与键盘/候选区之间无缝无色差。
+3. **候选区内嵌到键盘背景**（消除候选区独立色块）：移除 `horizontalCandidatesStyle.backgroundStyle`，候选区直接嵌在键盘背景上，不再独立一块卡片。
+4. **候选栏固定高度**：给 `horizontalCandidates` 设置 `size: {width: 7/8, height: 30}`（或按需），候选栏高度不再被 `toolbarHeight` 拉高，避免上方大片空白。
+5. **只改目标按键**：若只需去掉某个按钮的卡片背景（如候选区末尾下拉按钮 expandButton），仅删该按钮的 `backgroundStyle`，保留 `action`/`foregroundStyle`，且**只改目标键盘文件**（如仅 pinyin_9 的 light/dark×横竖屏 4 个文件），其它键盘文件不要动。
+6. **换新皮肤名导入**（见下「同名皮肤缓存坑」），否则旧缓存导致看起来没变化。
+
 ### 同名皮肤缓存坑（最重要）
 - **元书按皮肤名缓存旧版**：同一皮肤名反复导入新 `.cskin`，元书可能继续使用旧缓存，改参数后真机显示毫无变化。
 - **解决：换新皮肤名导入**（ZIP 根目录 + `config.yaml` 的 `name` 同步改新名字，如「多功能大包-紧凑版」），作为新皮肤加载即可看到修改。
@@ -261,6 +276,7 @@ jsonnet jsonnet/main.jsonnet -o /tmp/WanxiangSkin.json
 ### 产物
 - `/var/minis/workspace/多功能大包.cskin`（SHA-256 `839273415bd39fd8de2d06b319aa0d5d504b4e43ad6ca76fee3ac75beaa40cc0`）
 - `/var/minis/workspace/多功能大包-紧凑版.cskin`（SHA-256 `b47a5a71888b7bfa5873c2864b899ebbf817baea881edeaca48bfaa4d3ef9869`，用户确认效果正确）
+- `/var/minis/workspace/多功能大包-计算版-v72.cskin`（2026-10-15 移植 2026 背景完成版，SHA-256 `6f1bd77fa93251c9d63a35535a1b64de4dfc4f2f601011a688e8b36dbba98444`，用户确认「漂亮/完美」）
 
 ## 参考资料（来源）
 
