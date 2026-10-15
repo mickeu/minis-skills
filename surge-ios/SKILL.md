@@ -121,6 +121,24 @@ surge-cli --raw status           # 4. 验证
 7. 清理本次误加的临时规则（`rule temp remove`）。
 ⚠️ 临时规则只作验证，**不是最终修复**（重启/清缓存即失，且策略名须严格匹配你的组 `PROXY` 非 `Proxy`）。
 
+### 防 DNS 泄露配置（2026-08-29 / 09-10 实测）
+
+**核心三防线**（参考 Beatrice Surge Config 三道防线，已实测）：
+1. `dns-server = system` + `use-local-host-item-for-proxy = false` —— DNS 跟网络走，代理域名不在本地解析
+2. 所有含 IP 规则的 RULE-SET 加 `no-resolve` —— 代理域名不做本地 DNS 解析
+3. `FINAL,<兜底策略>,dns-failed` —— DNS 失败就拒绝，不漏到本地
+
+**关闭 IPv6**：`ipv6 = false, ipv6-vif = disabled`
+
+**DoH 加密（蜂窝/WiFi 不泄露的关键，2026-09-10 实测）**：
+- `encrypted-dns-server = https://1.1.1.1/dns-query, https://8.8.8.8/dns-query`
+- ⚠️ 端点必须是 `/dns-query`（RFC8484）；`/resolve` 是 JSON API，收 RFC8484 二进制 → 400，DoH 静默失效
+- `encrypted-dns-follow-outbound-mode = true`（DoH 走代理；直连 443 被运营商阻断）
+- 必须保留 `dns-server = system` 作 fallback（纯 DoH 零明文做不到，代理挂掉时兜底）
+- 删除 SSID 覆盖里的 `encrypted-dns-server=off`（否则 WiFi 下退回明文）
+- 验证：`surge-cli dump dns` 看查询服务器是否 DoH 端点；browserleaks.com/dns 复测
+- 配置只进 config-backup 私库，不进公开仓库
+
 ### 远程脚本更新工作流
 
 1. 本地改脚本（`/tmp/surge-repo/Scripts/...` 或先写本地文件）→ `node --check` 验证语法

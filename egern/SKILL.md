@@ -32,6 +32,22 @@ last_sync: 2026-10-01
 
 ---
 
+## 防 DNS 泄露实战（Minis 实测沉淀）
+
+**与 Surge 对齐的配置**（2026-08-29）：
+- `ipv6: false`（关闭 IPv6 防泄露）
+- DNS 统一境外 DoH：bootstrap `1.1.1.1, 8.8.8.8`，upstream `https://1.1.1.1/dns-query, https://8.8.8.8/dns-query`
+- 所有含 IP 规则的 rule-set / asn / geoip 加 `no_resolve: true`
+- 新增 IPv6 阻断规则：`ip_cidr6: { match: "::/0", policy: REJECT, no_resolve: true }`
+- `real_ip_domains` 声明 DoH 域名（doh.pub / dns.alidns.com），让 DoH 返回真实 IP
+
+**排查教训**（2026-07-25）：
+- Egern VPN 下 ipleak 仍显示国内 DNS，即使 upstream 已用境外 DoH + `proxy_nameservers` + `real_ip_domains` + `no_resolve`，可能仍部分泄露（iOS VPN 底层 DNS 拦截机制）。
+- 上游统一境外 DoH 后，DNS 测试显示「中国国旗」通常是 DNS 上游在国内的正常结果，不一定是流量泄露。
+- 配置只进 config-backup 私库，不进公开仓库。
+
+---
+
 # 版本历史
 
 ## v2.21.0（788）— TestFlight（2026-09-18）
