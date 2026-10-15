@@ -1,0 +1,83 @@
+schema:
+  schema_id: stroke_bg5cgq_learning
+  name: BG5CGQ 动态学习
+  version: "7.9"
+  description: 独立学习版；动态组词、全场景上屏高频联想、用户词独立持久化
+
+switches:
+  - name: ascii_mode
+    reset: 0
+    states: [中文, 西文]
+  # 联想开关 (librime-predict 插件 + Lua 联想引擎)
+  # 上屏一字或一词后，自动给出连贯高频的下一个字/词候选
+  - name: prediction
+    reset: 1
+    states: [关闭联想, 开启联想]
+
+engine:
+  processors:
+    - predictor
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - matcher
+    - abc_segmentor
+    - punct_segmentor
+    - fallback_segmentor
+  translators:
+    - punct_translator
+    - predict_translator
+    - lua_translator@*wanxiang_super_calculator
+    - lua_translator@*segment_phrase
+  filters:
+    - lua_filter@*filter_seg_count
+    - uniquifier
+
+calculator:
+  prefix: V
+  show_prefix: false
+
+recognizer:
+  patterns:
+    calculator: "^V.+"
+
+speller:
+  alphabet: "12345?'V"
+  delimiter: " "
+
+menu:
+  page_size: 9
+
+translator:
+  dictionary: stroke_bg5cgq
+  preedit_format:
+    - xlit/12345/一丨丿丶乛/
+  comment_format:
+    - erase/.*$/
+  enable_completion: false
+  enable_user_dict: false
+  enable_encoder: false
+  initial_quality: 1.0
+
+# librime-predict 联想数据库配置 (Hamster 已内置编译 predict 插件)
+predictor:
+  db: predict.db
+  max_candidates: 9
+  max_iterations: 10
+
+key_binder:
+  import_preset: default
+  bindings:
+    - { when: composing, accept: "6", send: "'" }
+    - { when: has_menu, accept: space, send: Select }
+    - { when: composing, accept: Return, send: Escape }
+
+punctuator:
+  import_preset: default
