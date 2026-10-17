@@ -72,6 +72,15 @@ dns-server = 223.5.5.5, 119.29.29.29
 - "Detect MagicDNS hostnames" 开关灰色打不开：只有 Wi-Fi/Cellular 的 VPN On Demand 设为 "Do Nothing" 才可开，Always 模式下不可用，不影响。
 - 主配置被 iCloud 托管为只读，App 无法编辑 [Proxy]（提示"分离段配置只读"），改文件 + reload 生效。
 
+**配套监控面板「内存流量」（同日开发落地）**：
+- 模块：`mickeu/surge/MemoryTraffic.sgmodule` + `Scripts/MemoryTraffic.js`（原「内存」模块保留，另起新模块）
+- 功能：显示本机总流量 + 各 Tailscale 入站设备（按设备名）的连接数与流量
+- 用 `#!arguments` 参数表单（参考 PingMe/机场流量面板）：`dev1~dev5` 每个设备一个独立参数口，`api_host/api_port/api_key` 配置 HTTP API
+- 脚本按 `&` 拆分参数（与机场面板同风格），从 `/v1/metrics` 取本机流量、`/v1/requests/recent` 按 `deviceName` 过滤统计各设备
+- **坑**：`#!arguments` 的占位默认值不能写「选填」然后不管——Surge 会把「选填」当真实值传给脚本，导致面板显示未填项。必须像 IP-Quality 一样在脚本里 `if (x === "选填") x = ""` 过滤（本实现用 collectDevices 过滤空值和「选填」）
+- **坑**：`#!arguments` 值不能含空格（Surge 把空格当参数分隔符）；cron 表达式不要放 #!arguments。API 地址拆成 host+port 两个参数避免冒号/URL 解析问题
+- 强制刷新模块脚本：`surge-cli external-resource list` 找脚本 key → `surge-cli external-resource update <key>`（GitHub raw 忽略 `?v=`，更新后拉到最新内容）；`module disable/enable` 不会重新下载模块文件本身
+
 ## 参考资料（来源）
 
 - 原文：用户于 2026-10-14 提供的 Surge 5.102.0 (3871) TestFlight 英文公告，标题 Incoming Connections for Tailscale and WireGuard。
