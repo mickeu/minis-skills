@@ -317,3 +317,13 @@ startTasks().then(r => {
 - 官方 CLI：https://manual.nssurge.com/tools/cli.html
 - 官方规则：https://manual.nssurge.com/rules/overview.html
 - 实测：2026-10-09，Surge iOS 5.102.0 build 3864，Controller 25；Steam/Copilot 默认直连失败、显式 PROXY 200，更新规则后默认请求 200。规则修复提交：https://github.com/mickeu/surge/commit/c1880c1
+
+### 用户约定：模块「编辑参数」统一规范（2026-10-17 用户明确）
+用户要求：**以后写 Surge 模块或修改模块时，凡是要加「编辑参数」，一律按此模式**：
+1. 用 `#!arguments=key1:默认值1,key2:默认值2,...` 声明参数，`#!arguments-desc=\n📌 参数说明...` 写说明（\n 换行、1️⃣2️⃣3️⃣ 序号）。
+2. 脚本参数用 query-string 拼接：`argument=key1={{{key1}}}&key2={{{key2}}}...`，脚本按 `&` 和 `=` 解析。
+3. 未填写的参数口：默认值用「选填」占位，**脚本必须过滤** `x === "选填"`（参考 IP-Quality 的 `if (scamKey === "选填") scamKey = ""`），保证面板只显示填了的项。
+4. 多个同类项（设备/订阅等）用独立参数口 `dev1`/`dev2`/...，不共用一个 key。
+5. 参数默认值**不能含空格**（Surge 把空格当分隔符）；cron 表达式不要放进 #!arguments。
+6. 含 URL 的配置拆成 host+port 两个参数，避免 `:`/`//` 解析问题。
+7. 填完参数后必须 Reload Profile 才生效（在 arguments-desc 里提示用户）。
