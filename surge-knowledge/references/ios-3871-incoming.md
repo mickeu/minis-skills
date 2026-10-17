@@ -46,6 +46,32 @@ A 手机运行新版 Surge 内置 Tailscale，开启入站；B 设备加入可�
 
 应根据实际 tailnet 地址、目标与端口设计明确允许和拒绝规则，并审查顺序，避免影响本机流量。不要直接复制一条宽泛的 SRC-IP 策略规则当成安全限制。控制器必须另设强认证；`0.0.0.0` 是全 IPv4 接口监听，可能同时向局域网开放，不是仅 Tailscale 专用监听。
 
+## 实战排查记录（2026-10-17 双机真机验收通过）
+
+**场景**：另一台 iPhone（B）通过 Tailscale 借用本机 Surge（5.102.0 3871）作为 exit node 出网，走 Surge 自动分流。
+
+**本机 Surge 配置**：
+```
+[Proxy]
+我的Tailnet = tailscale, section-name=ts-net
+[Tailscale ts-net]
+interactive-login = true
+hostname = surge-iphone
+accept-incoming = true
+advertise-exit-node = true
+dns-server = 223.5.5.5, 119.29.29.29
+```
+- Surge App 的 Tailscale 策略编辑器用 Apple ID 交互登录（与 B 同一 Apple ID → 自动同 tailnet）。
+- 管理后台 `console.tailscale.com/admin/machines` → surge-iphone → Edit route settings → 勾选 "Use as exit node" → Save。注意：带感叹号的 "Exit Node" 标签 = 待批准，必须手动批准。
+
+**关键坑（DNS 解析失败）**：
+- 现象：B 设出口节点后 Safari 所有网页"找不到服务器"，但 QQ 等 IP 直连能通 → 判断为 DNS 问题。
+- 根因：B 开启 Tailscale DNS（DNS 发到 100.100.100.100），Surge 作为 exit node **不监听 100.100.100.100**，DNS 查询无人应答。
+- 解决：**在 B 手机 Tailscale App → Settings → DNS Settings 关闭 "Use Tailscale DNS Settings"** 即可。关闭后 B 的 DNS 走普通流量经 Surge 转发，解析成功。
+- Surge 侧 `dns-server` 对 B 的 Tailscale DNS 虚拟地址无效；真正解决靠关闭 B 的 Tailscale DNS。
+- "Detect MagicDNS hostnames" 开关灰色打不开：只有 Wi-Fi/Cellular 的 VPN On Demand 设为 "Do Nothing" 才可开，Always 模式下不可用，不影响。
+- 主配置被 iCloud 托管为只读，App 无法编辑 [Proxy]（提示"分离段配置只读"），改文件 + reload 生效。
+
 ## 参考资料（来源）
 
 - 原文：用户于 2026-10-14 提供的 Surge 5.102.0 (3871) TestFlight 英文公告，标题 Incoming Connections for Tailscale and WireGuard。
