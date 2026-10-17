@@ -44,11 +44,24 @@ surge-cli --raw environment
 | 命令、响应字段、环境 key-path | [command-reference.md](references/command-reference.md)，只读相关节 |
 | Profile、模块、代理协议、策略组、DNS/MITM/脚本配置 | [manual-index.md](references/manual-index.md)，定位对应官方手册正文 |
 | 路由解释、临时规则、DNS、性能、Tailscale/WireGuard | [diagnostics.md](references/diagnostics.md) |
+| 临时 verbose、实时日志解析、Packet Capture 与 PCAP 导出边界 | [diagnostics.md](references/diagnostics.md#实时日志与临时-verbose) |
+| 本地模块落盘、发现、HTTP API 启用与验证 | [http-api.md](references/http-api.md#本地模块安装与启用) |
+| IP Rewrite / reflect、本机开发服务回环及反射抓包判读 | [ip-rewrite-loopback.md](references/ip-rewrite-loopback.md) |
 | Controller 不可用、明确要求 `/v1/*`、指标或未配置节点测试 | [http-api.md](references/http-api.md) |
 | 平台限制、Unknown command、协议版本异常 | [platform-compatibility.md](references/platform-compatibility.md) |
 | 安装、认证传输和客户端协议 | [controller-cli.md](references/controller-cli.md) |
 
 切换策略、模块或功能前确认目标存在，按需读取相关列表，不把全量 `dump policy`/日志/Profile 当每次任务的前置流程。只做最小授权变更，变更后重读相关状态；需要端到端证明时再做真实请求。
+
+### 运行时操作不附加 reload
+
+`reload` 不是 CLI/HTTP API 写操作后的通用"保存/提交"步骤。区分三类操作：
+
+- **即时运行时操作**：如 `set-log-level`、`set` 环境 key-path、`feature set`、模式/策略选择、临时规则、抓包开关及 DNS flush。按各命令语义执行后重读相关状态；不要为了"确保生效"再追加 reload。即时生效不等于持久化，各字段的持久化与重载后保留行为须分别核实。
+- **自身安排配置加载的操作**：如模块 enable/disable、Profile 切换。等待操作完成并复核，不重复 reload；这些操作本身也可能扰动正在进行的运行时诊断。
+- **直接修改活动配置文件**：只有确需让文件变更生效且影响已获授权时才 reload；不能将文件修改流程照搬到运行时 API 操作。
+
+运行时测试先记录原状态，只恢复本次改动；不拿 reload/restart 当清理或恢复原状的快捷方式。重载可能重新应用配置并改变临时状态，必要时还会自动升级为完整引擎重启，破坏连接、缓存或诊断现场；但不得反向宣称所有运行时字段都会被 reload 清空。确需重载时先结束/清理本次诊断，重载完成后重新核实并建立所需测试状态。
 
 环境 key-path 的 null 值须保护 shell 引号，例如：
 
@@ -60,6 +73,7 @@ surge-cli --raw set 'AutoPolicyGroupOverride.Streaming=<nil>'
 
 ## 4. 保留影响边界
 
+- 临时 `set-log-level verbose` 应在模块/配置变更完成后设置；诊断期间不要 `reload`（会恢复配置中的等级），也不要切换模块触发重载。结束或失败时恢复原日志等级，不固定恢复成 `notify`。IP 层流量没有常规日志不能证明未处理，按诊断参考转 Packet Capture。
 - `dump profile` 可能含节点、订阅和凭据；仅在确有必要时读取，进程内脱敏，不原样输出、记录或打包。
 - `reload` 与 `restart-engine` 不等价：Protocol ≥24 的完整重启会关闭活动连接、清除缓存和临时规则，须明确授权这些影响；`stop` 会关闭 Surge，须用户明确要求。
 - 临时规则立即生效、优先于 Profile 规则。`rule temp flush` 清空所有临时规则，不能用于默认清理本次测试；保留用户已有项。

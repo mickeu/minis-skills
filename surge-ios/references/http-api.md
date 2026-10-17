@@ -42,6 +42,29 @@ Before tasks that depend on Surge networking, and again after unexpected EOF/tim
 - `GET /v1/modules`
 - `POST /v1/modules` — module-name-to-boolean map
 
+### 本地模块安装与启用
+
+本机已有可写 Surge 挂载目录时，可直接落盘后用 API 启用，不必默认要求用户在 UI 导入，也不必为此部署内部脚本。先确认模块内容与影响在授权范围内；不覆盖同名现有文件。
+
+1. 将 `.sgmodule` 写入已确认的 Surge `Module/` 目录（本地常见挂载为 `/var/minis/mounts/surge`，使用前核实）。
+2. `GET /v1/modules`，确认模块出现在 `available`；未出现时检查挂载、文件和格式，不先盲目重启。
+3. 以 API 返回的模块名提交最小布尔映射。实测 `Local-Device-Loopback.sgmodule` 的 `#!name=Local Device Loopback` 对应 API 名称 `Local Device Loopback`，不要直接拿文件名当 key。
+4. POST 可能仅返回 `{}`，不能据此判为失败或直接宣布成功。下一次独立工具调用用 `delay: 2` 后 GET，核对目标在 `enabled` 中，其他模块状态未变。
+
+```sh
+curl -fsS --max-time 15 -H "X-Key: $SURGE_HTTP_API_KEY" \
+  http://127.0.0.1:6171/v1/modules
+# 仅当上述返回名称确实存在且已获准启用时：
+curl -fsS --max-time 15 -X POST -H "X-Key: $SURGE_HTTP_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"Local Device Loopback":true}' \
+  http://127.0.0.1:6171/v1/modules
+```
+
+模块切换可能安排配置重载；不要额外无条件 reload，也不要在切换前设置临时 verbose 并期待其保留。`enabled` 仅证明启用状态，功能成功仍需端到端验证。
+
+Surge 脚本中的 `$httpAPI(method, path, body, callback)` 可调用相同模块端点，但属于另一执行入口。本地外部 HTTP 可用时无需改走脚本，更不要执行第三方自动网络脚本中与任务无关的模块切换。上述外部流程在 2026-10-05 的 iOS build 3859 实测；当次内部脚本未执行，不标为已验证。
+
 ### Scripting
 - `GET /v1/scripting`
 - `POST /v1/scripting/evaluate` — `script_text`, `mock_type`, `timeout`
