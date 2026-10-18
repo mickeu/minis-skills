@@ -183,3 +183,13 @@ StikPair 是 StikDebug 生态的手机端配对文件生成工具（`StikDebug/S
 ### 环境依赖安装备注（iSH / Alpine）
 
 `setup.sh` 中 `sslpsk-pmd3` 需要编译：先 `apk add python3-dev build-base openssl-dev libffi-dev`，否则 `pip install` 编译 `Python.h` 会失败。安装成功后 `pymobiledevice3` 11.34.1 / `pmd-pytcp` 0.3.8 / `cryptography` 44.0.0 全部就绪。
+
+### cdtk-fs 沙盒穿透实测（iOS 27）
+
+- **App Store 正式应用（拼多多等）沙盒访问被拒绝**：报 `InstallationLookupFailed` / `RuntimeError: 无法访问应用 ... 的沙盒`。这是 `house_arrest` 的系统级安全策略——只允许访问**自签/侧载/开发调试安装**的应用，App Store 应用的沙盒对第三方工具封闭。属预期行为，不是工具故障。
+- **自签/侧载应用可完整穿透**：`cdtk-fs app ls com.stik.stikdebug /`、`com.openminis.ictrl.uitests.xctrunner /` 均成功，可见 `Documents/Library/SystemData/tmp` 结构。
+- **元书输入法（自签改签版，Bundle ID `com.l8U.4jzG`）沙盒可穿透**：
+  - `Documents/` 下含 `RimeSharedSupport`、`RimeUserData`、`Skins`、`Backup`、`Logs`、`.Trash`；
+  - `Documents/RimeUserData/` 下有 `BG5CGQ-WanXiang-Rime` 与 `rime-ice` 两个方案目录；
+  - `BG5CGQ-WanXiang-Rime/` 内含完整方案文件：`stroke_bg5cgq.dict.yaml`（~79 MB）、`wanxiang_reverse.dict.yaml`（~6.5 MB）、`predict.db`（~7.5 MB）、`wanxiang_algebra.yaml`、`wanxiang.schema.yaml`、`hamster.yaml`、`lua/`、`opencc/`、`custom_phrase*.dict.yaml` 等 33 项。
+  - 用途：无需电脑即可核对设备上「实际生效」的方案/码表/皮肤与源码副本是否一致，或用 `cdtk-fs app pull` 提取沙盒内文件（如 `user.yaml`）做诊断。
