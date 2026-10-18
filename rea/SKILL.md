@@ -71,6 +71,17 @@ npx rea-agents@latest setup   # 更新后需重新跑 setup 刷新 agent 注册
 - 大二进制可调 `REA_GHIDRA_STARTUP_TIMEOUT_MS` / `REA_HOPPER_STARTUP_TIMEOUT_MS` 提高启动超时。
 - 版本变化快，npm 最新发布里可能有新功能，看 GitHub releases。
 
+## iSH / Alpine 环境实测（2026-10-18，Minis 本机）
+
+在 Minis 的 iSH（Alpine 3.21）中试装 rea@6.7.0：
+
+- `npm install --global rea-agents` 成功，`rea --help` 正常。
+- `rea doctor`：node 健康（v22.23.2），但 host 判定 `unsupported_host`（Alpine 不在 apt/dnf/pacman 支持列表）；Ghidra/Hopper/IDA/JADX/Kuna 均未配置（需按官方指南补）。
+- **静态 JS 分析可用**：`rea analyze-javascript-application <目录> --json` 能正常解析 CJS/ESM、依赖图、调用流、数据流，输出完整 JSON（含证据与局限性）。
+- 进程所有权检查在 iSH 上受限：分析结束报 `cleanup_incomplete`（`process ownership token could not be read for 5 live process(es): environment_errno_ENOENT`，即读 `/proc/<pid>/environ` 失败），但不影响已生成的分析结果。
+- **路径坑**：分析目标不要放 `/var/minis/` 挂载目录（rea 内部 `realpath` 报 ENOENT）；复制到 rootfs 原生路径（如 `/tmp/xxx`）即可正常分析。`ls`/`existsSync` 正常但 `realpath` 失败是挂载目录的典型表现。
+- 分析前先 `apk add procps` 提供 GNU ps。
+
 ## Linux owned-process 前置要求
 
 在 Linux 上，Ghidra、JADX、固件工具启动和静态 JS/Electron 分析需要 procps 兼容的 `ps` 在 REA 的 PATH 上（用于进程所有权检查）。恢复步骤见 `docs/installation.md` 的 "Linux owned-process prerequisite"。Alpine/BusyBox 环境可装 `procps`。
