@@ -143,3 +143,43 @@ compatibility: "iOS 18.0+ (Verified), iOS 17.x (Experimental), Node.js, Python 3
    - TLS-PSK 预共享密钥全部经由标准输入（`stdin`）安全传递给 Node 桥接进程，严禁通过命令行参数（`argv`）传递，避免系统进程表（`ps`）泄露；
    - Node 代理子进程监听 `stdin.on('close')` 与 `SIGTERM`，在父进程异常断开或退出时联动自动自毁；
    - 本地 Unix Domain Socket 部署在严格受限的 `0700` 专用私有临时目录中，会话生命周期结束后自动进行物理级清理。
+
+---
+
+## 五、 真机实测记录（iOS 27.0 / 24A437，2026-10-18）
+
+本环境（Minis on iPhone，iOS 27.0）完整跑通本技能核心命令，记录实测结果与坑位，供复现参考。
+
+### 实测通过的命令
+
+| 命令 | 实测结果 |
+|---|---|
+| `cdtk-diag hw` | ✅ 电池真实数据：循环 1351 次、出厂设计容量 3254 mAh、当前实际 2558 mAh（78.6%）、电芯电压 4.061 V、iOS 27.0 (24A437) |
+| `cdtk-ctrl procs` | ✅ 读到 521 个系统进程（含 StikDebug、WeChat、Clash、pinduoduo、MobileSafari 等） |
+| `cdtk-crash list` | ✅ 43 份系统崩溃/诊断日志（含 `Turrit.cpu_resource`、`h3kb_plugin`、`SFA-*.ips` 等） |
+
+### 配对文件获取（iOS 27 手机端，StikPair 实测）
+
+StikPair 是 StikDebug 生态的手机端配对文件生成工具（`StikDebug/StikPair`，要求 iOS 27+），免电脑。
+
+1. 打开 StikPair → 点 **Pair iPhone or iPad** → 允许「本地网络」权限；
+2. 系统「**设置 → 隐私与安全性 → 开发者模式**」→ 向下滚 → 点 **与 StikPair 配对**，输入灵动岛 Live Activity 显示的 PIN；
+3. 收到「配对完成」通知后，回 StikPair 点 **Export Pairing File**；
+4. 用「**存储到文件**」（Save to Files）保存，⚠️ 勿用 iCloud（丢 `.plist` 扩展名）；
+5. 生成的配对文件格式：`public_key` + `private_key` + `identifier` + `alt_irk`（即 `rp_pairing_file.plist`）。
+
+### 配对文件放置与权限
+
+- 放置：`/var/minis/workspace/cdtk/pairing.plist`（技能默认搜索路径之一）；
+- ⚠️ `chmod 600` 在 `/var/minis` 挂载层（iOS 沙盒）**不保留真实权限位**，`stat` 仍显示 644，属正常——文件在 iOS 沙盒内其他 App 无法访问，安全无虞，不需强求显示值。
+
+### ⚠️ 坑：连续调用报 ARP Cache 冲突
+
+- **现象**：`cdtk-crash latest` 紧跟在前一个 cdtk 命令后运行时，报：
+  `AssertionError: ARP Cache.start() called while a worker is still running; call stop() before restart.`
+- **根因**：pmd-pytcp 协议栈的 ARP Cache worker 在上一次会话结束时的清理有竞态残留，连续快速调用时偶发。
+- **解决**：两次 cdtk 调用之间加 `sleep 3` 等待协议栈彻底清理，再跑即可成功；`cdtk-crash list` 比 `latest` 更轻量、更不易触发该问题。
+
+### 环境依赖安装备注（iSH / Alpine）
+
+`setup.sh` 中 `sslpsk-pmd3` 需要编译：先 `apk add python3-dev build-base openssl-dev libffi-dev`，否则 `pip install` 编译 `Python.h` 会失败。安装成功后 `pymobiledevice3` 11.34.1 / `pmd-pytcp` 0.3.8 / `cryptography` 44.0.0 全部就绪。
