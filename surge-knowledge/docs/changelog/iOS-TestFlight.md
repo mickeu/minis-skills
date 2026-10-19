@@ -2,6 +2,56 @@
 
 来源频道: https://t.me/SurgeTestFlight
 
+## 2026-10-19 [post 未提供]（用户转发）
+
+#iOS #TestFlight 
+
+Surge 5 5.102.0 (3872) is ready to test on iOS.
+
+What to Test
+
+### Incoming Connections for Tailscale and WireGuard
+
+- The old parameter `accept-incoming` has been renamed to `allow-peer-access`, but it will still be read for compatibility.
+- Fixed the issue where incoming UDP packets could not be forwarded when the destination address is the local machine.
+- Please note that due to its unusual communication mechanism, Apple Screen Sharing's high-performance mode cannot be used even if `allow-peer-access` is enabled. We are looking into a dedicated workaround for this.
+
+### Ruleset Editor
+
+- You can now disable individual rules in a ruleset with the Enable/Disable swipe action. Disabled rules are saved as commented-out lines.
+
+### Improvements
+
+- Snell v6: UDP data is now sent right after the tunnel command, without waiting a round trip for the server's response. QUIC over Snell v6 connects noticeably faster. This requires a v6 server.
+- Adaptive QUIC Block: detection now starts only on new QUIC handshakes. Before, packets from QUIC connections that already existed (for example, ones opened before Surge started) could be wrongly remembered as allowed. They are now blocked so that the app starts a new handshake.
+- DTLS, WireGuard, STUN and other non-QUIC UDP traffic on port 443 is no longer treated as QUIC, so `block-quic` no longer affects it.
+- When a SOCKS5 proxy rejects a connection, Surge now shows the reason the server gave (such as connection refused or host unreachable) instead of an "invalid response" error.
+- Ponte: a device no longer stays stuck in "LAN-only mode" when its record was captured while its remote channels were restarting. Surge refreshes the device list before giving up, and the error message now explains why.
+
+### Fixes
+
+- Fixed requests failing with 503 when a server sends a body after a 304 or another response that should have no body (for example, ASUSWRT-Merlin routers).
+- Fixed high memory use on MITM HTTP/2 connections when the client reads slowly. This could push the network extension past its memory limit.
+- Fixed a possible network extension crash when viewing the Logbook with very large script records.
+- Fixed the external resource view sometimes being presented twice.
+- Fixed text fields in sheets being covered by the keyboard in some sheet sizes, and the space left for the keyboard not always being removed after it was dismissed.
+- Optimized the keyboard layout for iPhone Duo.
+
+Official Channel: @SurgeTestFlightFeed
+
+## 2026-10-13 [post 未提供]（用户转发）
+
+#iOS #TestFlight 
+
+Surge 5 5.102.0 (3866) is ready to test on iOS.
+
+What to Test
+
+5.23.0 Release Candidate 3
+- Fixed an issue where writing the configuration would fail after using the `#!REQUIREMENT` command in the [Proxy] section.
+
+Official Channel: @SurgeTestFlightFeed
+
 ## 2026-10-09 [post 1786](https://t.me/SurgeTestFlight/1786)
 
 #iOS #TestFlight 
