@@ -39,6 +39,23 @@ What to Test
 
 Official Channel: @SurgeTestFlightFeed
 
+## 2026-10-14 [post 未提供]（用户转发 · 整理版，原始英文公告未留存）
+
+#iOS #TestFlight 
+
+Surge 5 5.102.0 (3871) is ready to test on iOS.
+
+**Incoming Connections for Tailscale and WireGuard**（原始英文公告全文未留存，以下为整理版要点；详见 SKILL.md 精编条目与 `references/ios-3871-incoming.md`）
+
+- Tailscale 新增 `accept-incoming = true`：允许其他 tailnet 设备通过本机 tailnet 地址访问本机，包括 Surge HTTP/SOCKS5 代理及本机其他服务。
+- Tailscale 新增 `advertise-exit-node = true`：宣告本机为 exit node，其他设备选择后其互联网流量经过本机 Surge 规则（需管理后台批准）。
+- Tailscale 新增 `advertise-routes = 192.168.1.0/24, ...`：宣告子网路由（需管理后台批准）。
+- Tailscale 入站请求按普通请求经过 Surge 规则和策略，并显示在请求列表；Surge 不自动应用 Tailscale access control policy，应使用 `SRC-IP` 等 Surge 规则限制来源和目的地。
+- WireGuard 新增 `accept-incoming = true`（允许 peer 经已有隧道连接本机）、`listen-port = 51820`（Surge 作为 WireGuard server）；peer 可省略 `endpoint`，Surge 在客户端连接时学习地址并跟随变化；客户端可将 Surge tunnel 地址作为 DNS。
+- 边界：Tailscale 通常无需公网 IP/端口映射；DERP 中继仍需双方能访问控制/中继服务。iOS 上独立 Tailscale App 与 Surge 系统 VPN 通常不能同时运行。
+
+（2026-10-17 已双机真机验收：另一台 iPhone 通过 Tailscale 借用本机 Surge 作为 exit node 出网成功，完整配置与 DNS 坑见 `references/ios-3871-incoming.md`）
+
 ## 2026-10-13 [post 未提供]（用户转发）
 
 #iOS #TestFlight 
