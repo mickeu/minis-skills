@@ -10628,6 +10628,20 @@ Auto-updating only occurs when the user switches to the policy selection view. Y
 | tvOS | `docs/changelog/tvOS.md` | 43 |
 | 其他/汇总 | `docs/changelog/Other.md` | 267 |
 
+### 🔬 QUIC 自适应拦截验证方法（2026-10-20 实测）
+
+验证 Surge 是否在运行 `block-quic=auto`（3870+ = 自适应）拦截，**无需 QUIC 客户端**：
+
+1. 开启实时请求监控：`nohup timeout 35 surge-cli watch request > /tmp/watch.log 2>&1 &`
+2. 用 Safari 打开支持 HTTP/3 的网站触发真实 QUIC：`apple-open "https://www.cloudflare.com/"`
+3. 等 15~30 秒，读 `/tmp/watch.log`，观察事件流：
+   - **`"method": "QUIC"`** 请求出现（`takeoverMode: 20, engineIdentifier: 30`）
+   - 紧接着（~20ms 内）**`"method": "HTTPS"`** 同一 URL（`takeoverMode: 40, engineIdentifier: 80`）= Safari 回退 TCP
+   - 这就是 adaptive「先拦 QUIC → 应用回退 HTTPS/TCP」的实证；QUIC 请求 `completed: false` 但 `rejected: false`
+4. 测完恢复日志级别：`surge-cli set-log-level notify`
+5. 补充：`surge-cli --raw test-policy-udp <节点>` 可验证节点 UDP relay 能力（收到字节数=UDP 可用，QUIC 可转发）；日志（`log memory`）不记录 UDP 数据报，QUIC 检测行为看 `watch request` 最直观
+6. 结论：**不配置 `block-quic` 时所有代理策略默认 `auto`，3870 起 auto 就是自适应模式**，无需手动添加任何参数
+
 ### Surge 5.100.0 (3425) — 2025-01-16 TestFlight（对应 App Store 5.14.3，2025-01-20 发布）
 
 **[Host] 段支持使用 DOMAIN-SET 和 RULE-SET 进行配置**（官方强调：仅为一些特别的需求设计，绝大部分用户不需要 DNS 区分解析）：
