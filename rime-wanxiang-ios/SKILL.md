@@ -220,7 +220,53 @@ jsonnet jsonnet/main.jsonnet -o /tmp/WanxiangSkin.json
 - 模拟候选/暂存拼接不等于真实点击。v7.0 用户已确认造词真机通过，后续不得在未完成新版本端到端验证时沿用该结论。
 - 成功 zip SHA-256：`a65e80d12c46e36b1e9aaf09ef60fdd6b7497c3d9f2322a5605d39bbc0d4b606`；完整来源、复现命令、性能反例见引用文档。
 
-## 十、元书皮肤双排工具栏与候选栏经验（2026-10-14 用户真机确认）
+## 十、免电脑穿透沙盒查看真机方案（coredevice-toolkit，2026-10-18 实测）
+
+利用 `coredevice-toolkit` 技能的 `cdtk-fs`，无需电脑即可直接读取元书输入法（自签/改签版）沙盒内「实际生效」的方案与皮肤，适合排查「设备上跑的和源码不一致」「方案目录为空」等场景。
+
+### 前置
+- 元书必须是**自签/侧载/开发调试安装**版（如 `com.l8U.4jzG` 改签版）——`house_arrest` 对 App Store 正式应用拒绝访问（报 `InstallationLookupFailed`），这是系统安全策略，非工具问题。
+- Surge 回环反射已配置（`10.7.0.1 = reflect`）、配对文件在 `/var/minis/workspace/cdtk/`。
+
+### 实测命令
+```bash
+cd /var/minis/workspace/cdtk && sleep 2   # 连续调用需等待协议栈清理
+
+# 元书沙盒结构
+cdtk-fs app ls com.l8U.4jzG /                          # 根：Documents/Library/SystemData/tmp
+cdtk-fs app ls com.l8U.4jzG Documents                  # RimeSharedSupport/RimeUserData/Skins/Backup/Logs
+cdtk-fs app ls com.l8U.4jzG Documents/RimeUserData     # 方案目录列表
+cdtk-fs app ls com.l8U.4jzG Documents/RimeUserData/BG5CGQ-WanXiang-Rime  # 方案文件清单
+cdtk-fs app cat com.l8U.4jzG Documents/RimeUserData/BG5CGQ-WanXiang-Rime/user.yaml  # 看用户状态
+```
+
+### 实测到的设备方案结构（iOS 27，2026-10-18）
+`Documents/RimeUserData/` 下有两个方案目录：`BG5CGQ-WanXiang-Rime` 与 `rime-ice`。
+`BG5CGQ-WanXiang-Rime/` 含 33 项，关键文件：
+- 主方案：`stroke_bg5cgq_learning.schema.yaml`、`wanxiang.schema.yaml`、`wanxiang_orig.schema.yaml`
+- 码表：`stroke_bg5cgq.dict.yaml`（~79 MB）、`stroke_bg5cgq_single.dict.yaml`、`wanxiang_reverse.dict.yaml`（~6.5 MB）、`custom_phrase*.dict.yaml`
+- 依赖：`predict.db`（~7.5 MB）、`wanxiang_algebra.yaml`、`wanxiang_symbols.yaml`、`opencc/`、`lua/`
+- 配置：`hamster.yaml`（~76 KB）、`default.custom.yaml`、`wanxiang.custom.yaml`
+
+### 坑
+- 连续 `cdtk-fs` 调用之间加 `sleep 2~3`，避免 pmd-pytcp 协议栈 ARP Cache 竞态报错。
+- 沙盒读取是只读穿透，不要直接改沙盒内文件；提取用 `cdtk-fs app pull`，修改仍走文件 App / 挂载目录工作副本流程。
+
+### 2026-10-19 深度审查补充（重要）
+
+**⚠️ 方案目录名带冲突后缀**：设备上实际目录名是 `BG5CGQ-WanXiang-Rime (1)`（iOS 文件冲突自动加 ` (1)`），内层才是方案根。Rime 实际 userDataPath（app.log 确认）= `Documents/RimeUserData/BG5CGQ-WanXiang-Rime (1)/BG5CGQ-WanXiang-Rime/`。直接 `cdtk-fs app ls .../BG5CGQ-WanXiang-Rime` 会报 `AfcFileNotFoundError`；用 python 脚本 `listdir` + `repr()` 才能看清真实目录名。zip 还带入 `__MACOSX` 残留。
+
+**设备实际版本比技能库 v8.0 新**（哈希对比 v8.0 zip 结论）：
+- `lua/learning.lua` 设备是 **v11**（新增 30 天半衰期时间衰减遗忘机制，选错的词自动降权/清除），技能库 v8.0 计算器版 zip 是 v10。
+- `lua/filter_seg_count.lua`（按有效笔画码段计数 + 纯分词符全量放行）、`lua/head_words.lua`（848→2189 行，并入语料新词）、`lua/words.lua`（8.9MB 真实语料校准词频）、`lua/segment_phrase.lua`（新增 ngram 容错加载 `pcall`）均比 v8.0 新。
+- ⚠️ **技能库 `references/bg5cgq-dynamic/v8.0/` 存档落后于设备实际，需要把设备增强版 lua 回存为 v8.1+**，否则从技能库恢复会丢时间衰减等新功能。
+- 设备生效 schema：`stroke_bg5cgq_learning.schema.yaml` v8.0 增强完整版（7006B），含预测/ngram/上下文调频/字符集过滤/简繁切换/局部提交/自定义置顶词。
+
+**皮肤审查**：Skins 下 `多功能大包-计算版-v106`（light/dark 双主题 ×15 布局 + sound + resources）。⚠️ 目录名 v106 但 `config.yaml` 内 `name: 多功能大包-计算版-v105`，版本号未同步，需修正。
+
+**python 脚本直连坑**：`coredevice_session` 装在 site-packages 但 `tls_psk_proxy.js` 只在技能 `scripts/`，python 直连会报 `FileNotFoundError: 未找到 tls_psk_proxy.js`。解决：`cp /var/minis/skills/coredevice-toolkit/scripts/tls_psk_proxy.js /usr/lib/python3.12/site-packages/`。审查产物在 `/var/minis/workspace/元书审查/sandbox/`（lua v11、schema、custom、词表）。
+
+## 十一、元书皮肤双排工具栏与候选栏经验（2026-10-14 用户真机确认）
 
 **背景**：为「多功能大包」皮肤加两排工具栏、压缩候选卡片高度，反复调整真机无变化，最终通过**换新皮肤名导入**解决。经验沉淀如下。
 
@@ -277,6 +323,38 @@ jsonnet jsonnet/main.jsonnet -o /tmp/WanxiangSkin.json
 - `/var/minis/workspace/多功能大包.cskin`（SHA-256 `839273415bd39fd8de2d06b319aa0d5d504b4e43ad6ca76fee3ac75beaa40cc0`）
 - `/var/minis/workspace/多功能大包-紧凑版.cskin`（SHA-256 `b47a5a71888b7bfa5873c2864b899ebbf817baea881edeaca48bfaa4d3ef9869`，用户确认效果正确）
 - `/var/minis/workspace/多功能大包-计算版-v72.cskin`（2026-10-15 移植 2026 背景完成版，SHA-256 `6f1bd77fa93251c9d63a35535a1b64de4dfc4f2f601011a688e8b36dbba98444`，用户确认「漂亮/完美」）
+
+## 十一、元书皮肤工具栏/候选字/符号键盘定制经验（2026-10-15 v72 实战沉淀）
+
+### 工具栏单排化与高度/间距调整
+- **双排改单排**：`toolbarLayout` 只保留一个 HStack；`toolbarHeight` 从双排高度（如 80）改为单排高度（35 左右合适，28 会压扁按钮）。
+- **工具栏左右对齐打字区键盘**：`toolbarStyle.insets.left/right` 与 `keyboardStyle.insets.left/right` 保持一致（如都是 4）。
+- **按键间距**：按钮背景样式（`toolbarButtonBackgroundStyleKS` / `KS__nkt_48x40`）的 `insets.left/right` 控制按钮卡片间距（7→2 卡片变宽、间距变小）。
+- **滑动工具条卡片间距**：同样改按钮背景样式 `KS` 的 insets（不是 `toolbarSlideButtons.insets`！后者只控制集合整体边距）。竖屏滑动按钮用 `toolbarButtonBackgroundStyleKS`，横屏第一排按钮也用 KS，需分别改。
+
+### 键盘整体下移/压缩
+- **键盘 4 行整体下移半个键位**：把 `keyboardHeight` 改为原来的 `3.5/4`（竖屏 216→189，横屏 160→140），行样式保持 `1/4` 自动均分，键盘整体变矮半键、随之整体下移，工具栏保持贴键盘顶部。改行样式反而会破坏均分。
+
+### 候选字大小
+- `candidateStyle.textFontSize` 控制候选字大小；`split.textFontSize` 是候选字备注字号，竖屏需同步改。
+- 候选字调大后必须同步调高 `horizontalCandidates.size.height`（如 40 号字配 52 高度），否则放不下。
+
+### 滑动工具栏（horizontalSymbols）新增自定义按键
+- 数据源 `horizontalSymbolsToolbarButtonsDataSource` 数组元素格式：`{action, label, styleName}`。
+- 新增按键需配套两个样式：`<按钮名>SlideStyle`（`backgroundStyle: toolbarButtonBackgroundStyleKS` + `foregroundStyle: <按钮名>SlideForegroundStyle`）和 `<按钮名>SlideForegroundStyle`（前景样式）。
+- 插入位置直接调整数组顺序即可（如粘贴后、X 前）。
+- 图标可用 `systemImage`（SF Symbols，如 `textformat.123`、`globe`）或 `text`（如 "123" 细体 `fontWeight: light`、fontSize 16），或自定义图片资源（`fileImage` + resources png）。
+
+### 符号键盘整体替换（把另一款皮肤的符号键盘整个搬过来）
+- 直接复制源皮肤的符号键盘 yaml（如 `symbolic_portrait.yaml`）覆盖目标皮肤同名文件（light/dark）。
+- **必须同时复制依赖资源**：源皮肤 yaml 里 `"file": "xxx"` 引用的 png+yaml 全部复制到目标皮肤 resources（light/dark），否则缺图。
+- 内置资源（`bj`、`ax_*.png` 动画帧）无需复制，元书 App 内置。
+- `config.yaml` 的 `symbolic` 映射同步改成源皮肤方式（如 iPhone/iPad 竖屏 `symbolic_portrait`、横屏 `numeric_9_landscape`），并删除不再引用的旧文件（如 `symbolic_ios_*.yaml`）。
+- 替换后检查：新 yaml 引用的所有 file 在目标皮肤 resources 都存在。
+
+### 符号键盘底部按钮换简约图标
+- 底部返回/上翻/下翻/锁定按钮前景从 `fileImage` 换成 `systemImage`：`return`、`chevron.up`、`chevron.down`、`lock`/`lock.open`，字号 17，颜色浅色 `#1C1E23`/深色 `#EBEBF5`，高亮 `#3B6FD8`。
+- 九宫格「符号」切换键（回车键上方）可用 `systemImage: "at"`（@ 图标）替代文字「符号」，清晰且好看。
 
 ## 参考资料（来源）
 

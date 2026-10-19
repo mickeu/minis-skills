@@ -193,3 +193,10 @@ StikPair 是 StikDebug 生态的手机端配对文件生成工具（`StikDebug/S
   - `Documents/RimeUserData/` 下有 `BG5CGQ-WanXiang-Rime` 与 `rime-ice` 两个方案目录；
   - `BG5CGQ-WanXiang-Rime/` 内含完整方案文件：`stroke_bg5cgq.dict.yaml`（~79 MB）、`wanxiang_reverse.dict.yaml`（~6.5 MB）、`predict.db`（~7.5 MB）、`wanxiang_algebra.yaml`、`wanxiang.schema.yaml`、`hamster.yaml`、`lua/`、`opencc/`、`custom_phrase*.dict.yaml` 等 33 项。
   - 用途：无需电脑即可核对设备上「实际生效」的方案/码表/皮肤与源码副本是否一致，或用 `cdtk-fs app pull` 提取沙盒内文件（如 `user.yaml`）做诊断。
+
+### 深度审查方法（2026-10-19 实测）
+
+- **python 脚本直连需补桥接脚本**：`coredevice_session` 装在 site-packages，但 `tls_psk_proxy.js` 只在技能 `scripts/`，python 直连报 `FileNotFoundError: 未找到 tls_psk_proxy.js`。先 `cp /var/minis/skills/coredevice-toolkit/scripts/tls_psk_proxy.js /usr/lib/python3.12/site-packages/`。
+- **目录名可能带冲突后缀**：iOS 文件冲突会让目录名带 ` (1)`（如 `BG5CGQ-WanXiang-Rime (1)`）。CLI 直接传不带后缀路径报 `AfcFileNotFoundError`。用 python `listdir` + `repr()` 看真实名称，再带引号传路径。
+- **哈希对比法**：用 `HouseArrestService` 直连，`get_file_contents` 读沙盒文件算 sha256，与本地源码副本对比，可精确定位「设备实际生效」与「源码存档」的差异（本次发现设备 lua v11 比技能库 v8.0 zip 的 v10 新）。
+- **批量审查脚本模板**（连接 → listdir/stat 遍历目录树 → 读文件对比），注意连续连接间 `sleep 3` 防 ARP 竞态。
