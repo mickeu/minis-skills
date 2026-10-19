@@ -2,7 +2,7 @@
 
 来源频道: https://t.me/SurgeTestFlight
 
-## 2026-10-19 [post 未提供]（用户转发）
+## 2026-10-19 [post 1801](https://t.me/SurgeTestFlight/1801)
 
 #iOS #TestFlight 
 
@@ -39,22 +39,50 @@ What to Test
 
 Official Channel: @SurgeTestFlightFeed
 
-## 2026-10-14 [post 未提供]（用户转发 · 整理版，原始英文公告未留存）
+## 2026-10-14 [post 1798](https://t.me/SurgeTestFlight/1798)
 
 #iOS #TestFlight 
 
 Surge 5 5.102.0 (3871) is ready to test on iOS.
 
-**Incoming Connections for Tailscale and WireGuard**（原始英文公告全文未留存，以下为整理版要点；详见 SKILL.md 精编条目与 `references/ios-3871-incoming.md`）
+What to Test
 
-- Tailscale 新增 `accept-incoming = true`：允许其他 tailnet 设备通过本机 tailnet 地址访问本机，包括 Surge HTTP/SOCKS5 代理及本机其他服务。
-- Tailscale 新增 `advertise-exit-node = true`：宣告本机为 exit node，其他设备选择后其互联网流量经过本机 Surge 规则（需管理后台批准）。
-- Tailscale 新增 `advertise-routes = 192.168.1.0/24, ...`：宣告子网路由（需管理后台批准）。
-- Tailscale 入站请求按普通请求经过 Surge 规则和策略，并显示在请求列表；Surge 不自动应用 Tailscale access control policy，应使用 `SRC-IP` 等 Surge 规则限制来源和目的地。
-- WireGuard 新增 `accept-incoming = true`（允许 peer 经已有隧道连接本机）、`listen-port = 51820`（Surge 作为 WireGuard server）；peer 可省略 `endpoint`，Surge 在客户端连接时学习地址并跟随变化；客户端可将 Surge tunnel 地址作为 DNS。
-- 边界：Tailscale 通常无需公网 IP/端口映射；DERP 中继仍需双方能访问控制/中继服务。iOS 上独立 Tailscale App 与 Surge 系统 VPN 通常不能同时运行。
+### Incoming Connections for Tailscale and WireGuard
+
+Surge can now accept connections that come in through Tailscale and WireGuard, not just send traffic out. Incoming requests are handled like any other request: they go through your rules and policies and show up in the request list.
+
+**Tailscale**
+- `accept-incoming = true`: other devices on your tailnet can connect to this device through its tailnet address. For example, they can use Surge's HTTP/SOCKS5 proxy or other services running on this device.
+- `advertise-exit-node = true`: offer this device as an exit node. Other tailnet devices that select it send all their internet traffic through Surge's rules.
+- `advertise-routes = 192.168.1.0/24, ...`: offer this device as a subnet router for the listed networks.
+- Exit nodes and subnet routes take effect after you approve them in the Tailscale admin console.
+
+**WireGuard**
+- `accept-incoming = true`: the peer side can open connections to this device through an existing tunnel.
+- `listen-port = 51820`: Surge acts as a WireGuard server that phones, laptops, and other clients can connect to. A peer can leave out `endpoint`; Surge learns the client's address when it connects and keeps up when the address changes.
+- Clients can set Surge's tunnel address as their DNS server, and Surge's DNS will answer their queries.
+
+Note: Surge does not apply your Tailscale access control policy to incoming connections. Use rules such as `SRC-IP` to limit who can reach which destination.
+
+See the Tailscale and WireGuard pages in the manual for details and example configurations.
+
+Official Channel: @SurgeTestFlightFeed
 
 （2026-10-17 已双机真机验收：另一台 iPhone 通过 Tailscale 借用本机 Surge 作为 exit node 出网成功，完整配置与 DNS 坑见 `references/ios-3871-incoming.md`）
+
+## 2026-10-13 [post 1794](https://t.me/SurgeTestFlight/1794)
+
+Beta Updates
+
+### Adaptive QUIC Block
+
+- Added `block-quic=adaptive` for proxy policies. Surge blocks QUIC at first so the app falls back to HTTPS over TCP. If the app does not fall back within 1 second, as with apps that only support QUIC, QUIC is allowed for that host. Results are remembered per host. The option is also available in the proxy editor on Mac and iOS.
+- `block-quic=auto` now uses adaptive mode for every policy except DIRECT, so QUIC-only apps keep working through proxies. Policies that cannot relay UDP still block QUIC.
+- QUIC hostname detection now works when the TLS ClientHello spans several packets, which is common in recent browsers using post-quantum key exchange. QUIC v2 and draft-29 are now supported as well. Rules, MITM and request records can now see the hostname of more QUIC connections.
+
+### HTTP API
+
+- `GET /v1/policies` of the HTTP API now accepts the `include_external=true` query parameter. The response then contains an additional `external-policies` field that lists the policies loaded from external policy groups (`policy-path`). Each entry includes the policy name, the group it belongs to, and an identifier. Pass the identifier as the `policy` option of `$httpClient` to send a request through that policy, since external policies cannot be referenced by name.
 
 ## 2026-10-13 [post 未提供]（用户转发）
 

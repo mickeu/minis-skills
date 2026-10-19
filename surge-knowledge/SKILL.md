@@ -10600,9 +10600,28 @@ Auto-updating only occurs when the user switches to the policy selection view. Y
 
 > 以下 6 个文件为频道**全量原始公告**（含版本号/构建号/日期/正文），按时间倒序。SKILL.md 中精编的近期版本记录在此之上人工整理。
 
+### 🔧 频道公告抓取维护方法（2026-10-19 沉淀）
+
+新增/补录版本公告时，**不要凭用户转发文本手打**，直接从频道抓原文：
+
+1. 通用脚本：`scripts/tg_channel_fetch.py`（纯标准库，本地/E2B 均可运行）。
+   - 按版本号搜索：`--channel SurgeTestFlight --keywords "3870,3871" --pages 3`
+   - 按 post 抓原文：`--channel SurgeTestFlight --posts "SurgeTestFlight/1798"`
+   - 列最近消息：`--list --pages 1`
+2. 本地 iSH 访问 t.me 会被 Surge 拦截（302 turrit://），必须经 E2B 云沙箱美国出口：
+   ```
+   python3 /var/minis/skills/e2b-cloud-ops/scripts/e2b-run.py \
+     --file /var/minis/skills/surge-knowledge/scripts/tg_channel_fetch.py \
+     --cmd "python3 /home/user/tg_channel_fetch.py --channel SurgeTestFlight --keywords 3870,3871 --pages 3"
+   ```
+   ⚠️ e2b-run.py 上传到沙箱 `/home/user/`（不是 /tmp）。
+3. 解析要点：`data-post` 属性后还有 `data-view` 等其他属性，正则必须 `data-post="..."[^>]*>` 而不是 `">`；按 data-post 切块解析避免跨块误配；消息间可能跳号，翻页用最后一个 post id 作 `?before`。
+4. 频道关系：`t.me/s/SurgeTestFlight` 是转发频道（显示名 SURGE PRO NEWS，转发自 @SurgeTestFlightFeed），`data-post="SurgeTestFlight/<id>"`，原始消息链接 `https://t.me/SurgeTestFlightFeed/<id>`。公告日期取 `<time datetime>`（UTC）。
+5. 归档格式：`## YYYY-MM-DD [post <id>](https://t.me/SurgeTestFlight/<id>)` + 原文全文，插到 `docs/changelog/iOS-TestFlight.md` 顶部，并同步 SKILL.md 索引条目数 +1。
+
 | 平台 | 文件 | 条目数 |
 |---|---|---|
-| iOS TestFlight | `docs/changelog/iOS-TestFlight.md` | 370 |
+| iOS TestFlight | `docs/changelog/iOS-TestFlight.md` | 373 |
 | Mac Beta | `docs/changelog/Mac-Beta.md` | 838 |
 | Mac Release | `docs/changelog/Mac-Release.md` | 85 |
 | iOS AppStore | `docs/changelog/iOS-AppStore.md` | 30 |
@@ -10958,8 +10977,8 @@ RULE-SET:https://example.com/rules.txt = server:https://223.5.5.5/dns-query
 - iOS 上独立 Tailscale App 与 Surge 的系统 VPN 接管通常不能同时运行；可使用 Surge 内置 Tailscale，或让另一台设备使用独立 Tailscale 连接此设备。
 
 **参考资料（来源）**
-- 原文：用户于 2026-10-14 提供的 Surge 5.102.0 (3871) TestFlight 英文公告。
-- 官方频道：https://t.me/SurgeTestFlightFeed（用户提供；具体消息 URL 未提供）。
+- 原文：[post 1798](https://t.me/SurgeTestFlight/1798)（2026-10-14 官方 TestFlight 公告，用户提供 + 频道抓取核验）。
+- 官方频道：https://t.me/SurgeTestFlightFeed 。
 - 官方手册入口：https://manual.nssurge.com/ 。
 - 详细整理：`references/ios-3871-incoming.md`。
 - 校验状态：版本/构建号以用户原文为准；未进行双机真机验收。
@@ -10978,8 +10997,8 @@ RULE-SET:https://example.com/rules.txt = server:https://223.5.5.5/dns-query
 - 使用 `$httpClient` 的 `policy` 选项指定外部策略时，必须传入该标识符，不能按外部策略名称引用。
 
 **参考资料（来源）**
-- 原文：用户于 2026-10-14 提供的英文 Beta Updates，版本 5.102.0；构建号经用户明确更正为 **3870**（不是 3170）。发布日期未独立核验，标题日期仅为收录日期。
-- 官方 Beta 发布渠道：https://t.me/SurgeTestFlightFeed 、https://x.com/SurgeBeta （本次公告的单条原文 URL 未提供，未独立抓取验证）。
+- 原文：[post 1794](https://t.me/SurgeTestFlight/1794)（2026-10-13 Beta Updates，用户提供 + 频道抓取核验）。
+- 官方 Beta 发布渠道：https://t.me/SurgeTestFlightFeed 、https://x.com/SurgeBeta 。
 - 官方手册：https://manual.nssurge.com/ 。旧镜像保留历史语义，与此更新冲突时按版本区分，以 3870 公告为准。
 - 校验状态：按用户提供原文整理；未进行本机 API 或 QUIC 行为实测。不推断省略 `block-quic` 参数时的默认值发生变化。
 
