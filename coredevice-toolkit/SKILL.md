@@ -18,6 +18,7 @@ compatibility: "iOS 18.0+ (Verified), iOS 17.x (Experimental), Node.js, Python 3
    - 需在系统【设置 ➡️ 隐私与安全性】中开启「开发者模式」；
 2. **本地回环基建**：Surge 启用 `10.7.0.1 = reflect` 与 `tun-included-routes = 10.7.0.1/32`（详见 [Surge 回环配置指南](references/SURGE_LOOPBACK.md)）；
 3. **配对文件**：手机与电脑配对生成的 `.plist` 文件或 SideStore 配对文件（详见 [配对文件指南](references/PAIRING_GUIDE.md)）；
+   - 免输六位码配对（`allowsPinlessPairing` + SRP 固定 `000000`）的实现细节、协议与角色边界，见 [免输配对码参考](references/PINLESS_PAIRING.md)；
 4. **一键初始化**：在终端运行 `sh /var/minis/skills/coredevice-toolkit/scripts/setup.sh`，自动安装依赖并将全套 CLI 注册至全局路径。
 
 ---
