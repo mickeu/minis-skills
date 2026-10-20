@@ -26,6 +26,7 @@ local cleared = false
 local context = {}
 function context:get_input() return input_str end
 function context:has_menu() return #current > 0 end
+function context:get_selected_candidate() return current[1] end
 function context:get_menu()
   return { get_candidate_at = function(_, i) return current[i+1] end }
 end
@@ -51,7 +52,7 @@ local engine = {}
 engine.context = context
 function engine:commit_text(t) committed[#committed+1] = t end
 
-local key_event = { repr = function() return 'space' end }
+local key_event = { keycode = 0x20, repr = function() return 'space' end }
 local env = { engine = engine }
 
 print('初始候选:', table.concat((function()

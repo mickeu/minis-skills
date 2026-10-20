@@ -28,19 +28,26 @@ end
 
 -- 取当前菜单第一个候选：兼容 get_menu()/menu 字段与 get_candidate_at()/candidate_at()
 local function first_candidate(context)
+  -- 方法1：菜单第 0 个候选（真正第一个）
   local menu = nil
   if context.get_menu then
     local ok, m = pcall(function() return context:get_menu() end)
     if ok then menu = m end
   end
   if not menu and context.menu then menu = context.menu end
-  if not menu then return nil end
-  for _, fn in ipairs({ 'get_candidate_at', 'candidate_at' }) do
-    local f = menu[fn]
-    if type(f) == 'function' then
-      local ok, cand = pcall(function() return f(menu, 0) end)
-      if ok and cand then return cand end
+  if menu then
+    for _, fn in ipairs({ 'get_candidate_at', 'candidate_at' }) do
+      local f = menu[fn]
+      if type(f) == 'function' then
+        local ok, cand = pcall(function() return f(menu, 0) end)
+        if ok and cand then return cand end
+      end
     end
+  end
+  -- 方法2：当前高亮候选（设备 predict_space 已验证可用）
+  if context.get_selected_candidate then
+    local ok, cand = pcall(function() return context:get_selected_candidate() end)
+    if ok and cand then return cand end
   end
   return nil
 end
@@ -89,7 +96,15 @@ function M.processor(key_event, env)
   local input = get_input(context)
   sync_input(input)
 
-  if key_event:repr() ~= 'space' then
+  -- 空格键判断：优先 keycode（与设备 predict_space 一致），兼容 repr()
+  local is_space = false
+  if key_event.keycode ~= nil then
+    is_space = key_event.keycode == 0x20
+  elseif key_event.repr then
+    local r = key_event:repr()
+    is_space = (r == 'space') or (r == 'Space') or (r == ' ')
+  end
+  if not is_space then
     return 2 -- 非空格键，放行给后续处理器
   end
 
