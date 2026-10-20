@@ -59,12 +59,17 @@ function M.func(key_event, env)
   if not ctx:has_menu() then return 2 end
   local cand = ctx:get_selected_candidate()
   if cand and cand.text and cand.text ~= '' then
-    -- 正常确认流程：先选中当前高亮联想候选，再 commit
+    -- 关键：元书 express_editor 默认 _auto_commit=false，手动 confirm 后
+    -- composition 会被 Forward/清空，导致随后的 commit() 失败、候选不上屏。
+    -- 这里先设置 _auto_commit=true，让元书在 confirm 预测候选时自动 commit
+    -- （engine.OnSelect 里 _auto_commit 为真时调用 ctx->Commit()，
+    --   提交预测候选文本并触发 commit_notifier/update_notifier，
+    --   predictor 基于最新 commit_history 注入下一个联想候选）。
+    if ctx.set_option then
+      pcall(function() ctx:set_option('_auto_commit', true) end)
+    end
     if ctx.confirm_current_selection then
       pcall(function() ctx:confirm_current_selection() end)
-    end
-    if ctx.commit then
-      pcall(function() ctx:commit() end)
     end
   end
   return 1  -- kAccepted：空格被消费，用于联想上屏
