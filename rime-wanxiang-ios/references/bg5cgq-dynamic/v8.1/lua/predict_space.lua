@@ -1,14 +1,13 @@
 -- 空格连续上屏（联想连打）
--- 上屏一个字/词后，predictor 注入联想候选；此时按空格直接上屏第一个联想候选，
--- 用正常确认流程（confirm_current_selection + commit）触发 commit_notifier / select_notifier，
--- predictor 基于最新 commit_history 继续注入下一个联想候选，实现讯飞式「我 → 的 → 人」连打。
--- 有笔画编码（正常输入）时：任何按键都先清除 composition 中残留的 prediction 段，
--- 确保正常确认绝不上屏联想词（避免「你+的」「我+的」一起上屏），再放行原生处理。
--- 只在「编码为空（纯联想阶段）+ 空格 + 有候选」时执行联想连打。
+-- 上屏一个字/词后，predictor 注入联想候选；编码为空（联想阶段）时按空格，
+-- 直接上屏第一个联想候选（与设备原版 predict_space 行为一致，用 commit_text 上屏文本）。
+-- 有笔画编码（正常输入）时：先清除 composition 中残留的 prediction 段，
+-- 避免正常确认把系统预测联想词一起上屏（如「你+的」「我+的」），再放行原生 confirm。
+-- 不做任何 _auto_commit / 候选区干预，保证次选三选等正常显示。
 
 local M = {}
 
--- 判断并删除 composition 中残留的 prediction 段（不影响笔画输入段）
+-- 删除 composition 中最后一个 prediction 段（不影响笔画输入段）
 local function clear_prediction(ctx)
   local comp = ctx.composition
   if not comp or not comp.back then return end
@@ -49,27 +48,21 @@ function M.func(key_event, env)
   local ok_input, input = pcall(function() return ctx:get_input() end)
   if not ok_input then input = '' end
 
-  -- 有笔画编码（正在输入）：任何按键都先清除残留预测段，再放行原生处理
+  -- 有笔画编码（正在输入）：清除残留预测段，放行原生 confirm
   if input ~= '' then
     clear_prediction(ctx)
     return 2
   end
 
-  -- 编码为空（联想阶段）+ 有候选：联想连打
+  -- 编码为空（联想阶段）+ 有候选：上屏第一个联想候选（原版行为）
   if not ctx:has_menu() then return 2 end
   local cand = ctx:get_selected_candidate()
   if cand and cand.text and cand.text ~= '' then
-    -- 关键：元书 express_editor 默认 _auto_commit=false，手动 confirm 后
-    -- composition 会被 Forward/清空，导致随后的 commit() 失败、候选不上屏。
-    -- 这里先设置 _auto_commit=true，让元书在 confirm 预测候选时自动 commit
-    -- （engine.OnSelect 里 _auto_commit 为真时调用 ctx->Commit()，
-    --   提交预测候选文本并触发 commit_notifier/update_notifier，
-    --   predictor 基于最新 commit_history 注入下一个联想候选）。
-    if ctx.set_option then
-      pcall(function() ctx:set_option('_auto_commit', true) end)
-    end
-    if ctx.confirm_current_selection then
-      pcall(function() ctx:confirm_current_selection() end)
+    -- 用 commit_text 直接上屏候选文本（不触发 commit_notifier，不污染候选区）
+    if ctx.commit_text then
+      pcall(function() ctx:commit_text(cand.text) end)
+    elseif env.engine.commit_text then
+      pcall(function() env.engine:commit_text(cand.text) end)
     end
   end
   return 1  -- kAccepted：空格被消费，用于联想上屏
