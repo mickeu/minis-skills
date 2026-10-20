@@ -2,7 +2,7 @@ schema:
   schema_id: stroke_bg5cgq_learning
   name: BG5CGQ 动态学习（万象增强）
   version: '8.1'
-  description: 独立学习版；动态组词、全场景上屏高频联想、用户词独立持久化。已移植万象拼音的优势功能：字符集过滤（大字集/小字集）、简繁切换（通繁/港繁/臺繁）、上下文调频、手动排序、局部提交、自定义置顶词。空格连续上屏：编码非空时，连续空格依次上屏候选区第一个字/词。
+  description: 独立学习版；动态组词、全场景上屏高频联想、用户词独立持久化。已移植万象拼音的优势功能：字符集过滤（大字集/小字集）、简繁切换（通繁/港繁/臺繁）、上下文调频、手动排序、局部提交、自定义置顶词。空格连续联想上屏：上屏后连打联想候选（讯飞式）。
   dependencies:
     - custom_phrase
 
@@ -31,8 +31,7 @@ engine:
     - lua_processor@*wanxiang.context_reorder*P  # 上下文调频
     - lua_processor@*wanxiang.super_sequence*P   # 手动排序：Ctrl+j 上移 / [ 下移 / Ctrl+l 重置 / Ctrl+p 置顶
     - lua_processor@*demote                     # 手动降权：对当前高亮候选降频（默认键 ]，皮肤常用键触发）
-    - lua_processor@*predict_space               # 空格连续上屏：上屏后按空格直接上屏联想候选
-    - lua_processor@*space_commit_processor      # 空格连续上屏：编码非空时，连续空格依次上屏当前候选
+    - lua_processor@*predict_space               # 空格连续上屏：上屏联想候选后连打（我→的→人）
     - lua_processor@*wanxiang.partial_commit    # 局部提交：Ctrl+1~0 提交句子前几个字
     - predictor
     - ascii_composer
@@ -65,7 +64,6 @@ engine:
     - simplifier@s2tw                            # 简转台
     - lua_filter@*wanxiang.super_sequence*F       # 手动排序
     - lua_filter@*demote_filter                     # 手动降权：降权词沉底/隐藏（任意候选生效）
-    - lua_filter@*space_commit_filter               # 空格连续上屏：剔除已上屏候选，剩余候选前移
     - uniquifier                                   # 去重
 
 speller:
