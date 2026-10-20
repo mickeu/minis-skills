@@ -5,19 +5,23 @@ description: >
   策略组、27 种出站协议（vmess/vless/trojan/shadowsocks/gost-relay/hysteria/hysteria2/tuic/shadowquic/
   trusttunnel/anytls/mieru/sudoku/wireguard/tailscale/zerotier/easytier/openvpn/masque/ssr/ssh/snell/rematch/dns/direct）、
   18 种入站监听（listeners）、节点订阅（proxy-providers，含 override-expr yq v4 表达式覆写）、
-  规则订阅（rule-providers）、TUN（system/gvisor/mixed/mips 四种 stack）、Sniffer、tunnels、hosts、
+  规则订阅（rule-providers）、TUN（system/gvisor/mixed/mips 四种 stack，默认 mips）、Sniffer、tunnels、hosts、
   **Hako 覆写脚本（Override Script，JSContext main(config)）**、完整配置模板与常见坑。
-  基于 ProjectClash/Clash-Legacy（原 TokenPLS/Hako）源码（mihomo v1.19.31 fork，Hako HEAD `7ea70d15`，上游基线 v1.19.31；
+  主体基于 ProjectClash/Clash-Legacy（原 TokenPLS/Hako）源码（mihomo v1.19.31 fork，Hako HEAD `7ea70d15`，上游基线 v1.19.31；
   Hako App 已随 1.0.11 Build116 升级内核至 mihomo v1.19.32，2026-10-06 更新日志确认）的 docs/config.yaml
   与 config/config.go 结构定义提取，字段类型与默认值对照 Go struct。
+  增量参考官方 MetaCubeX Wiki（虚空终端 Docs，Meta-Docs HEAD `c47fd72` 2026-10-03，跟踪 mihomo v1.19.32+），
+  含 NTP、keep-alive、geodata-mode/loader、unified-delay、tcp-concurrent、global-ua、etag-support、DNS `#` 参数、
+  proxy-group include-all/exclude-filter/exclude-type/hidden/icon、smux brutal、xhttp/mekya/tlsmirror/jls/restls/shadow-tls/ech-opts 等最新字段，
+  见 references/metacubex-wiki.md。
   当用户提到 mihomo、Clash Meta、Hako、Clash 配置、YAML 配置格式、DNS 配置、fake-ip、规则、
   RULE-SET、GEOSITE、策略组、url-test、proxy-groups、proxy-providers、订阅、override、override-expr、
   覆写脚本、override-script、preprocess-script、main(config)、JSContext、过滤非法节点、
   vmess、vless、reality、xtls、hysteria2、tuic、trusttunnel、anytls、mieru、sudoku、wireguard、
-  openvpn、masque、listeners、TUN、Sniffer、gost-relay、dialer-proxy、smux、mrs 等代理内核配置时触发。
+  openvpn、masque、listeners、TUN、Sniffer、gost-relay、dialer-proxy、smux、mrs、ntp、xhttp、tlsmirror 等代理内核配置时触发。
 source_url: https://github.com/ProjectClash/Clash-Legacy
 license: GPL-3.0
-last_sync: 2026-09-24
+last_sync: 2026-10-20
 ---
 # clash-config
 
@@ -49,7 +53,8 @@ last_sync: 2026-09-24
 | └─ `apple/` | — | HakoClient（应用+扩展）/ HakoClientKit / HakoClientUI / HakoMacClient | 四模块结构 |
 | **ProjectClash/Clash-Adapter-Legacy**（原 TokenPLS/Hako-Adapter） | `6a47cf9` 2026-09-24 | Swift 数据包桥接 | `/var/minis/workspace/Hako-Adapter` |
 | └─ `Sources/HakoAdapter/` | — | `PacketFlowBridge.swift` + `ProviderLifecycle.swift` | Swift 5.9，iOS15+/macOS13+/tvOS17+ |
-| **MetaCubeX/mihomo**（上游） | ✅ 已恢复 | 上游基线 v1.19.31，commit `ab405bad` | 直接 clone 可用 |
+| **MetaCubeX/mihomo**（上游） | ✅ 已恢复 | 上游基线 v1.19.31，commit `ab405bad`；最新稳定版 v1.19.32（2026-09-30） | 直接 clone 可用 |
+| **MetaCubeX/Meta-Docs**（官方 Wiki） | `c47fd72` 2026-10-03 | 官方文档源（虚空终端 Docs，跟踪最新 mihomo 分支），95 页中文文档 | `/var/minis/workspace/metacubex-docs` |
 | **chen08209/FlClash** | `c7be7023` 2026-09-17 | Flutter 客户端（mihomo 内核） | `/var/minis/workspace/FlClash` |
 | **SagerNet/sing-box** | `ac87080d` 2026-09-21 | 独立 JSON 配置体系（不在此技能库） | `/var/minis/workspace/sing-box` |
 | **clash.md**（官网） | — | 发行主体 **OmniWide Media Limited**，legal@omniwide.media | https://clash.md |
@@ -137,6 +142,7 @@ profile:                 # 状态持久化
   store-fake-ip: true    # 持久化 fake-ip
 tun: {}                  # TUN 配置
 dns: {}                  # DNS 配置
+ntp: {}                  # NTP 时间同步（enable/write-to-system/server/interval/dialer-proxy）
 proxies: []              # 出站节点列表
 proxy-groups: []         # 策略组
 proxy-providers: {}      # 节点订阅
@@ -187,6 +193,24 @@ geo-update-interval: 24    # 小时
 geosite-matcher: succinct  # succinct（默认）或 mph（V2Ray 实现）
 ```
 
+### 其他重要全局字段（官方 Wiki 增量）
+
+```yaml
+keep-alive-interval: 15      # TCP Keep Alive 包间隔（秒，移动端省电）
+keep-alive-idle: 15          # Keep Alive 最大空闲时间
+disable-keep-alive: false    # 禁用 TCP Keep Alive（Android 强制 true）
+unified-delay: true          # 统一延迟：计算 RTT 消除不同协议握手延迟差异
+tcp-concurrent: true         # 用解析出的所有 IP 并发连接，取第一个成功
+geodata-mode: true           # true=dat，false=mmdb（默认 false）
+geodata-loader: memconservative  # standard / memconservative（默认，小内存优化）
+global-ua: clash.meta        # 外部资源下载 UA
+etag-support: true           # 外部资源 ETag 增量下载
+geox-url:
+  asn: "https://github.com/xishang0128/geoip/releases/download/latest/GeoLite2-ASN.mmdb"
+```
+
+⚠️ 全局 `client-fingerprint` 已弃用，直接在 proxy 上写 `client-fingerprint`。详见 `references/metacubex-wiki.md`。
+
 ### Web UI
 
 ```yaml
@@ -212,7 +236,9 @@ tunnels:
 
 ```yaml
 experimental:
-  quic-go-disable-gso: true  # 禁用 quic-go GSO（仅 Linux，解决兼容问题）
+  quic-go-disable-gso: true    # 禁用 quic-go GSO（仅 Linux，解决兼容问题）
+  quic-go-disable-ecn: false       # 禁用 ECN
+  dialer-ip4p-convert: false      # 启用 IP4P 地址转换
 ```
 
 ## DNS 配置
@@ -540,6 +566,26 @@ proxy-groups:
 | `load-balance` | 负载均衡 | `strategy`（round-robin/consistent-hashing/sticky-sessions） |
 | `relay` | 中继链 | 按顺序转发，无需健康检查字段 |
 
+### 策略组增量字段（官方 Wiki）
+
+```yaml
+proxy-groups:
+  - name: proxy
+    type: select
+    timeout: 5000              # 健康检查超时（ms）
+    max-failed-times: 5        # 最大失败次数，超过强制健康检查
+    expected-status: 204       # 期望状态码，支持 200/302、400-503、200/302/400-503 混合
+    exclude-filter: "美|日"     # 排除节点（正则）
+    exclude-type: "Shadowsocks|Http"  # 按类型排除（| 分隔，不支持正则）
+    include-all: false         # 引入所有 proxies + providers（不含策略组）
+    include-all-proxies: false # 引入所有出站代理
+    include-all-providers: false  # 引入所有代理集合（会使 use 失效）
+    hidden: true               # API 返回 hidden 状态（配合前端隐藏）
+    icon: xxx                  # API 返回图标 URL
+```
+
+⚠️ 策略组里的 `interface-name` / `routing-mark` **已弃用**，写在代理节点上。优先级：代理节点 > 代理策略 > 全局。
+
 ### 代理组常见命名约定
 
 | 组名 | 用途 |
@@ -560,6 +606,7 @@ proxy-groups:
 | 配置结构定义（RawConfig struct，源码级字段类型与默认值，22 章节） | [references/config-structure.md](references/config-structure.md) |
 | Hako 相对 mihomo 的配置增量（48 条偏差规则 + Apple 特化 + 交叉验证记录） | [references/hako-incremental.md](references/hako-incremental.md) |
 | **Hako 覆写脚本**（Override Script，JSContext main(config)，过滤非法节点范例 + JSContext 正则坑） | [references/override-script.md](references/override-script.md) |
+| **官方 Wiki 最新特性增量**（NTP、keep-alive、geodata-mode、unified-delay、DNS `#` 参数、proxy-group include-all/exclude-type、smux brutal、xhttp/mekya/tlsmirror/jls/restls/shadow-tls/ech、TUN mips+congestion-controller、PASS-RULE、API 速记） | [references/metacubex-wiki.md](references/metacubex-wiki.md) |
 | **远程更新流程**（更新本技能库时执行） | 见文末「远程更新流程」 |
 | TUN 配置 | 见下方 |
 | Sniffer 配置 | 见下方 |
@@ -573,7 +620,9 @@ proxy-groups:
 ```yaml
 tun:
   enable: false
-  stack: system              # system / gvisor / mixed / mips（gvisor 兼容性最好，mixed 性能最好）
+  stack: mips               # system / gvisor / mixed / mips（默认 mips，mihomo 自研 IP 栈）
+  congestion-controller: cubic  # cubic/reno/bbr/bbr3，仅 mips 栈生效（官方 Wiki 增量）
+  inet6-address: [fdfe:dcba:9876::1/126]  # TUN 的 IPv6 地址（需顶层 ipv6:true）
   device:                    # 虚拟网卡名（默认自动生成）
   dns-hijack:
     - 0.0.0.0:53             # DNS 劫持（仅 UDP）
@@ -627,7 +676,7 @@ sniffer:
   enable: false
   force-dns-mapping: false   # 对 redir-host 流量强制嗅探
   parse-pure-ip: false       # 对所有未获取域名的流量强制嗅探
-  override-destination: false # 用嗅探结果作为实际访问目标
+  override-destination: true  # 用嗅探结果作为实际访问目标（官方 Wiki 默认值为 true，注意显式设置）
   sniff:
     QUIC:
       ports: [443]
@@ -790,6 +839,10 @@ git -C Hako rev-list --count HEAD && git -C Hako tag
 # 客户端与桥接（可浅克隆）
 git clone --depth 1 https://github.com/ProjectClash/Clash-Client-Legacy.git Hako-Client
 git clone --depth 1 https://github.com/ProjectClash/Clash-Adapter-Legacy.git Hako-Adapter
+
+# 官方 Wiki（增量参考，浅克隆即可，核对 HEAD 后记录到 references/metacubex-wiki.md）
+rm -rf metacubex-docs && git clone --depth 1 https://github.com/MetaCubeX/Meta-Docs.git metacubex-docs
+git -C metacubex-docs log -1 --format='%H %ad %s' --date=short
 ```
 
 上游基线 commit `ab405bad`（v1.19.31），也可从 Hako 仓库历史访问。旧基线 `ac017cdd`（v1.19.30）仍在历史中。
