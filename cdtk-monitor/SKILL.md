@@ -15,7 +15,10 @@ compatibility: "iOS 18.0+, Bash (BusyBox 兼容), 依赖 coredevice-toolkit 已�
 本技能依赖 `coredevice-toolkit` 已正确安装并可用：
 
 1. **Surge 回环反射**已配置（`10.7.0.1 = reflect`，Local Device Loopback 模块）；
-2. **配对文件**已就位：`/var/minis/workspace/cdtk/*.plist` 或 `CDTK_PAIRING_FILE` 指定；
+2. **配对文件**已就位：脚本会自动发现（无需手动指定）——优先级：
+   - `CDTK_PAIRING_FILE` 环境变量显式指定；
+   - 默认目录 `/var/minis/workspace/cdtk/*.plist`；
+   - iOS 挂载区 `/var/minis/mounts/*/*.plist`（如 `rp_pairing_file.plist`）；
 3. **cdtk CLI** 已注册：`cdtk-diag`、`cdtk-crash`、`cdtk-ctrl`、`cdtk-install` 在 `/usr/local/bin/`；
 4. 安装：`sh /var/minis/skills/coredevice-toolkit/scripts/setup.sh`。
 
@@ -83,7 +86,7 @@ bash /var/minis/skills/cdtk-monitor/scripts/cdtk-monitor.sh --json
 
 ## 三、关键实现说明
 
-- **前置检查**：自动发现配对文件（`CDTK_PAIRING_FILE` 优先 → 目录扫描兜底）、`nc` 探测 `10.7.0.1:49152` 回环连通性、校验 cdtk CLI 是否存在。
+- **前置检查**：自动发现配对文件（`CDTK_PAIRING_FILE` → 默认目录 → 挂载区三级兜底，找到后自动 `cd` 到配对文件目录执行）、`nc` 探测 `10.7.0.1:49152` 回环连通性、校验 cdtk CLI 是否存在。
 - **连续调用防冲突**：完整模式下命令间 `sleep 3`，避免 pmd-pytcp 协议栈 ARP Cache 竞态（`ARP Cache.start() called while a worker is still running`）。
 - **BusyBox 兼容**：文本解析使用 `sed`/`awk`，**不用** `grep -P`（iSH/BusyBox 不支持 Perl 正则）。
 - **超时保护**：每个 cdtk 子命令 `timeout 60`，防止偶发阻塞挂死。
@@ -91,8 +94,15 @@ bash /var/minis/skills/cdtk-monitor/scripts/cdtk-monitor.sh --json
 
 ---
 
-## 四、实测记录（2026-10-19，iOS 27.0 / 24A437）
+## 四、实测记录
 
+### 2026-10-20（iOS 27.0 / 24A437）
+- 电池：循环 **1354** 次 / 设计 3254 mAh / 实际 2559 mAh / 健康 78.6% / 电压 4.059V
+- 崩溃：22 份（含 `Turrit.cpu_resource` ×4、`proactive_event_tracker-com_apple_Trial-...`）
+- 进程：368 个；已安装应用：48 个
+- 改进：配对文件三级自动发现（默认目录 + 挂载区扫描），无需手动指定 `CDTK_PAIRING_FILE`
+
+### 2026-10-19（iOS 27.0 / 24A437）
 - 电池：循环 1353 次 / 设计 3254 mAh / 实际 2559 mAh / 健康 78.6% / 电压 4.232V
 - 崩溃：23 份（含 `Turrit.cpu_resource`、`xp_amp_app_usage_dnu` 等）
 - 进程：483~485 个；已安装应用：46 个

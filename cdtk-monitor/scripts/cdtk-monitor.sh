@@ -10,6 +10,12 @@
 #      - 系统进程总数
 #      - 已安装应用数
 #
+# 配对文件自动发现（无需手动指定）：
+#   优先级1: CDTK_PAIRING_FILE 环境变量显式指定
+#   优先级2: 默认目录 /var/minis/workspace/cdtk/*.plist
+#   优先级3: 自动扫描 iOS 挂载区 /var/minis/mounts/*/*.plist
+#   找到后自动 cd 到配对文件所在目录执行 cdtk 命令
+#
 # 用法：
 #   bash cdtk-monitor.sh              # 完整监测
 #   bash cdtk-monitor.sh --battery    # 只看电池
@@ -69,10 +75,19 @@ check_preflight() {
 
     # 1a. 配对文件
     PAIRING_FILE=""
+    # 优先级1：环境变量显式指定
     if [ -n "${CDTK_PAIRING_FILE:-}" ] && [ -f "$CDTK_PAIRING_FILE" ]; then
         PAIRING_FILE="$CDTK_PAIRING_FILE"
-    else
+    fi
+    # 优先级2：默认工作目录 /var/minis/workspace/cdtk
+    if [ -z "$PAIRING_FILE" ] && [ -d "$PAIRING_DIR" ]; then
         for f in "$PAIRING_DIR"/*.plist; do
+            [ -f "$f" ] && PAIRING_FILE="$f" && break
+        done
+    fi
+    # 优先级3：自动扫描挂载目录（iOS 挂载区，如 /var/minis/mounts/*/*.plist）
+    if [ -z "$PAIRING_FILE" ]; then
+        for f in /var/minis/mounts/*/*.plist; do
             [ -f "$f" ] && PAIRING_FILE="$f" && break
         done
     fi
@@ -112,7 +127,7 @@ run_battery() {
     [ "$OUTPUT_JSON" -eq 0 ] && echo ""
     info "步骤 2/4：读取电池真实健康数据..."
     local out
-    out=$(cd "$PAIRING_DIR" && timeout 60 "$CDTK_BIN/cdtk-diag" hw 2>&1)
+    out=$(cd "$(dirname "$PAIRING_FILE")" && timeout 60 "$CDTK_BIN/cdtk-diag" hw 2>&1)
     local rc=$?
     if [ $rc -ne 0 ]; then
         err "电池诊断失败: $(echo "$out" | tail -3)"
@@ -142,7 +157,7 @@ run_crash() {
     [ "$OUTPUT_JSON" -eq 0 ] && echo ""
     info "步骤 3/4：扫描最近崩溃日志..."
     local out
-    out=$(cd "$PAIRING_DIR" && timeout 60 "$CDTK_BIN/cdtk-crash" list 2>&1)
+    out=$(cd "$(dirname "$PAIRING_FILE")" && timeout 60 "$CDTK_BIN/cdtk-crash" list 2>&1)
     local rc=$?
     if [ $rc -ne 0 ]; then
         err "崩溃扫描失败: $(echo "$out" | tail -3)"
@@ -179,7 +194,7 @@ run_apps() {
 
     # 进程数
     local procs_out
-    procs_out=$(cd "$PAIRING_DIR" && timeout 60 "$CDTK_BIN/cdtk-ctrl" procs 2>&1)
+    procs_out=$(cd "$(dirname "$PAIRING_FILE")" && timeout 60 "$CDTK_BIN/cdtk-ctrl" procs 2>&1)
     local proc_count
     proc_count=$(echo "$procs_out" | sed -n 's/.*当前系统共运行[[:space:]]*\([0-9][0-9]*\)[[:space:]]*个进程.*/\1/p' | head -1)
     [ -z "$proc_count" ] && proc_count="?"
@@ -188,7 +203,7 @@ run_apps() {
 
     # 已安装应用数
     local apps_out apps_count
-    apps_out=$(cd "$PAIRING_DIR" && timeout 60 "$CDTK_BIN/cdtk-install" list 2>&1)
+    apps_out=$(cd "$(dirname "$PAIRING_FILE")" && timeout 60 "$CDTK_BIN/cdtk-install" list 2>&1)
     apps_count=$(echo "$apps_out" | sed -n 's/.*共查询到[[:space:]]*\([0-9][0-9]*\)[[:space:]]*个已安装应用.*/\1/p' | head -1)
     [ -z "$apps_count" ] && apps_count="?"
     ok "已安装应用: $apps_count 个"
