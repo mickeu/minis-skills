@@ -262,6 +262,18 @@ cdtk-fs app cat com.l8U.4jzG Documents/RimeUserData/BG5CGQ-WanXiang-Rime/user.ya
 - ⚠️ **技能库 `references/bg5cgq-dynamic/v8.0/` 存档落后于设备实际，需要把设备增强版 lua 回存为 v8.1+**，否则从技能库恢复会丢时间衰减等新功能。
 - 设备生效 schema：`stroke_bg5cgq_learning.schema.yaml` v8.0 增强完整版（7006B），含预测/ngram/上下文调频/字符集过滤/简繁切换/局部提交/自定义置顶词。
 
+**2026-10-20 空格连续上屏补丁（v8.1，已交付）**：
+- 需求：空格只能上屏一次，希望候选区第一个字/词能连续通过空格上屏。
+- 实现：新增 `lua/space_commit.lua` + `space_commit_processor.lua` + `space_commit_filter.lua`。
+  - processor 拦截空格 → `engine:commit_text(候选)` 上屏（该 API **不清空编码**）→ `set_input(原编码)` 强制重建候选；
+  - filter 剔除已上屏候选，剩余候选前移，空格下一次仍上屏「第一个」；
+  - 候选耗尽自动 `set_input('')` 清空编码，交回已有 `predict_space`（编码空时空格连打联想候选）→ 二者互补，覆盖完整连打。
+- **librime-lua 关键结论**（查 hchunhui/librime-lua@6da5d6c + rime/librime@1b3417d）：`engine:commit_text` 只记 commit_history + formatter + 发 sink，**不调 `Context::Commit()`、不触发 commit_notifier、不清空编码**；副作用是连续上屏词默认不进自学习 → 本补丁在 processor 内手动调 `learning.add/learn_word/set_last_commit` 补偿。
+- schema：设备增强版 version 8.0→8.1，processors 在 predict_space 后加 `lua_processor@*space_commit_processor`，filters 在 demote_filter 后加 `lua_filter@*space_commit_filter`。
+- 存档：`references/bg5cgq-dynamic/v8.1/`（回存设备增强版核心模块 + 补丁；words.lua/phrase_stroke_index 等大语料仍在设备 iCloud 挂载，未上传）。
+- 交付：`workspace/BG5CGQ-空格连续上屏-v8.1补丁.zip`，SHA256 `2ef35987c597732ce03f9c5aa7f050b9cdb02fb335c546b84c0cc33f89b88ff5`。
+- 测试：luac 全过；mock 候选 [我/我们/你/你们] 连续 4 次空格依次上屏，learning.add 4 次、组合造词 3 次，候选耗尽自动清空编码。
+
 **皮肤审查**：Skins 下 `多功能大包-计算版-v106`（light/dark 双主题 ×15 布局 + sound + resources）。⚠️ 目录名 v106 但 `config.yaml` 内 `name: 多功能大包-计算版-v105`，版本号未同步，需修正。
 
 **python 脚本直连坑**：`coredevice_session` 装在 site-packages 但 `tls_psk_proxy.js` 只在技能 `scripts/`，python 直连会报 `FileNotFoundError: 未找到 tls_psk_proxy.js`。解决：`cp /var/minis/skills/coredevice-toolkit/scripts/tls_psk_proxy.js /usr/lib/python3.12/site-packages/`。审查产物在 `/var/minis/workspace/元书审查/sandbox/`（lua v11、schema、custom、词表）。
