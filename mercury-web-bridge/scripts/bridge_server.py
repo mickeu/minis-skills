@@ -52,24 +52,31 @@ def _extract_tab_id(text):
 
 
 def ensure_bridge_tab():
-    """查找或创建保持在 chat.inceptionlabs.ai 的专用 tab，返回其 id"""
-    if BRIDGE_TAB_ID[0] is not None:
-        return BRIDGE_TAB_ID[0]
+    """确保存在一个保持在 chat.inceptionlabs.ai 的专用 tab，返回其 id。
+    每次调用都会重新检查，若 tab 被关闭或被导航走则自动恢复。"""
     out, _, _ = run_shell("minis-browser-use list_tabs")
     try:
         env = json.loads(out)
         text = env.get("data", {}).get("text", "") or out
     except Exception:
         text = out
+    # 1) 优先复用任意已在 chat.inceptionlabs.ai 的 tab
     m = re.search(r"Tab (\d+):[^\n]*chat\.inceptionlabs\.ai", text)
     if m:
         BRIDGE_TAB_ID[0] = int(m.group(1))
-    else:
-        out2, _, _ = run_shell(f"minis-browser-use new_tab --url {BASE_URL}/")
-        tid = _extract_tab_id(out2)
-        if tid is None:
-            raise RuntimeError(f"无法创建专用浏览器 tab: {out2}")
-        BRIDGE_TAB_ID[0] = tid
+        return BRIDGE_TAB_ID[0]
+    # 2) 若缓存 tab 还在但被导航走了，把它导航回 chat 页
+    if BRIDGE_TAB_ID[0] is not None:
+        m2 = re.search(rf"Tab {BRIDGE_TAB_ID[0]}:", text)
+        if m2:
+            run_shell(f"minis-browser-use navigate --tab-id {BRIDGE_TAB_ID[0]} --url {BASE_URL}/")
+            return BRIDGE_TAB_ID[0]
+    # 3) 缓存失效，新建专用 tab
+    out2, _, _ = run_shell(f"minis-browser-use new_tab --url {BASE_URL}/")
+    tid = _extract_tab_id(out2)
+    if tid is None:
+        raise RuntimeError(f"无法创建专用浏览器 tab: {out2}")
+    BRIDGE_TAB_ID[0] = tid
     return BRIDGE_TAB_ID[0]
 
 
