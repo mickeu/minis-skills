@@ -104,6 +104,10 @@ def build_bridge_js(messages, reasoning_effort="low", web_search=False, max_len=
         parts_messages = []
         for m in msgs:
             role = m.get("role", "user")
+            # 网页版 /api/chat 只接受 user/assistant 角色，其他角色（system/developer/tool）
+            # 会导致网页版后端返回 500。统一映射为 user，避免报错。
+            if role not in ("user", "assistant"):
+                role = "user"
             content = _normalize_content(m.get("content"), max_chars)
             parts_messages.append({
                 "role": role,
