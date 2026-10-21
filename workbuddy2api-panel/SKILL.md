@@ -141,6 +141,7 @@ description: 腾讯 CodeBuddy（小浣熊）账号池 OpenAI 兼容网关 workbu
 - 现有 Surge 模块**没有**「成长任务一键完成」「连登兑换抽奖」「猫猫旅行」「活跃 streak 自检」——若需扩展，可借鉴 `internal/panel/autotask.go` + `internal/upstream/{report,tasks,desktop,streak}.go` 的事件链构造与 task_code。
 - 本项目是完整 Go 服务端，Surge 脚本是轻量客户端身份头方案，两者取舍：服务端功能全但需部署；Surge 模块轻量但能力受限。
 - 相关 Surge 模块维护备忘见 `surge-ios` 技能的 pitfalls-and-cookbook.md「小浣熊多账号模块维护备忘」。
+- **缓存计费（积分↔Token 换算、缓存命中是否打折）参考文档**：`references/cache-billing.md`（含 2026-10-21 实测：DeepSeek-V4.1-Flash 缓存命中按≈全价 0.25 计费，1 积分 ≈ 16000 token）。
 
 ## 参考资料（来源）
 
