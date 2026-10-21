@@ -10621,7 +10621,7 @@ Auto-updating only occurs when the user switches to the policy selection view. Y
 
 | 平台 | 文件 | 条目数 |
 |---|---|---|
-| iOS TestFlight | `docs/changelog/iOS-TestFlight.md` | 373 |
+| iOS TestFlight | `docs/changelog/iOS-TestFlight.md` | 374 |
 | Mac Beta | `docs/changelog/Mac-Beta.md` | 838 |
 | Mac Release | `docs/changelog/Mac-Release.md` | 85 |
 | iOS AppStore | `docs/changelog/iOS-AppStore.md` | 30 |

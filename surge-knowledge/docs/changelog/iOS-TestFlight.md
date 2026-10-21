@@ -2,6 +2,54 @@
 
 来源频道: https://t.me/SurgeTestFlight
 
+## 2026-10-21 [post 1807](https://t.me/SurgeTestFlight/1807)
+
+#iOS #TestFlight 
+
+Surge 5 5.102.0 (3874) is ready to test on iOS.
+
+What to Test
+
+SOCKS5 UDP
+
+- The built-in SOCKS5 proxy server now supports UDP ASSOCIATE. SOCKS5 clients can send UDP traffic through Surge, and it goes through your rules and policies the same way as TCP. The first datagram of each association is matched against your rules, and later datagrams use the same policy.
+
+Peer Access Passthrough
+
+- New peer-access-passthrough option for Tailscale and WireGuard policies. It is on by default when accept-incoming / allow-peer-access is enabled.- Incoming connections to this device's tunnel address are handed to the local service directly, so the service sees the peer's real address and port.
+- Traffic this device sends to a peer address goes straight into the tunnel.
+- Rules and the request list do not apply to these flows.
+- This is needed by protocols that connect back to the peer address they see, such as the high-performance mode of Apple Screen Sharing.
+- Set peer-access-passthrough = false to keep the previous behavior. Incoming connections then go through Surge with rules and request records.
+- UDP forwarded through Tailscale or WireGuard now keeps the client's source port when that port is free.
+
+QUIC Block Mode
+
+- The global block-quic setting can now be changed in the proxy list editor on iOS, as on Mac.
+
+Improvements
+
+- Tailscale: the admin console no longer shows an update warning for devices running Surge.
+- Tailscale: a DERP connection that receives no data for 120 seconds is now treated as dead and reconnected. Before, a silently dropped connection could lose all relayed traffic until Surge restarted.
+- Ponte: a device is no longer wrongly treated as being on the same LAN when both sides have the same virtual machine bridge address (OrbStack, Parallels, UTM and similar).
+- Ponte: when a LAN connection attempt fails, Surge now falls back to Internet mode and refreshes the device record, instead of ending in a ping timeout.
+- Ponte: device records in logs no longer include the PSK or controller key.
+- Traffic statistics: Tailscale MagicDNS hosts (*.ts.net) are now shown by their full hostname instead of all being grouped under ts.net. The per-host report now adds up entries for the same host instead of keeping only one of them.
+- HTTP proxy: the Proxy-Authorization header is no longer forwarded to the upstream server. It carries the credentials for Surge's own proxy.
+- HTTP/2: a malformed request now resets only its own stream instead of the whole connection.
+- HTTP/2: when the upstream server closes the connection in the middle of a response, Surge now reports it as truncated instead of as a complete response.
+- $httpClient: percent-encoded usernames and passwords in the URL are now decoded before they are sent as Basic auth. A response body that cannot be decoded is now reported as an error.
+
+Fixes
+
+- Fixed Map Local data files larger than 2 MB being rejected on iOS. The limit is now 15 MB, as the manual says.
+- Fixed HTTP/2 responses with no body (304, 204, or a response to HEAD) not being handled correctly when both a response script and a body rewrite rule matched.
+- Fixed $surge.retestGroup failing in scripts that use the WebView engine when no policy list was returned.
+- Fixed pipelined HTTP/1 requests sent after a chunked request body being forwarded as part of that body instead of being handled as separate requests.
+- Fixed several edge cases in HTTP/1 connection reuse and closing that could mix up responses or leave connections open.
+
+Official Channel: @SurgeTestFlightFeed
+
 ## 2026-10-19 [post 1801](https://t.me/SurgeTestFlight/1801)
 
 #iOS #TestFlight 
