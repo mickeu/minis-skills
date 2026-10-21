@@ -1,0 +1,587 @@
+[
+  {
+    "id": "happy_01",
+    "category": "开心撒花",
+    "filename": "happy_01.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/happy_01.gif",
+    "minis_url": "minis://shared/stickers/capoo/happy_01.gif",
+    "size_bytes": 21920,
+    "emotion": "兴奋",
+    "action": "欢呼庆祝",
+    "description": "咖波兴奋地蹦跳欢呼，配文「好耶」「萬歲」庆祝胜利",
+    "keywords": [
+      "开心",
+      "庆祝",
+      "撒花",
+      "欢呼",
+      "跳舞",
+      "好耶"
+    ]
+  },
+  {
+    "id": "happy_02",
+    "category": "开心撒花",
+    "filename": "happy_02.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/happy_02.gif",
+    "minis_url": "minis://shared/stickers/capoo/happy_02.gif",
+    "size_bytes": 32131,
+    "emotion": "兴奋",
+    "action": "欢呼",
+    "description": "咖波开心欢呼跳跃撒彩带文字好耶",
+    "keywords": [
+      "开心",
+      "庆祝",
+      "撒花",
+      "欢呼",
+      "跳舞",
+      "好耶"
+    ]
+  },
+  {
+    "id": "happy_03",
+    "category": "开心撒花",
+    "filename": "happy_03.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/happy_03.gif",
+    "minis_url": "minis://shared/stickers/capoo/happy_03.gif",
+    "size_bytes": 5742,
+    "emotion": "激动",
+    "action": "欢呼",
+    "description": "咖波和兔兔一起举手欢呼庆祝，五彩纸屑漫天飞舞",
+    "keywords": [
+      "开心",
+      "庆祝",
+      "撒花",
+      "欢呼",
+      "跳舞",
+      "好耶"
+    ]
+  },
+  {
+    "id": "lazy_01",
+    "category": "摸鱼躺平",
+    "filename": "lazy_01.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/lazy_01.gif",
+    "minis_url": "minis://shared/stickers/capoo/lazy_01.gif",
+    "size_bytes": 4226,
+    "emotion": "慵懒",
+    "action": "趴在地上不想动",
+    "description": "咖波瘫在地上一动不动，文字「好懒不想动」",
+    "keywords": [
+      "摸鱼",
+      "躺平",
+      "睡",
+      "趴",
+      "软趴趴",
+      "摆烂",
+      "瘫"
+    ]
+  },
+  {
+    "id": "lazy_02",
+    "category": "摸鱼躺平",
+    "filename": "lazy_02.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/lazy_02.gif",
+    "minis_url": "minis://shared/stickers/capoo/lazy_02.gif",
+    "size_bytes": 4719,
+    "emotion": "生无可恋、疲惫无奈",
+    "action": "整个身体瘫趴在地、四肢摊开",
+    "description": "咖波一脸生无可恋地瘫趴在地上彻底摆烂",
+    "keywords": [
+      "摸鱼",
+      "躺平",
+      "睡",
+      "趴",
+      "软趴趴",
+      "摆烂",
+      "瘫"
+    ]
+  },
+  {
+    "id": "lazy_03",
+    "category": "摸鱼躺平",
+    "filename": "lazy_03.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/lazy_03.gif",
+    "minis_url": "minis://shared/stickers/capoo/lazy_03.gif",
+    "size_bytes": 5205,
+    "emotion": "慵懒",
+    "action": "瘫躺着喝饮料",
+    "description": "咖波瘫躺在地喝饮料吃零食，旁边有小鸡陪伴",
+    "keywords": [
+      "摸鱼",
+      "躺平",
+      "睡",
+      "趴",
+      "软趴趴",
+      "摆烂",
+      "瘫"
+    ]
+  },
+  {
+    "id": "eat_01",
+    "category": "干饭吃货",
+    "filename": "eat_01.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/eat_01.gif",
+    "minis_url": "minis://shared/stickers/capoo/eat_01.gif",
+    "size_bytes": 31809,
+    "emotion": "满足享受",
+    "action": "吃饼干喝饮料",
+    "description": "咖波开心地吃着巧克力曲奇饼干，双手捧着大饼干咬了一口，表情满足而惬意；随后拿起带有饼干图案的饮料杯，用吸管惬意地喝着，眯着眼露出幸福的微笑，享受着美味的零食时光",
+    "keywords": [
+      "吃",
+      "喝",
+      "干饭",
+      "肉",
+      "美味",
+      "咀嚼",
+      "零食"
+    ]
+  },
+  {
+    "id": "eat_02",
+    "category": "干饭吃货",
+    "filename": "eat_02.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/eat_02.gif",
+    "minis_url": "minis://shared/stickers/capoo/eat_02.gif",
+    "size_bytes": 37667,
+    "emotion": "开心满足",
+    "action": "咖波在云朵上悠闲吃零食喝饮料",
+    "description": "咖波在天空云朵上享受零食和饮料，旁边有微笑太阳和可爱云朵相伴",
+    "keywords": [
+      "吃",
+      "喝",
+      "干饭",
+      "肉",
+      "美味",
+      "咀嚼",
+      "零食"
+    ]
+  },
+  {
+    "id": "eat_03",
+    "category": "干饭吃货",
+    "filename": "eat_03.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/eat_03.gif",
+    "minis_url": "minis://shared/stickers/capoo/eat_03.gif",
+    "size_bytes": 19185,
+    "emotion": "慵懒满足",
+    "action": "瘫坐吃零食喝饮料",
+    "description": "咖波瘫坐着吃薯片喝饮料，享受慵懒废宅时光",
+    "keywords": [
+      "吃",
+      "喝",
+      "干饭",
+      "肉",
+      "美味",
+      "咀嚼",
+      "零食"
+    ]
+  },
+  {
+    "id": "work_01",
+    "category": "敲代码干活",
+    "filename": "work_01.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/work_01.gif",
+    "minis_url": "minis://shared/stickers/capoo/work_01.gif",
+    "size_bytes": 21562,
+    "emotion": "从亢奋到崩溃",
+    "action": "疯狂打字后瘫倒在键盘上",
+    "description": "咖波疯狂打字工作到燃尽，最终干劲归零瘫倒在键盘上",
+    "keywords": [
+      "电脑",
+      "工作",
+      "打字",
+      "键盘",
+      "加班",
+      "认真"
+    ]
+  },
+  {
+    "id": "work_02",
+    "category": "敲代码干活",
+    "filename": "work_02.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/work_02.gif",
+    "minis_url": "minis://shared/stickers/capoo/work_02.gif",
+    "size_bytes": 26424,
+    "emotion": "崩溃",
+    "action": "疯狂打字",
+    "description": "咖波在电脑前疯狂打字到键盘着火崩溃",
+    "keywords": [
+      "电脑",
+      "工作",
+      "打字",
+      "键盘",
+      "加班",
+      "认真"
+    ]
+  },
+  {
+    "id": "work_03",
+    "category": "敲代码干活",
+    "filename": "work_03.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/work_03.gif",
+    "minis_url": "minis://shared/stickers/capoo/work_03.gif",
+    "size_bytes": 14904,
+    "emotion": "疲惫",
+    "action": "打电脑",
+    "description": "咖波深夜坐在电脑前加班工作，神情疲惫又认真",
+    "keywords": [
+      "电脑",
+      "工作",
+      "打字",
+      "键盘",
+      "加班",
+      "认真"
+    ]
+  },
+  {
+    "id": "cry_01",
+    "category": "委屈求饶",
+    "filename": "cry_01.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/cry_01.gif",
+    "minis_url": "minis://shared/stickers/capoo/cry_01.gif",
+    "size_bytes": 32806,
+    "emotion": "伤心",
+    "action": "哭泣求安慰",
+    "description": "咖波大哭流眼泪，头顶文字求安慰，表情委屈可怜",
+    "keywords": [
+      "哭",
+      "眼泪",
+      "委屈",
+      "求饶",
+      "道歉",
+      "可怜"
+    ]
+  },
+  {
+    "id": "cry_02",
+    "category": "委屈求饶",
+    "filename": "cry_02.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/cry_02.gif",
+    "minis_url": "minis://shared/stickers/capoo/cry_02.gif",
+    "size_bytes": 21931,
+    "emotion": "委屈",
+    "action": "哭泣擦泪",
+    "description": "咖波眼含泪水，双手握着纸巾放在嘴边，眼眶泛红、眉头紧皱，一脸委屈地哭泣擦泪，表情十分可怜。",
+    "keywords": [
+      "哭",
+      "眼泪",
+      "委屈",
+      "求饶",
+      "道歉",
+      "可怜"
+    ]
+  },
+  {
+    "id": "cry_03",
+    "category": "委屈求饶",
+    "filename": "cry_03.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/cry_03.gif",
+    "minis_url": "minis://shared/stickers/capoo/cry_03.gif",
+    "size_bytes": 5506,
+    "emotion": "委屈",
+    "action": "趴在玻璃罐上哭泣",
+    "description": "咖波趴在空玻璃罐的罐口上，一开始调皮地咧嘴笑着，随后低头看向空空的罐子，流下一滴眼泪，最后安静地趴在罐口休息，表情变得平静满足。",
+    "keywords": [
+      "哭",
+      "眼泪",
+      "委屈",
+      "求饶",
+      "道歉",
+      "可怜"
+    ]
+  },
+  {
+    "id": "angry_01",
+    "category": "生气暴躁",
+    "filename": "angry_01.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/angry_01.gif",
+    "minis_url": "minis://shared/stickers/capoo/angry_01.gif",
+    "size_bytes": 8091,
+    "emotion": "愤怒暴躁",
+    "action": "怒目冒烟",
+    "description": "咖波气到冒烟，皱眉怒目张嘴大吼，头顶闪电怒气符号",
+    "keywords": [
+      "生气",
+      "怒",
+      "暴躁",
+      "咬",
+      "打",
+      "掀桌",
+      "冒烟"
+    ]
+  },
+  {
+    "id": "angry_02",
+    "category": "生气暴躁",
+    "filename": "angry_02.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/angry_02.gif",
+    "minis_url": "minis://shared/stickers/capoo/angry_02.gif",
+    "size_bytes": 8355,
+    "emotion": "愤怒",
+    "action": "生气冒烟",
+    "description": "咖波眉头紧皱怒视前方 头顶冒烟暴躁不满",
+    "keywords": [
+      "生气",
+      "怒",
+      "暴躁",
+      "咬",
+      "打",
+      "掀桌",
+      "冒烟"
+    ]
+  },
+  {
+    "id": "angry_03",
+    "category": "生气暴躁",
+    "filename": "angry_03.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/angry_03.gif",
+    "minis_url": "minis://shared/stickers/capoo/angry_03.gif",
+    "size_bytes": 52948,
+    "emotion": "从困倦到愤怒",
+    "action": "睡觉打鼾后被吵醒冒烟生气",
+    "description": "蓝色便便造型的咖波正在睡觉打鼾，随后被吵醒变得愤怒冒烟",
+    "keywords": [
+      "生气",
+      "怒",
+      "暴躁",
+      "咬",
+      "打",
+      "掀桌",
+      "冒烟"
+    ]
+  },
+  {
+    "id": "love_01",
+    "category": "比心爱你",
+    "filename": "love_01.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/love_01.gif",
+    "minis_url": "minis://shared/stickers/capoo/love_01.gif",
+    "size_bytes": 48394,
+    "emotion": "害羞",
+    "action": "拥抱亲吻",
+    "description": "兔兔安慰哭泣的咖波并亲吻他的脸颊，咖波害羞脸红冒汗",
+    "keywords": [
+      "爱",
+      "喜欢",
+      "心",
+      "亲",
+      "脸红",
+      "害羞",
+      "抱抱"
+    ]
+  },
+  {
+    "id": "love_02",
+    "category": "比心爱你",
+    "filename": "love_02.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/love_02.gif",
+    "minis_url": "minis://shared/stickers/capoo/love_02.gif",
+    "size_bytes": 25720,
+    "emotion": "开心",
+    "action": "炫耀",
+    "description": "咖波依次展示不同的新年吉祥物：先是开心地抱着一枚写有「財」字的金币亲昵蹭脸，头上飘出粉色爱心；接着双手举起一个写有「福」字的招财猫挂饰，眯眼微笑脸红；然后举起双臂欢呼，手中拿着带有「节」字标签的节日装饰，背景飘落彩色纸屑；最后害羞地用小手遮脸，怀里抱着福字金币，幸福地眯眼微笑",
+    "keywords": [
+      "爱",
+      "喜欢",
+      "心",
+      "亲",
+      "脸红",
+      "害羞",
+      "抱抱"
+    ]
+  },
+  {
+    "id": "love_03",
+    "category": "比心爱你",
+    "filename": "love_03.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/love_03.gif",
+    "minis_url": "minis://shared/stickers/capoo/love_03.gif",
+    "size_bytes": 5730,
+    "emotion": "开心",
+    "action": "抱着兔子亲昵",
+    "description": "咖波在天空中抱着小白兔开心亲昵，兔脸红害羞",
+    "keywords": [
+      "爱",
+      "喜欢",
+      "心",
+      "亲",
+      "脸红",
+      "害羞",
+      "抱抱"
+    ]
+  },
+  {
+    "id": "shock_01",
+    "category": "震惊呆滞",
+    "filename": "shock_01.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/shock_01.gif",
+    "minis_url": "minis://shared/stickers/capoo/shock_01.gif",
+    "size_bytes": 45698,
+    "emotion": "惊讶",
+    "action": "张嘴吐舌头，一脸懵懂困惑的表情",
+    "description": "咖波睁大闪亮的眼睛，张开嘴巴吐出粉色舌头，脸颊泛着粉色红晕，头上冒出白色惊吓呆毛和灰色汗滴，头顶漂浮着粉色问号和感叹号，四周散落着黄色星星，表现出又惊讶又困惑的搞笑反应。",
+    "keywords": [
+      "惊",
+      "呆",
+      "问号",
+      "懵",
+      "石化",
+      "吓"
+    ]
+  },
+  {
+    "id": "shock_02",
+    "category": "震惊呆滞",
+    "filename": "shock_02.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/shock_02.gif",
+    "minis_url": "minis://shared/stickers/capoo/shock_02.gif",
+    "size_bytes": 4393,
+    "emotion": "震惊困惑",
+    "action": "砍树后被树干意外飞起吓到呆住",
+    "description": "咖波砍树后树干意外飞起震惊到一脸懵圈",
+    "keywords": [
+      "惊",
+      "呆",
+      "问号",
+      "懵",
+      "石化",
+      "吓"
+    ]
+  },
+  {
+    "id": "shock_03",
+    "category": "震惊呆滞",
+    "filename": "shock_03.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/shock_03.gif",
+    "minis_url": "minis://shared/stickers/capoo/shock_03.gif",
+    "size_bytes": 34024,
+    "emotion": "困惑",
+    "action": "吐舌发呆",
+    "description": "咖波双眼发懵向上翻，吐着舌头，头顶漂浮着粉色问号表示疑惑",
+    "keywords": [
+      "惊",
+      "呆",
+      "问号",
+      "懵",
+      "石化",
+      "吓"
+    ]
+  },
+  {
+    "id": "cool_01",
+    "category": "得意帅气",
+    "filename": "cool_01.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/cool_01.gif",
+    "minis_url": "minis://shared/stickers/capoo/cool_01.gif",
+    "size_bytes": 4814,
+    "emotion": "帅气",
+    "action": "戴墨镜耍酷",
+    "description": "咖波戴上黑色墨镜，露出自信微笑，帅气又得意",
+    "keywords": [
+      "得意",
+      "墨镜",
+      "酷",
+      "帅",
+      "哼",
+      "大笑"
+    ]
+  },
+  {
+    "id": "cool_02",
+    "category": "得意帅气",
+    "filename": "cool_02.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/cool_02.gif",
+    "minis_url": "minis://shared/stickers/capoo/cool_02.gif",
+    "size_bytes": 60977,
+    "emotion": "帅气耍酷",
+    "action": "用前爪扶着墨镜摆酷",
+    "description": "咖波戴着黑色墨镜，张大嘴巴大笑露出粉色舌头，用前爪扶着墨镜框摆出帅气造型，头顶有黄色橙色条纹造型，左上角有白色粗黑描边文字'帅吧'，头部左侧有一颗黄色四角星装饰",
+    "keywords": [
+      "得意",
+      "墨镜",
+      "酷",
+      "帅",
+      "哼",
+      "大笑"
+    ]
+  },
+  {
+    "id": "cool_03",
+    "category": "得意帅气",
+    "filename": "cool_03.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/cool_03.gif",
+    "minis_url": "minis://shared/stickers/capoo/cool_03.gif",
+    "size_bytes": 5746,
+    "emotion": "得意",
+    "action": "戴墨镜耍帅",
+    "description": "咖波戴上墨镜甩头耍帅，旁边写着「帅吧」",
+    "keywords": [
+      "得意",
+      "墨镜",
+      "酷",
+      "帅",
+      "哼",
+      "大笑"
+    ]
+  },
+  {
+    "id": "greet_01",
+    "category": "日常问候",
+    "filename": "greet_01.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/greet_01.gif",
+    "minis_url": "minis://shared/stickers/capoo/greet_01.gif",
+    "size_bytes": 4917,
+    "emotion": "欢快",
+    "action": "边走边挥手，开心告别",
+    "description": "咖波迈步向前走，开心地挥手告别，舌头伸出，眯眼笑，头顶文字「先走了掰」，表示愉快道别",
+    "keywords": [
+      "嗨",
+      "挥手",
+      "早",
+      "晚安",
+      "拜拜",
+      "你好",
+      "再见"
+    ]
+  },
+  {
+    "id": "greet_02",
+    "category": "日常问候",
+    "filename": "greet_02.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/greet_02.gif",
+    "minis_url": "minis://shared/stickers/capoo/greet_02.gif",
+    "size_bytes": 4885,
+    "emotion": "开心",
+    "action": "推门离开",
+    "description": "咖波开心地推开黄色大门挥手说拜拜再见",
+    "keywords": [
+      "嗨",
+      "挥手",
+      "早",
+      "晚安",
+      "拜拜",
+      "你好",
+      "再见"
+    ]
+  },
+  {
+    "id": "greet_03",
+    "category": "日常问候",
+    "filename": "greet_03.gif",
+    "local_path": "/var/minis/shared/stickers/capoo/greet_03.gif",
+    "minis_url": "minis://shared/stickers/capoo/greet_03.gif",
+    "size_bytes": 22900,
+    "emotion": "开心",
+    "action": "从门后探出挥手道别",
+    "description": "咖波从门后探出头来开心地挥手道别",
+    "keywords": [
+      "嗨",
+      "挥手",
+      "早",
+      "晚安",
+      "拜拜",
+      "你好",
+      "再见"
+    ]
+  }
+]
