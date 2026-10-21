@@ -80,33 +80,49 @@ def ensure_bridge_tab():
     return BRIDGE_TAB_ID[0]
 
 
-def build_bridge_js(messages, reasoning_effort="low", web_search=False):
-    """构造要注入浏览器的 JS，把 OpenAI messages 转成网页版 parts 格式"""
-    parts_messages = []
-    for m in messages:
-        role = m.get("role", "user")
-        content = m.get("content") or ""
-        if isinstance(content, list):
-            text_parts = [p for p in content if p.get("type") == "text"]
-            content = " ".join(p.get("text", "") for p in text_parts) if text_parts else ""
-        parts_messages.append({
-            "role": role,
-            "parts": [{"type": "text", "text": content}],
-            "id": "msg-" + uuid.uuid4().hex[:10],
-        })
+MAX_JS_LEN = 90000  # 安全阈值，远小于 iSH 的 ARG_MAX(128KB)
 
-    payload = {
-        "reasoningEffort": reasoning_effort,
-        "webSearchEnabled": bool(web_search),
-        "voiceMode": False,
-        "timezone": "Asia/Shanghai",
-        "language": "zh-CN",
-        "id": "bridge-" + uuid.uuid4().hex[:12],
-        "messages": parts_messages,
-        "trigger": "submit-message",
-    }
 
-    js = r"""
+def _normalize_content(content, max_chars):
+    """把 OpenAI content（字符串或 parts 数组）转成纯文本，并限长"""
+    if isinstance(content, list):
+        text_parts = [p for p in content if p.get("type") == "text"]
+        content = " ".join(p.get("text", "") for p in text_parts) if text_parts else ""
+    content = str(content or "")
+    if len(content) > max_chars:
+        return content[:max_chars] + "\n…[已截断]"
+    return content
+
+
+def build_bridge_js(messages, reasoning_effort="low", web_search=False, max_len=MAX_JS_LEN):
+    """构造要注入浏览器的 JS。
+    若消息过长，自动截断（保留最近若干条 + 限制每条长度 + 逐步压缩），
+    避免命令行参数超过 iSH 的 ARG_MAX(128KB) 导致 'Argument list too long'。"""
+
+    def build(max_msgs, max_chars):
+        msgs = messages[-max_msgs:] if max_msgs < len(messages) else messages
+        parts_messages = []
+        for m in msgs:
+            role = m.get("role", "user")
+            content = _normalize_content(m.get("content"), max_chars)
+            parts_messages.append({
+                "role": role,
+                "parts": [{"type": "text", "text": content}],
+                "id": "msg-" + uuid.uuid4().hex[:10],
+            })
+        payload = {
+            "reasoningEffort": reasoning_effort,
+            "webSearchEnabled": bool(web_search),
+            "voiceMode": False,
+            "timezone": "Asia/Shanghai",
+            "language": "zh-CN",
+            "id": "bridge-" + uuid.uuid4().hex[:12],
+            "messages": parts_messages,
+            "trigger": "submit-message",
+        }
+        return payload
+
+    template = r"""
 const payload = __PAYLOAD__;
 const sr = await fetch('/api/session', {credentials:'include'});
 const sj = await sr.json();
@@ -133,7 +149,17 @@ for (const line of text.split('\n')) {
 }
 return JSON.stringify({ok: true, status: resp.status, reasoning: reasoning, answer: answer});
 """
-    return js.replace("__PAYLOAD__", json.dumps(payload, ensure_ascii=False))
+
+    # 从宽松到严格逐步压缩，确保最终 JS 长度不超过 max_len
+    for max_msgs in [15, 10, 8, 6, 4, 3, 2, 1]:
+        for max_chars in [8000, 6000, 4000, 2500, 1500, 800, 400, 200]:
+            payload = build(max_msgs, max_chars)
+            js = template.replace("__PAYLOAD__", json.dumps(payload, ensure_ascii=False))
+            if len(js) <= max_len:
+                return js
+    # 极端兜底：只保留最后一条用户消息，限很短
+    payload = build(1, 150)
+    return template.replace("__PAYLOAD__", json.dumps(payload, ensure_ascii=False))
 
 
 def call_mercury(messages, reasoning_effort="low", web_search=False):
