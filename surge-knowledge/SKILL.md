@@ -10969,6 +10969,41 @@ RULE-SET:https://example.com/rules.txt = server:https://223.5.5.5/dns-query
 
 （来源：@SurgeTestFlightFeed）
 
+### Surge 5.102.0 (3874) — TestFlight（2026-10-22 收录）
+
+**peer-access-passthrough（新参数，默认开启）**
+- 新增 `peer-access-passthrough` 选项，用于 Tailscale/WireGuard 策略；当 `accept-incoming` / `allow-peer-access` 启用时**默认开启**。
+- 开启后：入站连接到本机 tunnel 地址直接交给本地服务（服务看到 peer 真实地址和端口）；本机发往 peer 地址的流量直接进隧道；**规则和请求列表不适用于这些流量**。
+- 设 `peer-access-passthrough = false` 恢复旧行为：入站连接走 Surge 规则并记录在请求列表。
+- ⚠️ **实测影响（2026-10-22 本机验证）**：默认开启会导致依赖 `/v1/requests/recent` 和 `surge_interface_*_bytes_total` 的面板（如「内存和流量实时监控」）统计不到 Tailscale 入站流量——入站设备不再出现在请求列表、透传流量不计入接口总流量。要保留入站统计必须显式 `peer-access-passthrough = false`。
+- UDP 经 Tailscale/WireGuard 转发时，若源端口空闲则保留客户端源端口。
+
+**SOCKS5 UDP**
+- 内置 SOCKS5 代理服务器支持 UDP ASSOCIATE，UDP 流量走规则/策略；每个关联的首个数据报匹配规则，后续数据报沿用同一策略。
+
+**QUIC Block Mode**
+- 全局 `block-quic` 设置现在可在 iOS 代理列表编辑器修改（与 Mac 一致）。
+
+**其他改进**
+- Tailscale：管理控制台不再对运行 Surge 的设备显示更新警告；DERP 连接 120 秒无数据视为死连接并重连。
+- Ponte：不再把相同 VM 桥地址误判为同 LAN；LAN 连接失败回退 Internet 模式并刷新设备记录；日志不再含 PSK/控制器密钥。
+- 流量统计：Tailscale MagicDNS 主机（*.ts.net）按完整主机名显示；同一主机条目合并累加。
+- HTTP 代理：`Proxy-Authorization` 头不再转发给上游服务器。
+- HTTP/2：畸形请求只重置自身 stream；上游中途关闭响应报告为截断而非完整。
+- `$httpClient`：URL 中百分号编码的用户名/密码在发送 Basic auth 前解码；无法解码的响应体报告为错误。
+
+**修复**
+- Map Local 数据文件 >2MB 被拒问题修复，上限提升到 15MB（与手册一致）。
+- HTTP/2 无 body 响应（304/204/HEAD）+ 响应脚本/body 重写同时命中时的处理修复。
+- `$surge.retestGroup` 在 WebView 引擎且无策略列表时不再崩溃。
+- pipelined HTTP/1 请求不再被当作 chunked body 转发。
+- HTTP/1 连接复用/关闭若干边界情况修复。
+
+**参考资料（来源）**
+- 原文：[post 1807](https://t.me/SurgeTestFlight/1807)（2026-10-21 官方 TestFlight 公告，E2B 频道抓取核验）。
+- 官方频道：https://t.me/SurgeTestFlightFeed 。
+- 校验状态：本机真机已升级 5.102.0 (3874)，`peer-access-passthrough` 默认开启对入站统计的影响已实测确认并修复（配置加 `peer-access-passthrough=false` + MemoryTraffic 脚本 v8 重置引擎重启后的入站累计）。
+
 ### Surge 5.102.0 (3871) — TestFlight（2026-10-14 收录）
 
 **Tailscale 入站连接**
