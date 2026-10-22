@@ -186,20 +186,25 @@ surge-cli --raw status           # 4. 验证
 - 无 body 的请求（GET 无 body）`streamHasRequestBody=false`，show 会提示无 body。
 - 实测抓包能穿过 MITM（httpbin 的 POST 请求体/响应体均完整抓到，含自定义 header）。
 
-### 本地模块测试与管理工作流（2026-10-22 整理）
+### 模块测试与管理（本地 & 远程，2026-10-22 整理）
 
-本地模块全流程测试与管理，surge-cli 与 HTTP API 分工如下：
+本机 24 个本地模块之外，用户实际启用的大多为**远程模块**（Installed Modules，用 URL 安装）。两者测试管理流程基本一致，差异集中在「写模块」和「刷新生效」。
 
-| 环节 | 方法 | 状态 |
+**本地模块**：`.sgmodule` 直接写进 `iCloud/Surge/Documents/Module/`，Surge 自动发现，按 `#!name=` 识别。
+
+**远程模块**：`.sgmodule` 在 GitHub 仓库（mickeu/surge）维护并推送，Surge 通过订阅 URL 加载。⚠️ 远程模块文件本身**不在** `external-resource list` 里（外部资源只有 ruleset/script/policy-group），CLI 无法直接强制重拉模块文件本体；修改仓库推送后，需在 Surge App「模块」页手动更新该模块，或等待模块自动更新周期。
+
+| 环节 | 本地模块 | 远程模块 |
 |---|---|---|
-| 写模块 | 把 `.sgmodule` 直接写进 `iCloud/Surge/Documents/Module/`，Surge 自动发现，按 `#!name=` 识别 | ✅ 24 个本地模块均如此识别 |
-| 语法自检 | `surge-cli --check <文件>` | ⚠️ 会把模块当完整配置检查，正常模块也会报 "Rules must end with FINAL"，忽略即可；真正语法错误能准确定位到行 |
-| 启用/停用 | `surge-cli module enable "<#!name>"` / `disable`，或 HTTP API `POST /v1/modules` | ✅ 两种都能读到模块列表；启用后 Surge 自动重载配置 |
-| 确认已生效 | `profile diff`：对比启用模块前后的配置 | ✅ 命令可用 |
-| 调试规则 | `rule match` / `explain` | ✅ 大量使用 |
-| 调试脚本 | `script evaluate`，用 `$argument` 传入真实 body | ✅ 已验证 |
-| 调试重写和 MitM | 开抓包 → `dump recent` 看 `modified` 字段 → `retrieve-data` 对比改写前后 body | ✅ 已验证（iPhone 上也可以） |
-| 看报错 | `log memory` / `log watch`、`script-log` | ✅ 命令可用 |
+| 写模块 | 写 `.sgmodule` 到 `iCloud/Surge/Documents/Module/` | 在 mickeu/surge 仓库改 `.sgmodule` → git push |
+| 刷新生效 | Surge 自动发现，无需刷新 | 仓库推送后，在 Surge App「模块」页手动更新该模块（或等自动更新周期） |
+| 语法自检 | `surge-cli --check <文件>`（可对仓库本地副本执行） | 同左；⚠️ 会把模块当完整配置检查，正常模块也报 "Rules must end with FINAL"，忽略；真正语法错误能准确定位到行 |
+| 启用/停用 | `surge-cli module enable "<#!name>"` / `disable`，或 HTTP API `POST /v1/modules` | 同左；两种都能读到模块列表；启用后 Surge 自动重载配置 |
+| 确认已生效 | `profile diff`：对比启用模块前后的配置 | 同左 |
+| 调试规则 | `rule match` / `explain` | 同左 |
+| 调试脚本 | `script evaluate`，用 `$argument` 传入真实 body | 同左 |
+| 调试重写和 MitM | 开抓包 → `dump recent` 看 `modified` 字段 → `retrieve-data` 对比改写前后 body | 同左（iPhone 上也可以） |
+| 看报错 | `log memory` / `log watch`、`script-log` | 同左 |
 
 **方案选择**：优先 surge-cli。启用停用两种方案都能做，但调试需要的 `rule explain`、`script evaluate`、`retrieve-data`、`log` 只有 surge-cli 方便直接用。HTTP API 适合没有 surge-cli 的地方（如快捷指令）；本机 `http-api-tls = false`，HTTP API 明文传输，只适合在局域网或 tailnet 里用。
 
