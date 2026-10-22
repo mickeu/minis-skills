@@ -75,6 +75,21 @@
 5. **必须重启 Minis**：模型列表是运行时缓存的，不重启 `minis-model-use` 搜不到新模型。
 6. 验证：`minis-model-use run --model "Mercury Bridge (网页版免费)/mercury-3" --prompt "你好"`。
 
+## 作为子代理使用（推荐）
+把 Mercury 3 配成子代理，让 Minis 的 agent 能委派「纯分析/写代码」任务给它，且 token 计入 Minis 用量统计。
+
+1. 创建自定义子代理（minis-config，触发确认）：
+   ```bash
+   minis-config add subagents '{"name":"Mercury 分析助手",
+     "description":"使用 Mercury 3 进行纯分析/写作/代码生成，不执行工具",
+     "instructions":"你是基于 Mercury 3 的子代理，擅长分析/写作/代码生成。不要调用任何工具，直接根据任务简报中的材料输出高质量结果。用简体中文，先结论后依据。",
+     "model_group":"Mercury (网页版桥接)"}'
+   ```
+2. 父代理用 `subagent_task` 委派，`agent` 参数传子代理 name（如「Mercury 分析助手」）。实测成功用 Mercury 3 生成代码。
+3. **需要工具的任务**：父代理（U2 flash）先用 shell 等工具获取材料（读配置/跑命令），再把材料+分析要求写进 task，委派给 Mercury 子代理做分析/写代码。
+4. 子代理走 Minis 模型通道，Mercury 3 的 token 会出现在 Minis「用量」面板（按模型能看到「Mercury 3 (网页版免费)」的消耗）。
+5. **边界**：Mercury 3 桥接不支持工具调用，子代理自己不能跑命令；材料必须由父代理先取好。
+
 ## 实战踩坑记录（2026-10-22，均已修复）
 1. **Vercel Security Checkpoint**：curl / Surge `$httpClient` / 服务器转发一律 429；只有真实浏览器能过 JS 挑战。Minis 内置浏览器是唯一过挑战的客户端。
 2. **`list_tabs` 输出是 JSON**：URL 里的 `\/` 和 `\n` 是转义。必须先 `json.loads` 取 `data.text` 再正则匹配 tab，否则 `[^\n]*` 会吞掉转义的 `\n` 误匹配到错误 tab。
