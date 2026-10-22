@@ -186,6 +186,23 @@ surge-cli --raw status           # 4. 验证
 - 无 body 的请求（GET 无 body）`streamHasRequestBody=false`，show 会提示无 body。
 - 实测抓包能穿过 MITM（httpbin 的 POST 请求体/响应体均完整抓到，含自定义 header）。
 
+### 本地模块测试与管理工作流（2026-10-22 整理）
+
+本地模块全流程测试与管理，surge-cli 与 HTTP API 分工如下：
+
+| 环节 | 方法 | 状态 |
+|---|---|---|
+| 写模块 | 把 `.sgmodule` 直接写进 `iCloud/Surge/Documents/Module/`，Surge 自动发现，按 `#!name=` 识别 | ✅ 24 个本地模块均如此识别 |
+| 语法自检 | `surge-cli --check <文件>` | ⚠️ 会把模块当完整配置检查，正常模块也会报 "Rules must end with FINAL"，忽略即可；真正语法错误能准确定位到行 |
+| 启用/停用 | `surge-cli module enable "<#!name>"` / `disable`，或 HTTP API `POST /v1/modules` | ✅ 两种都能读到模块列表；启用后 Surge 自动重载配置 |
+| 确认已生效 | `profile diff`：对比启用模块前后的配置 | ✅ 命令可用 |
+| 调试规则 | `rule match` / `explain` | ✅ 大量使用 |
+| 调试脚本 | `script evaluate`，用 `$argument` 传入真实 body | ✅ 已验证 |
+| 调试重写和 MitM | 开抓包 → `dump recent` 看 `modified` 字段 → `retrieve-data` 对比改写前后 body | ✅ 已验证（iPhone 上也可以） |
+| 看报错 | `log memory` / `log watch`、`script-log` | ✅ 命令可用 |
+
+**方案选择**：优先 surge-cli。启用停用两种方案都能做，但调试需要的 `rule explain`、`script evaluate`、`retrieve-data`、`log` 只有 surge-cli 方便直接用。HTTP API 适合没有 surge-cli 的地方（如快捷指令）；本机 `http-api-tls = false`，HTTP API 明文传输，只适合在局域网或 tailnet 里用。
+
 ### 模块命名约定（2026-08-25 用户明确）
 
 为用户制作的 Surge/Egern 模块，统一 `#!author=mickeu` 且 `#!category=mickeu`，新模块必须带上。
