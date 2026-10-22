@@ -117,4 +117,47 @@ ios-dev/
 │              pairing_import.py  pair_via_bonjour.py  install_sdk.py  AppleRoot.pem
 ├── references/  loopback.md  pairing.md  account.md  signing.md  CoreDevice-Loopback.sgmodule
 └── assets/    hello/src  swipe/src
+
+---
+
+## 本机实测补充（mickeu，2026-10-23 首条实机链路已验证）
+
+### 本机签名资产（已在 ~/.ios-signer/keys/，勿再向用户索取）
+用户已提供完整签名资产，直接引用即可：
+- `dev.legacy.p12`（签名用，Apple Distribution: jianwei yi / Team `W98A28M8HV`，有效期至 2027-04-09）
+- `dev.mobileprovision`（Bundle ID `com.l8U.4jzG`，Ad Hoc，仅设备 `00008130-001E3D4E22B8001C`）
+- `p12.pass`（密码，`export IOSDEV_P12_PASS=$(cat ~/.ios-signer/keys/p12.pass)`）
+
+project.yaml 签名段：
+```yaml
+sign:
+  mode: p12
+  p12: ~/.ios-signer/keys/dev.legacy.p12
+  password_env: IOSDEV_P12_PASS
+  profile: ~/.ios-signer/keys/dev.mobileprovision
+  udid: 00008130-001E3D4E22B8001C
+```
+
+### 关键坑（已实测）
+1. **p12 是 PBES2/AES-256**：rcodesign 0.29 报 `incorrect password`（密码其实对）。mk.py 会自动转 legacy，但**转换分支后不再重试时间戳**，会最终卡在 TSP。**先手动转 legacy 再指向它**：
+   ```sh
+   openssl pkcs12 -in dev.p12 -nodes -passin env:P12PASS -out /tmp/all.pem
+   openssl pkcs12 -export -legacy -in /tmp/all.pem -out dev.legacy.p12 -passout env:P12PASS
+   rm -f /tmp/all.pem   # 含明文私钥，立即删
+   ```
+   legacy p12 用 RC2-40，OpenSSL 3 读不了（`RC2-40-CBC unsupported`），但 rcodesign 能读，无碍。
+2. **Apple 时间戳服务器 `http://timestamp.apple.com/ts01` 在 iSH/Surge 下不可达**（curl Empty reply；surge probe 可达 401）。签名时 TSP 报 `HTTP error`。**禁用时间戳可正常签名安装**：mk.py 检测到 TSP 错误会自动用 `--timestamp-url none` 重试并成功。
+3. **doctor.py 读 `CDTK_PAIRING_FILE`**（不是 `IOSDEV_PAIRING_FILE`），本机配对文件 `/root/.cdtk/pairing/pairing.plist`。
+   ```sh
+   CDTK_PAIRING_FILE=$HOME/.cdtk/pairing/pairing.plist python3 scripts/doctor.py
+   ```
+4. 描述文件可从已签名 IPA 提取：`Payload/<App>.app/embedded.mobileprovision`，用 `openssl smime -inform DER -verify -noverify -in <file>` 解析。
+
+### 已验证安装命令
+```
+export IOSDEV_P12_PASS=$(cat /root/.ios-signer/keys/p12.pass) CDTK_PAIRING_FILE=/root/.cdtk/pairing/pairing.plist
+python3 scripts/mk.py <project> --check   # 预检
+python3 scripts/mk.py <project> --clean   # 构建签名
+python3 scripts/install_ipa.py <signed.ipa>  # 安装后务必 get_apps 读回验证
+```
 ```
