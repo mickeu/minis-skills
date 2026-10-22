@@ -28,8 +28,8 @@ from coolapk_mcp.auth.libauth import get_blob
 _STD_B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 # 当前酷安版本参数（v16.2.0）
-DEFAULT_VERSION_CODE = 2604201
-DEFAULT_APP_VERSION = "16.2.0"
+DEFAULT_VERSION_CODE = 2607021
+DEFAULT_APP_VERSION = "16.4.0"
 DEFAULT_PACKAGE = "com.coolapk.market"
 
 # 时间戳前探窗口（解决 bcrypt Invalid salt 问题）
