@@ -201,6 +201,35 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _send_stream(self, completion):
+        """以 OpenAI 兼容 SSE 流式格式发送回答"""
+        content = completion["choices"][0]["message"]["content"]
+        cid = completion["id"]
+        created = completion["created"]
+        model = completion["model"]
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.end_headers()
+
+        def emit(obj):
+            self.wfile.write(f"data: {json.dumps(obj, ensure_ascii=False)}\n\n".encode("utf-8"))
+            self.wfile.flush()
+
+        emit({"id": cid, "object": "chat.completion.chunk", "created": created, "model": model,
+              "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}]})
+        step = 20
+        for i in range(0, len(content), step):
+            emit({"id": cid, "object": "chat.completion.chunk", "created": created, "model": model,
+                  "choices": [{"index": 0, "delta": {"content": content[i:i + step]}, "finish_reason": None}]})
+        emit({"id": cid, "object": "chat.completion.chunk", "created": created, "model": model,
+              "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]})
+        self.wfile.write(b"data: [DONE]\n\n")
+        self.wfile.flush()
+        # 流结束，关闭连接，避免客户端一直等待导致“卡住”
+        self.close_connection = True
+
     def do_OPTIONS(self):
         self.send_response(204)
         self.end_headers()
@@ -221,6 +250,7 @@ class Handler(BaseHTTPRequestHandler):
         messages = req.get("messages", [])
         reasoning = req.get("reasoning_effort", req.get("reasoningEffort", "low"))
         web_search = bool(req.get("web_search", req.get("webSearchEnabled", False)))
+        stream = bool(req.get("stream", False))
         if reasoning not in ("instant", "low", "medium", "high"):
             reasoning = "low"
 
@@ -249,7 +279,10 @@ class Handler(BaseHTTPRequestHandler):
                 "total_tokens": max(1, len(answer) // 4),
             },
         }
-        self._send(200, completion)
+        if stream:
+            self._send_stream(completion)
+        else:
+            self._send(200, completion)
 
     def do_GET(self):
         self._send(200, {
