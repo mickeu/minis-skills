@@ -36,7 +36,7 @@ PY
 pass "Offline syntax and local links"
 [ "$MODE" != --offline ] || exit 0
 command -v "$CLI" >/dev/null || fail "surge-cli is not installed"
-python3 - "$SELF_DIR/surge_cli.py" "$SELF_DIR/surge_ios.py" "$SELF_DIR/adapt_upstream_reference.py" <<'PY'
+python3 - "$SELF_DIR/surge_cli.py" "$SELF_DIR/surge_http_api.py" "$SELF_DIR/adapt_upstream_reference.py" <<'PY'
 import sys
 for name in sys.argv[1:]:
     source=open(name,encoding="utf-8").read()
@@ -58,7 +58,7 @@ grep -qx 'OK' "$TMP/check.txt" || fail "official profile validation service chec
 pass "official profile validation service"
 fi
 if [ -n "${SURGE_HTTP_API_KEY:-}" ]; then
-  python3 "$SELF_DIR/surge_ios.py" metrics > "$TMP/metrics.txt"
+  python3 "$SELF_DIR/surge_http_api.py" metrics > "$TMP/metrics.txt"
   grep -q '^# TYPE surge_build_info gauge$' "$TMP/metrics.txt" || fail "Prometheus metrics output is invalid"
   pass "Prometheus metrics endpoint"
 fi

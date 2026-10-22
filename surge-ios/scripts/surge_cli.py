@@ -77,6 +77,15 @@ HELP = {
 "environment":"Usage: environment",
 "set":"Usage: set <key-path>=<value> [...]",
 "set-log-level":"Usage: set-log-level <log-level>",
+"managed-profile":"Usage: managed-profile update\n\nUpdate and reload the active managed profile.",
+"external-resource":"Usage:\n  external-resource list\n  external-resource update <key|all>\n\nList or update external resources used by the active profile.",
+"proxy-runtime-status":"Usage: proxy-runtime-status <policy-name | line-hash>\n\nInspect proxy runtime details, including Tailscale/WireGuard tunnel, peer, DERP, and handshake state.",
+"script-log":"Usage: script-log <log-name> <session-id>\n\nShow one script execution log.",
+"device":"Usage: device <list | show <identifier|mac>>\n\nInspect gateway-mode devices. Available on macOS only.",
+"security":"Usage:\n  security ban list   List active unauthorized-access bans\n  security ban clear  Clear unauthorized-access ban state",
+"switch-profile":"Usage: switch-profile <profile-name>\n\nSwitch to another profile.",
+"unattended-upgrade":"Usage: unattended-upgrade\n\nPerform an unattended Surge upgrade if one is available.",
+"plugin":"Usage: plugin <list | info | parameters | load-unpacked | configure | enable | disable | select | uninstall>\n\nManage Surge plugins. macOS only; not available on Surge iOS.",
 }
 
 def die(msg: str, code: int = 1):

@@ -22,7 +22,7 @@ The exact official `SKILL.md` snapshot is retained as `upstream-SKILL.md`. The l
 ## Local additions that must survive synchronization
 
 - `scripts/surge_cli.py`: Linux/iSH implementation of External Controller protocol plus the explicit-file official HTTPS `--check` fallback.
-- `scripts/surge_ios.py`: localhost HTTP API fallback.
+- `scripts/surge_http_api.py`: localhost HTTP API fallback.
 - `scripts/test_policy_descriptor.py`: local helper for testing an unconfigured node through `/v1/scripting/evaluate` plus `$httpClient` `policy-descriptor`, without changing the Profile.
 - `scripts/sync_upstream.sh`: repeatable import command.
 - `scripts/adapt_upstream_reference.py`: adapts command-reference section 1.1, keeps sensitive profile dumps opt-in, and shell-quotes the `<nil>` assignment example. The remaining upstream command semantics are preserved.

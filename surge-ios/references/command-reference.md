@@ -67,7 +67,7 @@ own rows.
 | `test-group` | `<group-name>` | retest a policy group immediately | |
 | `test-all-policies` | none | retest all policies | |
 | `test-policy` | `<policy...>` | test one or more policies | |
-| `test-policy-udp` | `<policy...>` | UDP policy test | |
+| `test-policy-udp` | `<policy...>` | UDP policy test | Requires Internet egress: a peer-to-peer Tailscale/WireGuard policy (`Test Capability: rtt-only`) returns a not-applicable error; use `test-policy` for its RTT probe |
 | `test-policy-external-ip` | `<policy>` | probe external IP via a policy | STUN-based |
 | `test-policy-nat-type` | `<policy>` | probe NAT type via a policy | STUN-based |
 | `test-policy-bandwidth` | `<download\|upload> <policy>` | run bandwidth diagnostics via a policy | streaming output |
@@ -93,7 +93,7 @@ own rows.
 | `switch-profile` | `<profile-name>` | switch to another profile | |
 | `managed-profile` | `update` | update and reload the active managed profile | macOS only |
 | `update-profile` | `<base64-rule-section>` | update Rule section | macOS only |
-| `proxy-runtime-status` | `<line-hash>` | inspect one proxy's live runtime and recent errors | essential for Tailscale/WireGuard diagnosis, see 3.1 |
+| `proxy-runtime-status` | `<policy-name \| line-hash>` | inspect one proxy's live runtime and recent errors | essential for Tailscale/WireGuard diagnosis, see 3.1 |
 | `add-temp-rule` | `<rule>` | add temporary rule | |
 | `del-temp-rule` | `<rule>` | delete temporary rule | |
 | `update-temp-rule` | `<rule> <new-policy>` | change policy of temporary rule | |
@@ -144,15 +144,17 @@ surge-cli plugin list        # confirm state == enabled
 
 ```bash
 surge-cli dump policy
-surge-cli proxy-runtime-status <line-hash>
+surge-cli proxy-runtime-status "<policy-name>"
 surge-cli proxy-runtime-status <line-hash>
 ```
 
 `proxy-runtime-status` is the primary per-proxy diagnostic command and is
 especially important for Tailscale and WireGuard. General status, summary, and
 connectivity-test commands do not expose the tunnel's internal runtime state.
-Use `dump policy` to find the proxy's `line-hash`, shown in square brackets in
-human-readable output, then pass it to this command.
+Pass the proxy's name as listed by `dump policy` (quote names containing
+spaces). A `line-hash` (`POLICY::…`) is also accepted; `dump policy` does not
+print it, but `policy-group list` and `dump policy-group-sub-policies` show it
+in square brackets for proxies that are members of a policy group.
 
 The common response includes traffic and speed, UDP relay support, test
 capability, runtime details, and recent connection errors. WireGuard adds the
@@ -551,7 +553,10 @@ surge-cli script-log <log-name> <session-id>
 
 - `set-log-level` changes the runtime file log level without modifying the
   profile.
-- `logbook` displays recent structured logbook records.
+- `logbook` displays recent structured logbook records, newest first. The
+  payload is `{"records": [...], "truncated": <bool>}`; since controller
+  protocol 27 the server caps the response size (about 3 MB on iOS, 15 MB on
+  macOS) and skips records that do not fit, setting `truncated` to `true`.
 - `script-log` displays the log from one script execution.
 
 ### 3.17 Human-readable parsers

@@ -72,7 +72,7 @@ surge-cli --raw feature set packet-capture off
 - 执行时用 `try/finally` 或 shell trap 保障异常清理；关闭本次抓包后恢复已记录的原参数并复核状态，不只关闭开关。原值不可读时使用最小变更并如实报告恢复限制。
 - 截至 2026-10-05 所查 Controller/HTTP 文档未找到 PCAP 导出接口；`retrieve-data` 是 HTTP 请求/响应 body，不是 PCAP 导出。不要猜 API 端点。
 - 可先在已挂载 Surge 目录用 `rg --files -g '*.pcap' -g '*.pcapng'` 查找；挂载中没有文件时，请用户从 Surge 的 Packet Capture 页面分享导出 `.pcap/.pcapng`。这不等于断言所有版本都无自动导出能力。
-- 收到附件后用 `tcpdump -nn -tttt -S -vvv -r <file>` 离线分析。不要把完整流量上传公开网站；围绕本次端口和时间筛选。reflect 流量须识别反射前后副本，见专题。
+- 收到附件后用 `tcpdump -nn -tttt -S -vvv -r <file>` 离线分析。不要把完整流量上传公开网站；围绕本次端口和时间筛选。`[IP Rewrite]` 的 `reflect` 在 IP 层、先于规则交换源/目标 IP，同一抓包会有反射前后两份包（IP 互换、端口与 seq/ack 不变），不要误判为重传；详见 [reflect 专题](ip-rewrite-loopback.md)。
 
 ### 性能与隧道
 
@@ -85,10 +85,10 @@ surge-cli --raw benchmark encryption 25
 
 `benchmark encryption` 测量 Surge 所在设备的本地加密性能，不是网络带宽。
 
-排查 Tailscale/WireGuard 时，先从 `dump policy` 找到 `lineHash`，再读取运行时状态：
+排查 Tailscale/WireGuard 时，用策略名（来自 `dump policy`，line-hash 也可）读取运行时状态：
 
 ```sh
-surge-cli --raw proxy-runtime-status <line-hash>
+surge-cli --raw proxy-runtime-status "<policy-name>"
 ```
 
 优先检查握手、底层策略、Tailscale 会话、Exit Node、DERP 和 peer path，不要先做宽泛日志搜索。

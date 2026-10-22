@@ -3,8 +3,8 @@ name: surge-ios
 description: 通过同机 Surge External Controller 检查和控制 Surge iOS，处理策略与节点、规则、DNS、连接、模块、脚本及代理诊断。涉及 Surge 专有命令或配置时使用；优先 Minis surge-cli，HTTP API 按需回退。
 compatibility: Surge iOS with external-controller-access enabled; Python 3
 metadata:
-  upstream: Surge for macOS 6.9.0 (12250), bundled Skill synchronized and adapted for Minis
-  controller_protocol: 25
+  upstream: Surge for macOS 6.11.0 (12570), bundled Skill synchronized and adapted for Minis
+  controller_protocol: 27
   source: /Applications/Surge.app/Contents/Resources/Skills/surge/
 ---
 

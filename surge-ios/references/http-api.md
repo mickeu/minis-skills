@@ -98,7 +98,7 @@ Apply the engine-state preflight above before interpreting `$httpClient` probe f
 Use the helper instead of printing the API key in a curl command:
 
 ```sh
-python3 /var/minis/skills/surge-ios/scripts/surge_ios.py metrics
+python3 /var/minis/skills/surge-ios/scripts/surge_http_api.py metrics
 ```
 
 The formal iOS 5.22.0 build 3830 was verified to expose build info, uptime, memory, active request/DNS-cache/ban gauges, and per-interface/per-policy traffic counters. The official manual confirms the HTTP Controller route is `/v1/metrics`; bare `/metrics` is not an API route.
