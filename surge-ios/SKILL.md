@@ -168,6 +168,24 @@ surge-cli --raw status           # 4. 验证
 - `script evaluate <path> event <timeout>` 要单独跑，连发会让 controller 卡死；脚本 JS 语法错误静默输出空——先 `node --check`。
 - 断线自动重连脚本：`mickeu/surge → Scripts/AutoReconnect/auto-reconnect.js`（叶子 select 组 + 组测速 + 切候选）。
 
+### 抓包查看 header/body（surge-dump 工具，2026-10-22 实测）
+
+用 surge-cli 控制抓包并查看完整请求/响应 header 与 body。封装脚本：`scripts/surge-dump.py`（复制自 workspace/surge-dump/，用法见脚本 docstring）。
+
+**工作流**：
+1. 开抓包：`surge-dump.py capture on --time 600`（等价于 `surge-cli set ReplicaSessionParameters.timeLimit=600` + `surge-cli feature set capture on`）。⚠️ 抓包默认窗口只有 **180 秒**，超时自动关闭，status 里 capture 会变回 Off。
+2. 列记录：`surge-dump.py list --keyword <kw>`（等价于 `surge-cli --raw dump recent`）。
+3. 看详情：`surge-dump.py show <id>` 输出完整 requestHeader / request body / responseHeader / response body / 连接 notes。
+4. 存 body：`surge-dump.py body <id> request|response -o file`。
+
+**关键技术点（实测踩坑）**：
+- `surge-cli --raw dump recent` 每条记录含 `requestHeader`、`responseHeader`、`URL`、`method`、`status`、`streamHasRequestBody`、`streamHasResponseBody`、`replicaDirectoryPath`、`notes` 等——**header 在这里直接能看**。
+- body 走 `surge-cli retrieve-data <id> request|response`，但返回的是**原始二进制**（`8字节小端长度 + \r\n + body`），官方 surge-cli 会因 `json.loads` 遇非 UTF-8 抛 `UnicodeDecodeError` 崩溃。surge-dump.py 用**直连 Controller socket** 读原始字节并解析长度前缀。
+- body 解压按 header 的 `content-encoding` 判断（gzip/deflate）；gzip 魔数 `\x1f\x8b` 已验证可正确解压。
+- `SURGE_CLI_REMOTE` 是本机实际 Controller 地址（本机非 127.0.0.1:6170），直连脚本必须读该环境变量，不要写死 localhost。
+- 无 body 的请求（GET 无 body）`streamHasRequestBody=false`，show 会提示无 body。
+- 实测抓包能穿过 MITM（httpbin 的 POST 请求体/响应体均完整抓到，含自定义 header）。
+
 ### 模块命名约定（2026-08-25 用户明确）
 
 为用户制作的 Surge/Egern 模块，统一 `#!author=mickeu` 且 `#!category=mickeu`，新模块必须带上。
