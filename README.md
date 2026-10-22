@@ -39,6 +39,7 @@
 - codex-image
 - companion-diary
 - contact-vcard-extractor
+- coolapk
 - doubao-tts
 - douyin-downloader
 - dynamic-lyrics
