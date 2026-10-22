@@ -15,3 +15,8 @@
   - 修复 iCloud Drive 同步不再拉取其他设备变更的问题（本地更改仍会上传）。根因是旧版本遗留的锁文件缺少写权限，Surge 现在会自动修复该文件。
 
 官方频道：@SurgeTestFlightFeed
+
+### 与本机环境的关联（2026-10-22）
+
+- 3874 曾默认开启 `peer-access-passthrough`（当 `allow-peer-access=true` 时），导致 Tailscale 入站流量绕过 Surge 引擎、面板统计失效（详见 pitfalls-and-cookbook.md）。当时在配置中手动加了 `peer-access-passthrough = false` 规避。
+- 3875 直接**移除**该参数并恢复旧版行为，意味着此前手动加的 `false` 已属废弃参数残留，应删除。本机配置已清理并 reload（commit config-backup `e0fc29d`）。
