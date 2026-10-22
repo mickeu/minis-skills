@@ -48,6 +48,7 @@ surge-cli --raw environment
 | 本地模块落盘、发现、HTTP API 启用与验证 | [http-api.md](references/http-api.md#本地模块安装与启用) |
 | IP Rewrite / reflect、本机开发服务回环及反射抓包判读 | [ip-rewrite-loopback.md](references/ip-rewrite-loopback.md) |
 | Controller 不可用、明确要求 `/v1/*`、指标或未配置节点测试 | [http-api.md](references/http-api.md) |
+| iOS TestFlight 版本更新日志 | [testflight-changelog.md](references/testflight-changelog.md) |
 | 平台限制、Unknown command、协议版本异常 | [platform-compatibility.md](references/platform-compatibility.md) |
 | 安装、认证传输和客户端协议 | [controller-cli.md](references/controller-cli.md) |
 
