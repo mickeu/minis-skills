@@ -37,6 +37,7 @@
 - cloudflare-wrangler
 - codex-chatgpt-web
 - codex-image
+- companion-diary
 - contact-vcard-extractor
 - doubao-tts
 - douyin-downloader

@@ -1,0 +1,6 @@
+#!/bin/sh
+# companion-diary CLI 包装脚本（由 Minis 安装时补齐，上游仓库仅含 diary_engine.py）
+# 用 readlink -f 解析软链真实位置，定位技能目录
+SELF="$(readlink -f "$0" 2>/dev/null || echo "$0")"
+DIR="$(cd "$(dirname "$SELF")/.." && pwd)"
+exec python3 "$DIR/scripts/diary_engine.py" "$@"
