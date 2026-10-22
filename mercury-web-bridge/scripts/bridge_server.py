@@ -263,6 +263,16 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         answer = result.get("answer", "")
+        # 估算输入 token（网页版不返回真实 usage，按字符数/4 估算，让 Minis 用量面板能统计）
+        prompt_chars = 0
+        for m in messages:
+            c = m.get("content", "")
+            if isinstance(c, str):
+                prompt_chars += len(c)
+            elif isinstance(c, list):
+                prompt_chars += sum(len(p.get("text", "")) for p in c if isinstance(p, dict))
+        prompt_tokens = max(1, prompt_chars // 4)
+        completion_tokens = max(1, len(answer) // 4)
         completion = {
             "id": "chatcmpl-" + uuid.uuid4().hex[:16],
             "object": "chat.completion",
@@ -274,9 +284,11 @@ class Handler(BaseHTTPRequestHandler):
                 "finish_reason": "stop",
             }],
             "usage": {
-                "prompt_tokens": 0,
-                "completion_tokens": max(1, len(answer) // 4),
-                "total_tokens": max(1, len(answer) // 4),
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": prompt_tokens + completion_tokens,
+                "prompt_tokens_details": {"cached_tokens": 0},
+                "completion_tokens_details": {"reasoning_tokens": 0},
             },
         }
         if stream:
