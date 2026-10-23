@@ -152,6 +152,24 @@ sign:
    CDTK_PAIRING_FILE=$HOME/.cdtk/pairing/pairing.plist python3 scripts/doctor.py
    ```
 4. 描述文件可从已签名 IPA 提取：`Payload/<App>.app/embedded.mobileprovision`，用 `openssl smime -inform DER -verify -noverify -in <file>` 解析。
+5. **本机完整证书包**（用户 2026-10-23 提供，`证书.zip`）：`cert.p12` + `cert.mobileprovision` + `password.txt`，已存入 `~/.ios-signer/keys/`（与 `dev.p12`/`dev.mobileprovision`/`p12.pass` 校验值相同）。
+
+### ⭐ 重签第三方 IPA：保持原包名（核心方法，2026-10-23 实测打通）
+
+**一份描述文件可以签任意包名的 App，保持原包名、互不覆盖。** 这就是 LCSign / 轻松签 / 全能签 的做法。
+
+正确做法（三步）：
+1. **保留 App 原 `CFBundleIdentifier`，绝不改包名**
+2. 把**签名 entitlements** 设为描述文件的 Entitlements（`application-identifier` = `<team>.<profileAppID>`，本机为 `W98A28M8HV.com.l8U.4jzG`）
+3. 塞入 `embedded.mobileprovision`，用 p12 签名
+
+原理：iOS 安装校验的是 **entitlements**（匹配描述文件 ✅），系统按 **CFBundleIdentifier** 区分 App → 包名各异、互不覆盖。
+
+⚠️ **常见错误（已踩，别再犯）**：把 `CFBundleIdentifier` 改成描述文件的 App ID（`com.l8U.4jzG`）去"迁就"描述文件 → 所有 App 撞同一 ID → **互相覆盖**。要改的是 entitlements，不是包名。
+
+封装脚本：`scripts/resign_keep_bundleid.py <input.ipa> [output.ipa] [--install]`
+
+设备端验证法（读回确认）：`get_apps` 取 App 的 `Entitlements['application-identifier']`——本机 LCSign 装的所有 App（MiniWatts/AirBeep/StikPair/wloc/StikDebug/LCSign）虽然包名各异，但 application-identifier **全是** `W98A28M8HV.com.l8U.4jzG`（同一份描述文件），证明「一份描述文件签多个不同包名」可行。
 
 ### 已验证安装命令
 ```
