@@ -1,7 +1,7 @@
 ---
 name: iflytek-analysis
-description: "讯飞输入法 v15.0.3606 深度技术分析知识库（Phoenix 引擎、词频调频、联想、造词、分词、笔画解码、词库二进制格式、RNN 模型、桥接层/CTRL指令、顺畅连贯机制、云端接口、跨屏、埋点灰度、表情数据系统、安全风控、业务模块/账号支付/加密机制、**键盘布局反编译数据（26键/笔画/符号三面板真实 ini 坐标，跨会话可用）**，含五卷分析 + 反汇编交叉核对结论 + 9 份子代理反汇编报告 + Phoenix 符号精选表）。供 0点输入法（自研输入法，只做笔画+英文+符号，不做拼音）逆向参考与算法透明移植。触发词：讯飞分析、讯飞输入法分析、Phoenix 引擎、词频调频、RnnResort、词库格式、iflytek-analysis、讯飞协议、云输入、联想、造词、顺畅连贯、笔画输入、加密机制、RNN模型结构、讯飞键盘布局、键盘反编译、26键还原、bihuakey、26enkey、symbolkey。"
-version: 1.12.0
+description: "讯飞输入法 v15.0.3606 深度技术分析知识库（Phoenix 引擎、词频调频、联想、造词、分词、笔画解码、词库二进制格式、RNN 模型、桥接层/CTRL指令、顺畅连贯机制、云端接口、跨屏、埋点灰度、表情数据系统、安全风控、业务模块/账号支付/加密机制、**键盘布局反编译数据（26键/笔画/符号三面板真实 ini 坐标，跨会话可用）**，含五卷分析 + 反汇编交叉核对结论 + 14 份反汇编报告 + Phoenix 符号精选表）。供 0点输入法（自研输入法，只做笔画+英文+符号，不做拼音）逆向参考与算法透明移植。触发词：讯飞分析、讯飞输入法分析、Phoenix 引擎、词频调频、RnnResort、词库格式、iflytek-analysis、讯飞协议、云输入、联想、造词、顺畅连贯、笔画输入、加密机制、RNN模型结构、讯飞键盘布局、键盘反编译、26键还原、bihuakey、26enkey、symbolkey、讯飞皮肤、皮肤配色、color.ini、theme_info。"
+version: 1.14.0
 author: "mickeu"
 license: MIT
 tools:
@@ -42,7 +42,9 @@ tools:
 | `notes/候选生产组装_反汇编报告.md` | **候选生产/组装闭环实锤**：①旧地址 0xffffdedc 真实=**0x10010284b0 `phn::DecodeArcState_Create`**，从对象池分配 40B `DecodeArcState`（写 +0 id/+2 kind/+3 attr/+4/+6 属性/+8 segment/+16 path/+24 arc），**不是直接构造最终 DecodeNode**；ProcessStroke 三调用点，命中后 push_back 到 `vector<DecodeArcState*>`，此阶段无排序。②ProduceSort=0x100fa7518，四个被调函数真实符号：`SortNodes`(0x100fa8464，唯一直接进 Comparator stable_sort 处：ParseScore/LengthScore/Associate/SortStrokeSingleWords)、`GetSortType`(0x100fa9790，返回 0..14/15 sentinel)、`UniqueDecNode`(0x100fb10f0)、`UniqueFullAndSent`(0x100fb3060，按 DecodeNode+33 bit3 合并去重分桶)。③闭环：笔画词项→ProcessStroke→DecodeArcState→后续解码成 DecodeNode 桶→ProduceSort(GetSortType→SortNodes 排序→Unique 去重)。**ProduceSort 及四函数均未调 RnnResortBase**（RNN 是另一阶段）。修正第一卷"命中即组装 DecodeNode 候选"表述 | 候选生产/组装 |
 | `notes/排序闭环_RNN调频写入点_反汇编报告.md` | **排序闭环+RNN调频公式逐指令实证（本次最大成果）**：①排序键写入点实锤=`RnnReScore`@0x100f8384c，`bfi w12,#15,#15` 把新分数嵌入 DecodeNode+44(=+0x2c rank) 的 bits[29:15]。②第一卷调频公式完整实证：`new = weight×(old/102.4) + (1−weight)×count + 0.5 + correction`；`old/102.4` 用 `old*5>>9` 定点近似；`weight=min(cfg,0.5)` 按类型再 min 到 C2/C4；`ratio=count/old` ≥5 才走小权重；`correction=(old−count)` 受 type/类型标志调节；结果 bfi 进 rank[29:15]，count 留 rank[14:0]。③DecodeNode 字段定名：+0x20 flags / +0x28 type / +0x2c rank（低15位=count，高15位=RNN分）。④揭示**两条排序入口**：普通候选走 ProduceSort→SortNodes→Comparator；RNN 精排走 RnnResortBase→RnnReScore 写分→Fullmatch/LmScore Comparator stable_sort。含可移植伪 C 与 Rime 落地要点 | 排序/RNN调频 |
 | `notes/RNN模型加载与格式_反汇编报告.md` | **RNN 模型加载链+文件格式实证（结论修正：模型不加密）**：①模型文件 `940e67abb4`（4.2MB，从 IPA 提取）熵 5.39、分块 6.88→2.67 渐变、bit 强偏斜 = **量化权重+位变换，非强加密**。②加载链：`RnnInstMgr::Start(0x10103f048)` → IRes_mgr vtable[48] 虚函数(参数22=RNN类型)取资源对象 → 对象 vtable[80] 取数据指针 → 按 `[数据+40]` 类型(1=Float/3=Fix)创建 RnnInstFloat/Fix 实例。③**模型格式=自定义层描述符序列化**：ResRnn 内存 `[+6]`=层数、`[+8]`=层描述符偏移；每层含名字(+0x24)/数据偏移(+8)/数据长度(+12)；层类型串 dense/dict/lstmp/embedding/softm 与 rnn/qik/geo。④**头部 magic 决定量化精度**：`rnn_float`→LoadRes<float,float>、`rnn_16bit_8bit`→<schar,short>、`rnn_8bit`→<schar,schar>、`rnn_16bit`→<short,short>。⑤`RLRnn::load→LoadRes→ParseMatrix(0x100f5850c)/LoadDict(0x100f58880)` **直接解析明文数据，无解密调用**。⑥**★本次重要实证：资源管理器明文读取文件**——`XFPhnResMemCache::loadRes`(0x1009f2b7c)→`0x1009f2794`→`0x1009b55d4` 直接 `fopen(path,"rb")`+`fread` 读全部数据，**无任何 XOR/AES 解密循环**（详见 `notes/rnn_resloader_disasm.md`）。⑦修正此前"解密在资源管理器层（IFlyEncryption XOR）"的推断：**已安装模型文件明文存储**，IFlyEncryption XOR 仅可能用于下载/更新的传输 zip。含 ParseMatrix 头部维度 mul/msub %100 解码实证 | 模型/RNN加载 |
+| `notes/RNN反量化算法_反汇编报告.md` | **int8→float 缩放反量化算法逐指令实证（修正：反量化不在 Parser 层，而在运行时 GEMM 内核）**：①`ParserDnnlayer<T,T0>`/`ParserWeightBias<T,T0>` 只是**序列化结构解析**（搜索 `"dense"`/`"bias"`(0x73616962) magic 标签、建层对象、拷字段），`Iff` 与 `Ias`/`Iaa` 代码几乎逐字节相同，**模板类型差异不产生反量化指令**。②真正反量化在 `RnnInstFix::DnnOp`(0x1013f303c)→`MatrixMulThreadPool::mul_thr_sgemm_int8`(0x100bf871c)→`build_tasks_int8`(0x100bf9a1c) 派发→`service`(0x100bfffd0) 线程→GEMM 内核。③GEMM 内核跳板 `fmul s0,s1,s0`=**两个矩阵 scale 相乘**；主循环 `gemm_main_A`(0x100bf7ae0)/`B`(0x100bf7c9c) 用 `smull`(int8×int8→int16)+`sadalp`(→int32) NEON 定点累加，最后 `scvtf`(int32→float)→`fmadd acc×scale ±0.5`(符号舍入)→`fcvtzs` 写回 int32。④输出层 `DnnOp` 内联：`out=clamp(round(查表×scale+0.5),0,127)`，scale 存层对象偏移 1780。⑤算法=**对称线性量化（仅 scale，无 zero-point）**：`C=round(Σint8×int8 × (scale_a×scale_b))`，输出保持 int32 定点。**修正旧建议**（反汇编 ParserWeightBias 看反量化已证伪）。含全部真实地址、指令解读、公式、产物归档（notes/rnn_quant/*.asm） | 模型/RNN反量化 |
 | `notes/候选解码主路径_反汇编报告.md` | **候选解码主路径完整还原（ProcessEmit→DecodeArcState→候选桶）**：①`ProcessEmitDecode_common`(0x1013e5e1c)核心循环逐指令还原：**6 字节词项遍历**（`add x26,x26,#0x6`）→`ldrh w8,[x26,#4]` 取词项ID→查表 `ldrh w8,[x9,w8,uxtw#1]`→`ldrb w9,[x9,x8]` 校验有效位→清零 rank（`stp wzr,wzr,[x19,#44]`）→在 DecodeArcState 链 `madd x9,x8,x17,x9`（x17=0x18 即 24B 步进）定位→遍历链找匹配节点。②**中英文分流依据**：关联对象 `+33 bit1`（`tbnz w8,#1` → 走 `_eng` 否则 `_chn`）。③`ProcessEmitDecode_process_chn`(0x1013e6974)/`_eng`(0x1013e6374) 生成**中间候选并入 vector**，均**不直接调用 ConstructDecodeNode**。④`ConstructDecodeNode`(0x1013acf58) 经 0x10138d564 创建最终节点；`NodeCreator::CreateNode`(0x10138de40) 是**另一条** NodeCreator 路径，不可混同。⑤`SetInfo`(0x10138e0b0) 精确恢复 DecodeNode 字段来源：`+0/+8/+16/+24/+32/+40/+43/+44/+48/+50/+51`。⑥`MergeOne`(0x1013adec4)/`MergeN`(0x1013ad5a4)/`MergeOneForPC`(0x1013adb20) 是**类型/flags/边界驱动的链式组合与回收机制**，不是简单"同词去重保高分"。⑦完整主路径：ProcessStroke→DecodeArcState→ProcessEmitDecode_common→_chn/_eng→ConstructDecodeNode→MergeOne/N→候选桶。含函数地址/大小、寄存器、数据结构偏移、文字 CFG、伪 C、Rime/笔画移植建议；rank 偏移/Merge 精确比较键/英文变体 bit 已标"待验证"未臆测 | 候选解码主路径 |
+| `notes/常用语面板_反汇编报告.md` | **工具→常用语 三合一面板（常用语/快捷回复/剪贴板）完整还原 + 快捷回复词句全量提取**：①容器架构=`UIPanelViewController`（`createBasePanelViewControllerWithType:` 0x1001ad9f8 跳转表按 type 创建子 VC），三个子 VC=常用语`UICommonPhrasePanelViewController`/快捷回复`UIGreetingPanelViewController`/剪贴板`UIClipboardPanelViewController`，`showPanelWithType:` 仅由容器内部调用（xref 2 处）。②快捷回复多子项=`UIQuickReplyPanel` 的 `cateList`(分类tab)+`localContentList`(词句列表)，`rebuildCategoryList`(0x1000052f0)/`rebuildContentList`(0x100004ff0)/`p_onMenuTapped:`(0x100005f18)/`list:didSelectAtIndex:isUserTouch:`(0x10000601c)。③数据源=`ss/quickReply.plist`，**AES-256-CBC** 加密（Key=`j9f7zblqg6hsm5t0e2dr3k1o4p8cxnvy` IV=`3y4k9j2zq8s0l1d6`），解密链 `ss_arrayWithContentsOfFile:`(0x100418b10)→`ss_dictionaryWithContentsOfFile:`(0x1004197c8)→`Cryptor`(0x10044b1d8)；QuickReplyItem 字段=title/uid/contents。④**快捷回复内置词句全量（7分类80句）**已提取：表白13/夸夸14/群聊10/打鸡血13/回复红包10/回复谢谢11/回复祝福9，见 `notes/快捷回复词句.txt` + `notes/quickReply.plist`。⑤常用语数据=`CommonPhraseDataManager` NSCoder 归档（用户自定义）+`p_defaultCommonPhrases` 默认数据。源码工程目录剪贴板 Swift 文件位于 `程序/UI层/面板/常用语面板/剪贴板/`，证实剪贴板为常用语面板子模块 | 常用语面板/快捷回复/剪贴板 |
 | `NOTES_业务模块与加密与模型_第五卷.md` | 第五卷（业务模块/加密机制/RNN 模型）：①主 App 五 Tab（首页/AI输入/Biu星球/百变人设/我的）+ Biu星球趣味发送模式包（biubiufun.ini 数据驱动）+ UGC 社区 + 账号体系（SRFAccountService/云备份）+ 会员支付（CBGPaySystem + XFPayCenter IAP 凭证缓存补单）+ 恋爱军师 VIP MVVM；②加密机制熵分析实证：**词库非 AES 级强加密**（96a4d21d0f 词典熵 5.31/6.09、52cd074a7a 小词典熵仅 1.51 几乎无加密，是自研紧凑二进制 + UTF-16LE + 音节索引，strings 读不出仅因 UTF-16）；RNN 模型 940e67abb4 熵 6.36/7.02 分块渐变（2.59→3.53→5.09）疑似量化+位变换非 zlib；加密工具链（IFlyEncryption XOR / IFlyZipData / DeliveryPlanUtil DES / ATMIUAESTool / ATRSANUtil RSA / HiSecret）；③ncnn RNN 结构：Qrnn+Qrnn_final 主排序、LstmLayer 四门、Embed、InstanceNorm/HardSigmoid/SELU/Softmax、MemoryData→Conv/Qrnn→Eltwise→Softmax；提取路径（hook pRnnInst_->Score 前资源解析 / ncnn 内存加载 dump / 反量化 neon_weight_int+vec_softmax_int_fix_imp）；④借鉴要点：趣味功能数据驱动、IAP 补单、灰度控制一切、词库保护用格式而非加密、量化模型防扒 | 第五卷 |
 | `phn_symbols.txt` | Phoenix 引擎 C++ 符号精选表（344 行）：核心类 ActiveInstImp/AssociateMgr/DecodeMgr/ResultMgr/InputParser/KeyLayout/LayoutImp/Res_mgr/Res_fuc；资源加载 RL* 系列（RLBaseDict/RLFstDict/RLRnn/RLSyllableMap/RLStrokeTable/RLSimpToTrad/RLUniPinyin/RLContactName/RLNamepTriggerTable/RLUserDict 等 20+ 类）+ Res* 参数类；RNN 门 DnnLayerIaa/Ias/Iff/Iss + LstmLayer 同名四门 + RnnInstFix/RnnInstFloat/RnnInstMgr；SEC_* 事件码（ACTE/ASSE/DECE/EPDE/IPTE/RLTE）；词法操作（ExpandParamMgr/ExpanderFactory/ResultArrange/ResultSort/ResultUnique/ResultScore）；C/D 后缀=构造/析构（逐类配对）；数值内核 calc_int/calc_weight_int/neon_weight_int/sigmoid/softmax/vec_softmax_int_fix_imp/tansion；音节批量处理 syllablebatch_*/syllablepath*/syllablesegment_*；FST 操作 arc_sort/arc_sort_by_score | 符号表 |
 
@@ -67,7 +69,15 @@ tools:
 # /var/minis/skills/iflytek-analysis/references/notes/RNN模型加载与格式_反汇编报告.md
 # /var/minis/skills/iflytek-analysis/references/notes/rnn_resloader_disasm.md
 # /var/minis/skills/iflytek-analysis/references/notes/候选解码主路径_反汇编报告.md
+# /var/minis/skills/iflytek-analysis/references/notes/RNN反量化算法_反汇编报告.md
+# /var/minis/skills/iflytek-analysis/references/notes/rnn_quant/*.asm（RNN 量化/GEMM 21 个反汇编中间产物）
+# /var/minis/skills/iflytek-analysis/references/notes/常用语面板_反汇编报告.md
+# /var/minis/skills/iflytek-analysis/references/notes/快捷回复词句.txt
+# /var/minis/skills/iflytek-analysis/references/notes/quickReply.plist
 # /var/minis/skills/iflytek-analysis/references/讯飞键盘布局反编译数据.md
+# /var/minis/skills/iflytek-analysis/references/讯飞皮肤数据总索引.md   ← 讯飞皮肤入口（涉及皮肤先读此文件）
+# /var/minis/skills/iflytek-analysis/references/讯飞键盘配色规格.md
+# /var/minis/skills/iflytek-analysis/references/skin/   ← 皮肤 color.ini（浅/深配色字段）+ theme_info.ini（多套主题）
 ```
 
 ---
@@ -139,6 +149,16 @@ score' = weight × (old_score / 102.4) + (1 − weight) × count + 0.5
 ### 10. 键盘布局反编译数据（2026-10-24 新增，跨会话可用，用于 0点输入法键盘还原）
 
 > ⭐ **全部坐标/尺寸/符号/CODE 均从 IPA 内 ini 文件真实提取，非看图推测。** 用户明确要求"先反编译再还原"，故此数据为还原键盘的唯一权威依据。
+> **涉及讯飞皮肤时，先读 `references/讯飞皮肤数据总索引.md`（一站式入口，索引全部皮肤/配色/布局/分析数据）。**
+
+#### 10a. 皮肤配色与主题系统（2026-10-24 新增，跨会话可用）
+- **皮肤总索引**：`references/讯飞皮肤数据总索引.md`（涉及皮肤先读此文件，含全部数据路径清单）
+- **配色规格**：`references/讯飞键盘配色规格.md`（6张参考图 PIL 像素采样，日夜两套精确 hex）
+- **皮肤配色系统 color.ini**：`references/skin/light_color.ini`(37KB) + `dark_color.ini`(20KB)（App 级配色字段定义，`[xxx.color] color_value=rrggbb`，含基础色/品牌色/容器/文本层级/按钮/导航/标签栏等）
+- **皮肤主题包 theme_info.ini**：`references/skin/{SystemTheme,white,black,NightShift,mutiletheme,mutiletheme_night,customedskin}_info.ini`（多套主题定义）
+- **原始路径**：`/var/minis/shared/myime/skin/`（同上，跨会话可读）
+
+#### 10b. 键盘布局坐标
 
 - **数据文件**：`references/讯飞键盘布局反编译数据.md`（跨会话用 `file_read` 直接读取）
 - **原始 ini**：`/var/minis/shared/myime/ime_res/`（`26enkey.ini` `bihuakey.ini` `symbolkey.ini`，从 IPA `主键盘布局/iOS系统布局/{375,428}/` 解压）
@@ -186,16 +206,54 @@ score' = weight × (old_score / 102.4) + (1 − weight) × count + 0.5
 
 ---
 
+## 📦 素材与产物归档清单（2026-10-24 完整归档，跨会话可调用）
+
+> 本技能 references/ 下**已完整归档**全部逆向分析产物（报告 + 反汇编 + 模型 + 工具脚本），跨会话直接 `file_read` 技能库路径即可调用，无需再访问 shared。大体积二进制/IPA/符号表保持 shared 持久目录（跨会话可读），路径见下。
+
+### 1. 反汇编报告（references/notes/，14 份）
+全部已入技能库：排序、排序闭环_RNN调频、联想预测、词库云同步、笔画规则引擎、笔画规则引擎_补全、英文预测与查询码、候选生产组装、候选解码主路径、RNN模型加载与格式、rnn_resloader_disasm、**常用语面板**、**RNN反量化算法** + 7 份卷文档。RNN 量化/GEMM 反汇编中间产物在 `rnn_quant/` 子目录（21 个 .asm）。完整索引见上方「参考资料索引」表。常用语面板目录下另有 `快捷回复词句.txt`（7分类80句全量）与 `quickReply.plist`（解密后 XML）。
+
+### 2. 解码主路径反汇编产物（references/notes/decodepath/，28 个文件）
+- 14 个函数 `.asm`（objdump 反汇编，vma 已调整）+ `.bin`（原始机器码）：
+  ProcessEmit / ProcessArcOut / ProcessArcOut_word / ProcessEmitDecode_cache / ProcessEmitDecode_common / ProcessEmitDecode_process_eng / ProcessEmitDecode_process_chn / ConstructDecodeNode / ConstructDecodeNodeInScene / MergeN / MergeOne / MergeOneForPC / CreateNode / SetInfo
+- 提取方法：`python3 /tmp/extract2.py <bin> <start_hex> <end_hex> <out.bin>`（file_offset = vaddr - 0x100004000 + 0x4000），`objdump -D -b binary -m aarch64 --adjust-vma=<函数地址>` 反汇编
+
+### 3. RNN 模型素材（references/rnn_model/，5 个文件）
+- `rnn_model_940e67abb4.bin`（4.2MB 模型原文件）
+- `rnn_load.asm`（RLRnn::load 反汇编 478 行）、`parse_matrix.bin`、`rnn_loadres_f.bin`、`rnn_start.bin`
+
+### 4. 函数裸机器码切片（references/backup_bin/，93 个 .bin）
+- 100+ 函数原始机器码（AIChatMessage_encode / AIInstructionRunner_run / RnnReScore / CalcCombineScore / ProcessStroke 等），objdump -b binary 直接反汇编
+
+### 5. 云同步反汇编（references/asms_cloud_sync.txt，245KB）
+- 云同步 15 函数反汇编全文（Lex_onSync / uploadData / downloadData / deleteData / cloud_prepare / merge / requestResponse 等）
+
+### 6. 反汇编工具脚本（references/tools/，6 个）
+- `dis.sh` / `dis.py` / `dis2.py` / `analyze_dis.py` / `batch_dis.py` / `objc_methods.py`（提取函数字节、批量反汇编、ObjC 方法定位）
+
+### 7. 键盘布局反编译数据（references/disasm_keyboard/，38 个文件 + references/讯飞键盘布局反编译数据.md）
+- 26键/笔画九宫格/符号面板 真实坐标与 CODE（详见第 10 节），配合 `/var/minis/shared/myime/ime_res/*.ini`
+
+### 8. 大体积素材（保持 shared 持久目录，跨会话可读，不复制进技能库）
+- `/var/minis/shared/iflytek_analysis/bin/iFlytekInput`（46MB，输入法扩展主二进制，SHA256 bfd785b4...c0f4）
+- `/var/minis/shared/iflytek_analysis/bin/iFlytekIME`（89MB，主 App 二进制，**含全部解码符号**，真实地址 0x1013exxxx 系）
+- `/var/minis/shared/iflytek_analysis/ipa/iflytek_v15.0.3606.ipa`（194MB 原始安装包）
+- `/var/minis/shared/iflytek_analysis/symbols/`（nm_all_full.txt 17MB、nm_demangled.txt 17MB、objc_selectors.txt 等 12 个）
+- `/var/minis/shared/iflytek_analysis/strings_all_full.txt`（15MB，349744 行全字符串）
+- `/var/minis/shared/iflytek_analysis/README_素材清单.md`（素材总清单）
+
+---
+
 ## 📚 参考资料（来源）
 
 - **来源**：用户上传《讯飞输入法核心机制分析（第一卷，记忆恢复版）》《讯飞输入法深度技术核心分析（第二卷）》《讯飞输入法核心机制全量分析（第三卷）》《讯飞输入法顺畅连贯技术路线（第四卷）》《讯飞输入法业务模块与加密与模型（第五卷）》+ `phn_symbols.txt`（Phoenix C++ 符号精选表）+ 会话逆向分析成果（通过 llvm-nm -C 定位符号、objdump 反汇编 iFlytekInput 二进制提取）
 - **目标二进制**：讯飞输入法 iOS v15.0.3606，`iFlytekIME.app/PlugIns/iFlytekInput.appex/iFlytekInput`（46MB Mach-O arm64）
 - **反编译方法**：`llvm-nm -C` 定位 vaddr → `extract_func.py <name> <vaddr_hex> <len_hex>` 按 fileoff（=vaddr-0x100000000）`dd` 提取 → `objdump -D -b binary -m aarch64 --adjust-vma=<vaddr>` 反汇编
 - **交叉核对/深度比对依据**：`/tmp/nm_all.txt`（31MB 全符号）+ `/tmp/strings_all.txt`（17MB 全字符串）+ `symbols/resfocused.txt`（ObjC selector）+ `backup_bin/*.bin`（原始机器码反汇编）
-- **创建日期**：2026-10-23；**版本**：1.11.0（新增「候选解码主路径」反汇编报告：ProcessEmitDecode_common 6字节词项遍历→中英文分流(+33 bit1)→ConstructDecodeNode→MergeOne/N 候选桶完整还原；1.10.0 新增 RNN 资源加载/文件读取反汇编实证：**模型明文读取不加密**，修正此前"解密在资源管理器"推断；1.9.0 含 RNN 模型加载链报告；1.8.0 含版本管理规则（版本号只增不减、内容只追加）；1.7.0 含笔画规则补全 + 候选生产组装 + 排序闭环 RNN 调频写入点 三份新报告；1.6.0 含第五卷 + phn_symbols.txt 符号精选表；1.5.0 含第三、四卷 + 反汇编核对结论 + 深度比对报告 + 联想预测/排序/词库云同步/笔画规则引擎/英文预测查询码 五份子代理报告）
+- **创建日期**：2026-10-23；**版本**：1.14.0（新增「RNN反量化算法」反汇编报告：**int8→float 反量化在运行时 GEMM 内核（非 Parser 层）**，`smull/sadalp` int32 定点累加 + `scvtf→fmadd acc×(scale_a×scale_b)±0.5→fcvtzs`，输出层 `clamp(round(查表×scale+0.5),0,127)`，含全部真实地址与 21 个反汇编产物 notes/rnn_quant/；1.13.0 新增「常用语面板」反汇编报告：工具→常用语三合一面板（常用语/快捷回复/剪贴板）容器架构 UIPanelViewController + createBasePanelViewControllerWithType 跳转表 + 快捷回复子项实现 + **ss/quickReply.plist AES-256-CBC 解密**（Key/IV 已确认）+ **快捷回复内置词句全量 7 分类 80 句提取**（notes/快捷回复词句.txt + notes/quickReply.plist）；1.12.0 新增「素材与产物归档清单」章节：全部反汇编产物/RNN模型/工具脚本完整归档进 references/，标注大体积素材路径跨会话可调用；1.11.0 新增「候选解码主路径」反汇编报告：ProcessEmitDecode_common 6字节词项遍历→中英文分流(+33 bit1)→ConstructDecodeNode→MergeOne/N 候选桶完整还原；1.10.0 新增 RNN 资源加载/文件读取反汇编实证：**模型明文读取不加密**，修正此前"解密在资源管理器"推断；1.9.0 含 RNN 模型加载链报告；1.8.0 含版本管理规则（版本号只增不减、内容只追加）；1.7.0 含笔画规则补全 + 候选生产组装 + 排序闭环 RNN 调频写入点 三份新报告；1.6.0 含第五卷 + phn_symbols.txt 符号精选表；1.5.0 含第三、四卷 + 反汇编核对结论 + 深度比对报告 + 联想预测/排序/词库云同步/笔画规则引擎/英文预测查询码 五份子代理报告）
 - **关联产物**：
   - `/var/minis/shared/iflytek_analysis/`（分析文档 + 完整 Mach-O 二进制 + 符号/字符串表 + backup_bin + 子代理报告 双保险副本）
-  - `/var/minis/skills/iflytek-analysis/references/`（本技能十二份文档）
+  - `/var/minis/skills/iflytek-analysis/references/`（本技能全部文档 + 报告 + 反汇编产物 + RNN 模型 + 工具脚本，含 notes/decodepath、backup_bin、rnn_model、tools、disasm_keyboard、asms_cloud_sync 等子目录，191+ 文件，完整归档）
 - **完整二进制**：`/var/minis/shared/iflytek_analysis/bin/iFlytekInput`（46MB，SHA256 bfd785b4...c0f4），IPA 源 `/var/minis/shared/iflytek_analysis/ipa/iflytek_v15.0.3606.ipa`（SHA256 8851769e...da8f）
 - **来源文档版本**：第一卷（记忆恢复版，7292B）；第二卷（用户上传 12000B）；第三卷（用户上传 14476B）；第四卷（用户上传 11582B）；第五卷（用户上传 10503B，2026-10-24）；phn_symbols.txt（用户上传 5530B / 344 行，2026-10-24）
 - **范围过滤**：第五卷与 phn_symbols.txt 均已核验为纯讯飞内容（Phoenix 符号/讯飞业务模块），无需剔除其它平台内容
