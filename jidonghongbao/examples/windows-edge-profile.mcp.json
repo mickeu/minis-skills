@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "jd-hongbao-browser": {
+      "command": "cmd.exe",
+      "args": [
+        "/d", "/c", "npx", "-y", "@playwright/mcp@0.0.83",
+        "--browser", "msedge",
+        "--user-data-dir", "C:/Users/YOUR_WINDOWS_USER/AppData/Local/jidonghongbao/browser-profile"
+      ]
+    }
+  }
+}

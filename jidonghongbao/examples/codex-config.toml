@@ -1,0 +1,16 @@
+# Codex CLI 浏览器 MCP 配置示例
+# 合并到 ~/.codex/config.toml（用户级）或项目根 config.toml，不要覆盖整个文件。
+# 等价快捷命令：codex mcp add jd-hongbao-browser -- npx -y @playwright/mcp@0.0.83 --extension
+# 两种方式只选一种，条目名不要重复。
+
+# 方式一：扩展连接现有 Edge／Chrome（复用日常浏览器登录，推荐）
+[mcp_servers.jd-hongbao-browser]
+command = "cmd.exe"
+args = ["/d", "/c", "npx", "-y", "@playwright/mcp@0.0.83", "--extension"]
+
+# 方式二：专用配置目录（单独保存京东登录）。与方式一同名互斥，启用时取消注释并替换用户名。
+# [mcp_servers.jd-hongbao-browser]
+# command = "cmd.exe"
+# args = ["/d", "/c", "npx", "-y", "@playwright/mcp@0.0.83",
+#         "--browser", "msedge",
+#         "--user-data-dir", "C:/Users/YOUR_WINDOWS_USER/AppData/Local/jidonghongbao/browser-profile"]

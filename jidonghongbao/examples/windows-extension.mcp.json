@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "jd-hongbao-browser": {
+      "command": "cmd.exe",
+      "args": ["/d", "/c", "npx", "-y", "@playwright/mcp@0.0.83", "--extension"]
+    }
+  }
+}
