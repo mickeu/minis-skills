@@ -39,3 +39,14 @@ __pycache__/
 
 # BG5CGQ 动态学习版 v8.0 安装包（大体积，本地保留）
 rime-wanxiang-ios/references/bg5cgq-dynamic/v8.0/*.zip
+
+# 敏感技能：只进 config-backup 私库，禁止被自动同步推到公开仓库
+erase-past/
+jailbreaks-prompts/
+iflytek-analysis/
+yuanshu-analysis/
+workbuddy-minis-ops/
+workbuddy2api-panel/
+teleagent-checkin/
+muse-invite-reverse/
+iflytek-surge-unlock/
