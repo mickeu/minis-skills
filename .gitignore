@@ -32,3 +32,10 @@ rime-wanxiang-ios/references/bg5cgq-dynamic/v7.6/predict.db
 rime-wanxiang-ios/references/bg5cgq-dynamic/v8.0/lua/words.lua
 rime-wanxiang-ios/references/bg5cgq-dynamic/v8.0/lua/phrase_stroke_index.lua
 rime-wanxiang-ios/references/bg5cgq-dynamic/v8.0/predict.db
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# BG5CGQ 动态学习版 v8.0 安装包（大体积，本地保留）
+rime-wanxiang-ios/references/bg5cgq-dynamic/v8.0/*.zip

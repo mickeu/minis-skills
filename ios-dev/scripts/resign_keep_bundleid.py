@@ -61,6 +61,7 @@ def main():
         ["openssl", "smime", "-inform", "DER", "-verify", "-noverify", "-in", PROFILE],
         capture_output=True).stdout
     ent = plistlib.loads(raw)["Entitlements"]
+    ent["com.apple.security.application-groups"] = ["group.W98A28M8HV.DF7vj"]
     ent_path = os.path.join(work, "ent.plist")
     with open(ent_path, "wb") as f:
         plistlib.dump(ent, f)
