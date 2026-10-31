@@ -56,3 +56,6 @@ ejin-dongle-removal/
 
 # ZCode 反代（逆向/内部工具，只进 config-backup 私库）
 zcode-minis-ops/
+
+# ZCode 额度查询（关联 ZCode 反代内部工具，只进 config-backup 私库）
+zcode-quota/
