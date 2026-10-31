@@ -53,3 +53,6 @@ iflytek-surge-unlock/
 pdd-video-download/
 dsh-purge/
 ejin-dongle-removal/
+
+# ZCode 反代（逆向/内部工具，只进 config-backup 私库）
+zcode-minis-ops/
